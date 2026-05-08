@@ -1,0 +1,25 @@
+{
+  "crons": [
+    {
+      "path": "/api/cron-check",
+      "schedule": "0 3 * * *"
+    }
+  ],
+  "functions": {
+    "api/ai/chat.js": {
+      "maxDuration": 30
+    },
+    "api/ai/extract.js": {
+      "maxDuration": 30
+    },
+    "api/ai/prefill.js": {
+      "maxDuration": 30
+    },
+    "api/send-reminder.js": {
+      "maxDuration": 15
+    },
+    "api/cron-check.js": {
+      "maxDuration": 60
+    }
+  }
+}

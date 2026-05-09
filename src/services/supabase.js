@@ -1,273 +1,120 @@
-/**
- * supabase.js
- * Supabase client + all auth, business, license, storage helpers.
- * Used directly by the frontend — no server proxy needed.
- */
-import { createClient } from '@supabase/supabase-js'
+import { createClient } from '@supabase/supabase-js';
 
-const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL
-const SUPABASE_ANON_KEY = import.meta.env.VITE_SUPABASE_ANON_KEY
+const rawUrl = import.meta.env.VITE_SUPABASE_URL || '';
+const rawKey = import.meta.env.VITE_SUPABASE_ANON_KEY || '';
 
-if (!SUPABASE_URL || !SUPABASE_ANON_KEY) {
-  console.error('[Supabase] Missing env vars: VITE_SUPABASE_URL or VITE_SUPABASE_ANON_KEY')
-}
+// Guard: Supabase v2 calls new URL() internally — crashes entire module if URL is invalid
+const safeUrl = rawUrl.startsWith('https://') ? rawUrl : 'https://placeholder.supabase.co';
+const safeKey = rawKey.length > 20 ? rawKey : 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.placeholder.placeholder';
 
-export const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
-  auth: {
-    autoRefreshToken: true,
-    persistSession: true,
-    detectSessionInUrl: true,
-  },
-})
+export const supabase = createClient(safeUrl, safeKey);
+export const isSupabaseConfigured = rawUrl.startsWith('https://') && rawKey.length > 20;
 
-// ─────────────────────────────────────────────────────────
-// AUTH HELPERS
-// ─────────────────────────────────────────────────────────
-
-/**
- * Send a 6-digit OTP to the given email address.
- * Uses Supabase Email OTP (no Twilio required).
- */
+// ── Auth ─────────────────────────────────────────────────────────────
 export async function signInWithOtp(email) {
-  const { data, error } = await supabase.auth.signInWithOtp({
+  const { error } = await supabase.auth.signInWithOtp({
     email,
-    options: { shouldCreateUser: true },
-  })
-  return { data, error }
+    options: {
+      shouldCreateUser: true,
+      emailRedirectTo: null, // force OTP code, not magic link
+    },
+  });
+  if (error) throw error;
 }
 
-/**
- * Verify the 6-digit OTP the user received by email.
- */
 export async function verifyOtp(email, token) {
-  const { data, error } = await supabase.auth.verifyOtp({
-    email,
-    token,
-    type: 'email',
-  })
-  return { data, error }
+  const { data, error } = await supabase.auth.verifyOtp({ email, token, type: 'email' });
+  if (error) throw error;
+  return data;
 }
 
-/**
- * Sign the current user out.
- */
 export async function signOut() {
-  const { error } = await supabase.auth.signOut()
-  return { error }
+  const { error } = await supabase.auth.signOut();
+  if (error) throw error;
 }
 
-/**
- * Get the currently authenticated user (or null).
- */
-export async function getUser() {
-  const { data: { user }, error } = await supabase.auth.getUser()
-  return { user, error }
+export async function getSession() {
+  const { data } = await supabase.auth.getSession();
+  return data?.session ?? null;
 }
 
-/**
- * Subscribe to auth state changes.
- * Returns the unsubscribe function.
- */
-export function onAuthStateChange(callback) {
-  const { data: { subscription } } = supabase.auth.onAuthStateChange(callback)
-  return () => subscription.unsubscribe()
-}
-
-// ─────────────────────────────────────────────────────────
-// BUSINESS HELPERS
-// ─────────────────────────────────────────────────────────
-
-/**
- * Create a new business profile for the authenticated user.
- */
+// ── Businesses ───────────────────────────────────────────────────────
 export async function createBusiness(data) {
-  const { data: { user } } = await supabase.auth.getUser()
-  if (!user) return { data: null, error: new Error('Not authenticated') }
-
-  const { data: business, error } = await supabase
-    .from('businesses')
-    .insert({ ...data, owner_id: user.id })
-    .select()
-    .single()
-
-  return { data: business, error }
+  const { data: biz, error } = await supabase.from('businesses').insert([data]).select().single();
+  if (error) throw error;
+  return biz;
 }
 
-/**
- * Fetch the business profile for the current user.
- */
-export async function getBusiness() {
-  const { data: { user } } = await supabase.auth.getUser()
-  if (!user) return { data: null, error: new Error('Not authenticated') }
-
-  const { data, error } = await supabase
-    .from('businesses')
-    .select('*')
-    .eq('owner_id', user.id)
-    .maybeSingle()
-
-  return { data, error }
+function getLocalToken() {
+  try {
+    const projectId = safeUrl.match(/https:\/\/(.+?)\.supabase\.co/)?.[1];
+    if (!projectId) return safeKey;
+    const sessionStr = localStorage.getItem(`sb-${projectId}-auth-token`);
+    if (sessionStr) {
+      const parsed = JSON.parse(sessionStr);
+      if (parsed?.access_token) return parsed.access_token;
+    }
+  } catch (e) {}
+  return safeKey;
 }
 
-/**
- * Update fields on the current user's business.
- */
+export async function getBusiness(userId) {
+  const token = getLocalToken();
+  const res = await fetch(`${safeUrl}/rest/v1/businesses?owner_id=eq.${userId}&order=created_at.desc&limit=1`, {
+    headers: {
+      'apikey': safeKey,
+      'Authorization': `Bearer ${token}`,
+    }
+  });
+  if (!res.ok) throw new Error('Failed to fetch business');
+  const data = await res.json();
+  return data.length > 0 ? data[0] : null;
+}
+
 export async function updateBusiness(id, updates) {
-  const { data, error } = await supabase
-    .from('businesses')
-    .update(updates)
-    .eq('id', id)
-    .select()
-    .single()
-
-  return { data, error }
+  const { data, error } = await supabase.from('businesses').update(updates).eq('id', id).select().single();
+  if (error) throw error;
+  return data;
 }
 
-// ─────────────────────────────────────────────────────────
-// LICENSE HELPERS
-// ─────────────────────────────────────────────────────────
-
-/**
- * Fetch all licenses for a business, sorted by expiry (soonest first).
- */
+// ── Licenses ─────────────────────────────────────────────────────────
 export async function getLicenses(businessId) {
-  const { data, error } = await supabase
-    .from('licenses')
-    .select('*')
-    .eq('business_id', businessId)
-    .order('expiry_date', { ascending: true })
-
-  return { data: data ?? [], error }
+  const token = getLocalToken();
+  const res = await fetch(`${safeUrl}/rest/v1/licenses?business_id=eq.${businessId}&order=expiry_date.asc`, {
+    headers: {
+      'apikey': safeKey,
+      'Authorization': `Bearer ${token}`,
+    }
+  });
+  if (!res.ok) throw new Error('Failed to fetch licenses');
+  return await res.json();
 }
 
-/**
- * Create a new license record.
- */
-export async function createLicense(licenseData) {
-  const { data, error } = await supabase
-    .from('licenses')
-    .insert(licenseData)
-    .select()
-    .single()
-
-  return { data, error }
+export async function createLicense(data) {
+  const { data: lic, error } = await supabase.from('licenses').insert([data]).select().single();
+  if (error) throw error;
+  return lic;
 }
 
-/**
- * Update fields on an existing license.
- */
 export async function updateLicense(id, updates) {
-  const { data, error } = await supabase
-    .from('licenses')
-    .update(updates)
-    .eq('id', id)
-    .select()
-    .single()
-
-  return { data, error }
+  const { data, error } = await supabase.from('licenses').update(updates).eq('id', id).select().single();
+  if (error) throw error;
+  return data;
 }
 
-/**
- * Delete a license by ID.
- */
 export async function deleteLicense(id) {
-  const { error } = await supabase.from('licenses').delete().eq('id', id)
-  return { error }
+  const { error } = await supabase.from('licenses').delete().eq('id', id);
+  if (error) throw error;
 }
 
-// ─────────────────────────────────────────────────────────
-// STORAGE HELPERS
-// ─────────────────────────────────────────────────────────
-
-/**
- * Upload a document file to Supabase Storage.
- * Files are stored under: {userId}/{licenseId}/{filename}
- */
-export async function uploadDocument(file, userId, licenseId) {
-  const ext = file.name.split('.').pop()
-  const path = `${userId}/${licenseId}/${Date.now()}.${ext}`
-
-  const { data, error } = await supabase.storage
-    .from('license-documents')
-    .upload(path, file, { upsert: true, contentType: file.type })
-
-  return { data, path, error }
+// ── Storage ──────────────────────────────────────────────────────────
+export async function uploadDocument(file, path) {
+  const { data, error } = await supabase.storage.from('license-docs').upload(path, file, { upsert: true });
+  if (error) throw error;
+  return data;
 }
 
-/**
- * Get a signed URL (1 hour) for a stored document.
- */
 export async function getDocumentUrl(path) {
-  const { data, error } = await supabase.storage
-    .from('license-documents')
-    .createSignedUrl(path, 3600)
-
-  return { url: data?.signedUrl ?? null, error }
-}
-
-// ─────────────────────────────────────────────────────────
-// REMINDER HELPERS
-// ─────────────────────────────────────────────────────────
-
-/**
- * Log a sent reminder to prevent duplicate sends.
- */
-export async function logReminder(licenseId, stage, channel = 'email') {
-  const { data, error } = await supabase
-    .from('reminders')
-    .insert({ license_id: licenseId, reminder_stage: stage, channel, status: 'sent' })
-    .select()
-    .single()
-
-  return { data, error }
-}
-
-/**
- * Get all reminder stages already sent for a license.
- * Returns an array of stage numbers: e.g. [60, 30]
- */
-export async function getRemindersSent(licenseId) {
-  const { data, error } = await supabase
-    .from('reminders')
-    .select('reminder_stage')
-    .eq('license_id', licenseId)
-    .eq('status', 'sent')
-
-  return { stages: data?.map((r) => r.reminder_stage) ?? [], error }
-}
-
-// ─────────────────────────────────────────────────────────
-// RENEWAL HELPERS
-// ─────────────────────────────────────────────────────────
-
-/**
- * Create a renewal record when user starts a renewal.
- */
-export async function createRenewal(licenseId, preFillData, checklist) {
-  const { data, error } = await supabase
-    .from('renewals')
-    .insert({
-      license_id: licenseId,
-      pre_filled_data: preFillData,
-      document_checklist: checklist,
-      status: 'in_progress',
-    })
-    .select()
-    .single()
-
-  return { data, error }
-}
-
-/**
- * Update a renewal record (e.g. mark completed).
- */
-export async function updateRenewal(id, updates) {
-  const { data, error } = await supabase
-    .from('renewals')
-    .update(updates)
-    .eq('id', id)
-    .select()
-    .single()
-
-  return { data, error }
+  const { data } = supabase.storage.from('license-docs').getPublicUrl(path);
+  return data.publicUrl;
 }

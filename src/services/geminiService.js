@@ -1,112 +1,109 @@
-/**
- * geminiService.js
- * Client-side wrappers that call our own /api/* Vercel routes.
- * Gemini API key stays server-side — never exposed to browser.
- */
+import { GoogleGenerativeAI } from '@google/generative-ai';
 
-const API_BASE = '/api'
+const API_KEY = import.meta.env.VITE_GEMINI_API_KEY || '';
+const genAI = API_KEY ? new GoogleGenerativeAI(API_KEY) : null;
+const getModel = (isJson = false) => genAI?.getGenerativeModel({ 
+  model: 'gemini-flash-latest',
+  ...(isJson && { generationConfig: { responseMimeType: 'application/json' } })
+});
 
-// ─────────────────────────────────────────────────────────
-// OCR TEXT → LICENSE JSON
-// ─────────────────────────────────────────────────────────
-
-/**
- * Send raw OCR text to /api/ai/extract and get structured license data back.
- * @param {string} ocrText - raw text from Tesseract
- * @returns {{ data: object, confidence: number, error: string|null }}
- */
 export async function extractLicenseFromText(ocrText) {
   try {
-    const res = await fetch(`${API_BASE}/ai/extract`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ ocrText }),
-    })
-    if (!res.ok) {
-      const err = await res.json().catch(() => ({}))
-      return { data: null, confidence: 0, error: err.error || `Server error ${res.status}` }
-    }
-    return await res.json()
+    const model = getModel(true);
+    if (!model) return { data: null, confidence: 0, error: 'Gemini not configured' };
+
+    const prompt = `You are an expert at reading Indian government license documents. Extract fields from the following OCR text and return a valid JSON object.
+Required JSON schema:
+{
+  "license_type": "FSSAI or FIRE_NOC or TRADE_LICENSE or SHOP_ESTABLISHMENT or EATING_HOUSE or GST or SIGNAGE or DRUG_LICENSE (Pick the closest one)",
+  "license_number": "extracted number, or empty string",
+  "issuing_authority": "extracted authority, or empty string",
+  "business_name": "extracted business name, or empty string",
+  "holder_name": "extracted owner name, or empty string",
+  "issue_date": "YYYY-MM-DD or empty string",
+  "expiry_date": "YYYY-MM-DD or empty string",
+  "address": "extracted address, or empty string",
+  "confidence": integer between 0 and 100 representing how clearly readable the document was
+}
+
+OCR Text:
+${ocrText}`;
+
+    const result = await model.generateContent(prompt);
+    const data = JSON.parse(result.response.text());
+    
+    // Normalize dates if they are not in YYYY-MM-DD
+    const normalizeDate = (d) => {
+      if (!d || d.trim() === '') return '';
+      // Let standard input type=date handle whatever if it's formatted right, else keep raw
+      return d;
+    };
+
+    return { 
+      data: {
+        ...data,
+        issue_date: normalizeDate(data.issue_date),
+        expiry_date: normalizeDate(data.expiry_date)
+      }, 
+      confidence: data.confidence || 50, 
+      error: null 
+    };
   } catch (err) {
-    return { data: null, confidence: 0, error: err.message }
+    console.error("Gemini Extraction Error:", err);
+    return { data: null, confidence: 0, error: err.message };
   }
 }
 
-// ─────────────────────────────────────────────────────────
-// RENEWAL FORM PRE-FILL
-// ─────────────────────────────────────────────────────────
-
-/**
- * Ask Gemini to pre-fill a renewal form given business profile + license type.
- * @param {object} businessProfile
- * @param {string} licenseType - e.g. 'FSSAI'
- * @returns {{ formFields, documentChecklist, renewalInstructions, estimatedTime, estimatedCost, error }}
- */
 export async function generateFormPrefill(businessProfile, licenseType) {
   try {
-    const res = await fetch(`${API_BASE}/ai/prefill`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ businessProfile, licenseType }),
-    })
-    if (!res.ok) {
-      const err = await res.json().catch(() => ({}))
-      return { data: null, error: err.error || `Server error ${res.status}` }
-    }
-    return await res.json()
+    const model = getModel(true);
+    if (!model) return { data: null, error: 'Gemini not configured' };
+
+    const prompt = `You are a compliance expert for Indian SMBs. Given the business profile and license type, generate a pre-filled renewal form as JSON. Return valid JSON matching this schema:
+{
+  "formFields": [{"fieldName": "string", "fieldValue": "string", "editable": boolean}],
+  "documentChecklist": ["string"],
+  "renewalInstructions": ["string"],
+  "estimatedTime": "string",
+  "estimatedCost": "string"
+}
+
+Business profile: ${JSON.stringify(businessProfile)}
+License type: ${licenseType}`;
+
+    const result = await model.generateContent(prompt);
+    const data = JSON.parse(result.response.text());
+    return { data, error: null };
   } catch (err) {
-    return { data: null, error: err.message }
+    return { data: null, error: err.message };
   }
 }
 
-// ─────────────────────────────────────────────────────────
-// STREAMING CHATBOT
-// ─────────────────────────────────────────────────────────
-
-/**
- * Stream a chat response from /api/ai/chat using Server-Sent Events.
- * Calls onChunk(text) for each streamed token.
- * Calls onDone() when the stream finishes.
- * Calls onError(err) on failure.
- *
- * @param {string} message
- * @param {object} businessContext
- * @param {Array<{role:'user'|'model', text:string}>} chatHistory
- * @param {{ onChunk, onDone, onError }} callbacks
- */
-export async function chatWithAI(message, businessContext, chatHistory, { onChunk, onDone, onError }) {
+export async function chatWithAI(message, businessContext, chatHistory, onChunk) {
   try {
-    const res = await fetch(`${API_BASE}/ai/chat`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ message, businessContext, chatHistory }),
-    })
-
-    if (!res.ok) {
-      const err = await res.json().catch(() => ({}))
-      onError(err.error || `Server error ${res.status}`)
-      return
+    const model = getModel();
+    if (!model) {
+      onChunk?.('Gemini AI is not configured. Please add your VITE_GEMINI_API_KEY to .env.local');
+      return;
     }
 
-    const reader = res.body.getReader()
-    const decoder = new TextDecoder()
+    const systemPrompt = `You are ComplianceAI's helpful assistant for Indian small business owners. You specialize in Indian business compliance, government licenses, penalties, and renewal procedures — specifically for Karnataka and Bengaluru. Always use INR (₹) for money. Be concise and practical. Current business: ${JSON.stringify(businessContext || {})}.`;
 
-    while (true) {
-      const { done, value } = await reader.read()
-      if (done) break
-      const chunk = decoder.decode(value, { stream: true })
-      // Parse SSE lines: "data: <text>\n\n"
-      const lines = chunk.split('\n')
-      for (const line of lines) {
-        if (line.startsWith('data: ')) {
-          const text = line.slice(6)
-          if (text === '[DONE]') { onDone(); return }
-          onChunk(text)
-        }
-      }
+    const history = (chatHistory || []).slice(-10).map(m => ({
+      role: m.role === 'model' ? 'model' : 'user',
+      parts: [{ text: m.content }],
+    }));
+
+    const chat = model.startChat({
+      history: [{ role: 'user', parts: [{ text: systemPrompt }] }, { role: 'model', parts: [{ text: 'Understood! I am ready to help with Indian business compliance questions.' }] }, ...history],
+    });
+
+    const result = await chat.sendMessageStream(message);
+    for await (const chunk of result.stream) {
+      const text = chunk.text();
+      if (text) onChunk?.(text);
     }
-    onDone()
   } catch (err) {
-    onError(err.message)
+    onChunk?.(`Error: ${err.message}`);
   }
 }

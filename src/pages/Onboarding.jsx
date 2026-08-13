@@ -182,7 +182,16 @@ export default function Onboarding() {
     setLoading(true);
     try {
       const { data: { user } } = await supabase.auth.getUser();
-      await createBusiness({ ...profile, business_type: businessType, owner_id: user.id, email: user.email, compliance_score: 100 });
+      await createBusiness({
+        business_name: profile.business_name,
+        owner_name: profile.owner_name,
+        phone: profile.phone,
+        address: profile.address,
+        cities: [`${profile.city}, ${profile.state}`],
+        business_type: businessType,
+        owner_id: user.id,
+        email: user.email
+      });
       localStorage.setItem('country', profile.country || 'USA');
       navigate('/dashboard', { replace: true });
       toast.success('Welcome to DockIt!');

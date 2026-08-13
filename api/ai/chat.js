@@ -9,18 +9,8 @@ import { GoogleGenerativeAI } from '@google/generative-ai'
 const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY)
 const model = genAI.getGenerativeModel({ model: 'gemini-1.5-flash' })
 
-const SYSTEM_INSTRUCTION = `You are ComplianceAI's helpful assistant for Indian small business owners.
-You specialize in Indian business compliance, government licenses, penalties, and renewal procedures — specifically for Karnataka and Bengaluru.
-
-Core rules:
-- Always use INR (₹) for money amounts
-- Be concise, practical, and action-oriented
-- Cite specific laws and sections when discussing penalties (e.g. FSS Act 2006 Section 63)
-- Give exact portal URLs when relevant (foscos.fssai.gov.in, bbmptax.karnataka.gov.in, etc.)
-- If asked about specific penalties, give exact amounts from Karnataka regulations
-- If you don't know something, say so honestly — don't guess
-- Use bullet points for lists of steps or documents
-- Keep responses under 200 words unless the user explicitly asks for detail`
+const SYSTEM_INSTRUCTION_BASE = `You are DockIt's helpful assistant for small business owners.
+You specialize in business compliance, government licenses, penalties, and renewal procedures.`;
 
 export default async function handler(req, res) {
   res.setHeader('Access-Control-Allow-Origin', '*')
@@ -35,17 +25,32 @@ export default async function handler(req, res) {
   if (!message) return res.status(400).json({ error: 'message is required' })
   if (!process.env.GEMINI_API_KEY) return res.status(500).json({ error: 'Gemini API key not configured' })
 
+  const country = businessContext?.country || 'USA';
+  const currencySymbol = country === 'India' ? 'INR (₹)' : 'USD ($)';
+
+  const systemInstruction = `${SYSTEM_INSTRUCTION_BASE} — specifically for ${country === 'India' ? 'India' : 'the USA'} (and the city/state in the business context).
+
+Core rules:
+- Always use ${currencySymbol} for money amounts
+- Be concise, practical, and action-oriented
+- Cite specific laws, regulations, or ordinances when discussing penalties
+- Give exact portal URLs when relevant
+- If asked about specific penalties, give exact amounts from the relevant local/state regulations
+- If you don't know something, say so honestly — don't guess
+- Use bullet points for lists of steps or documents
+- Keep responses under 200 words unless the user explicitly asks for detail`;
+
   // Build context-aware system prompt
   const systemPrompt = businessContext
-    ? `${SYSTEM_INSTRUCTION}\n\nCurrent business context:\n${JSON.stringify(businessContext, null, 2)}`
-    : SYSTEM_INSTRUCTION
+    ? `${systemInstruction}\n\nCurrent business context:\n${JSON.stringify(businessContext, null, 2)}`
+    : systemInstruction
 
   // Build Gemini conversation history (max last 10 messages)
   const recentHistory = chatHistory.slice(-10)
   const contents = [
     // Inject system instruction as first user/model pair
     { role: 'user', parts: [{ text: systemPrompt }] },
-    { role: 'model', parts: [{ text: 'Understood. I am ComplianceAI assistant, ready to help with Indian business compliance for Karnataka/Bengaluru.' }] },
+    { role: 'model', parts: [{ text: `Understood. I am DockIt assistant, ready to help with business compliance for ${country === 'India' ? 'India' : 'the USA'}.` }] },
     // Previous conversation
     ...recentHistory.map((msg) => ({
       role: msg.role === 'user' ? 'user' : 'model',

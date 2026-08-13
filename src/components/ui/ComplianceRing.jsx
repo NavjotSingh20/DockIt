@@ -6,7 +6,7 @@ export default function ComplianceRing({ score, size = 140, strokeWidth = 10 }) 
   const circ = 2 * Math.PI * radius;
   const offset = circ - (displayed / 100) * circ;
 
-  const color = score >= 80 ? '#16A34A' : score >= 60 ? '#1A56DB' : score >= 40 ? '#F59E0B' : '#DC2626';
+  const color = score >= 80 ? '#6B8F71' : score >= 60 ? '#D97706' : score >= 40 ? '#CA8A04' : '#C2410C';
   const grade = score >= 80 ? 'A' : score >= 60 ? 'B' : score >= 40 ? 'C' : 'D';
 
   useEffect(() => {
@@ -24,7 +24,7 @@ export default function ComplianceRing({ score, size = 140, strokeWidth = 10 }) 
   return (
     <div className="relative inline-flex items-center justify-center">
       <svg width={size} height={size} style={{ transform: 'rotate(-90deg)' }}>
-        <circle cx={size / 2} cy={size / 2} r={radius} fill="none" stroke="#E5E7EB" strokeWidth={strokeWidth} />
+        <circle cx={size / 2} cy={size / 2} r={radius} fill="none" stroke="#E7E0D5" strokeWidth={strokeWidth} />
         <circle
           cx={size / 2} cy={size / 2} r={radius} fill="none"
           stroke={color} strokeWidth={strokeWidth}
@@ -34,8 +34,8 @@ export default function ComplianceRing({ score, size = 140, strokeWidth = 10 }) 
         />
       </svg>
       <div className="absolute text-center">
-        <div className="text-3xl font-black" style={{ color }}>{displayed}</div>
-        <div className="text-xs font-bold text-gray-400">Grade {grade}</div>
+        <div className="text-3xl font-black font-display" style={{ color }}>{displayed}</div>
+        <div className="text-xs font-bold font-display text-ink-faint">Grade {grade}</div>
       </div>
     </div>
   );

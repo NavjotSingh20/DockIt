@@ -18,10 +18,10 @@ import EmptyState from '../components/ui/EmptyState';
 import ScanModal from '../components/features/ScanModal';
 import ChatBot from '../components/features/ChatBot';
 
-function StatCard({ label, value, color = 'text-blue-600', icon }) {
+function StatCard({ label, value, color = 'text-accent', icon }) {
   return (
-    <div className="bg-white rounded-2xl border border-gray-100 p-5">
-      <div className="text-xs font-bold text-gray-400 uppercase tracking-wide mb-2">{label}</div>
+    <div className="bg-surface rounded-2xl border border-rule p-5">
+      <div className="text-xs font-bold font-display text-ink-faint uppercase tracking-wide mb-2">{label}</div>
       <div className={`text-3xl font-black ${color}`}>{value}</div>
     </div>
   );
@@ -43,7 +43,7 @@ export default function Dashboard() {
 
   // If App.jsx is still loading the business, wait
   if (!isDemo && user && business === undefined) {
-    return <div className="p-8 text-center text-gray-500">Loading business profile...</div>;
+    return <div className="p-8 text-center text-ink-muted">Loading business profile...</div>;
   }
 
   const scoreData = calculateComplianceScore(licenses);
@@ -85,23 +85,41 @@ export default function Dashboard() {
     <div className="space-y-6 max-w-7xl mx-auto">
       {/* Header hero card */}
       <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }}
-        className="bg-[#0D1B2A] rounded-3xl p-6 md:p-8 flex flex-col md:flex-row items-start md:items-center justify-between gap-6">
+        className="bg-ink rounded-3xl p-6 md:p-8 flex flex-col md:flex-row items-start md:items-center justify-between gap-6">
         <div className="text-white">
-          <div className="text-blue-300 text-sm font-medium mb-1">{greeting} 👋</div>
-          <h1 className="text-2xl md:text-3xl font-black leading-tight">
+          <div className="text-accent-light text-sm font-display font-medium mb-1">{greeting} 👋</div>
+          <h1 className="text-2xl md:text-3xl font-bold font-display leading-tight">
             {business?.owner_name || 'Welcome back'}
           </h1>
-          <div className="text-gray-400 text-sm mt-1">{business?.business_name || 'Your Business'} · {business?.city || 'Bengaluru'}</div>
-          <div className="mt-3 flex items-center gap-2">
-            <span className={`text-sm font-semibold px-3 py-1 rounded-full ${scoreData.score >= 80 ? 'bg-green-900/50 text-green-300' : scoreData.score >= 60 ? 'bg-blue-900/50 text-blue-300' : scoreData.score >= 40 ? 'bg-amber-900/50 text-amber-300' : 'bg-red-900/50 text-red-300'}`}>
-              Grade {scoreData.grade} — {scoreData.message}
-            </span>
+          <div className="text-ink-faint text-sm mt-1">
+            {business?.business_name || 'Your Business'} · {business?.city || 'New York'}
+            {business?.state ? `, ${business.state}` : ''}
+            {business?.country ? ` (${business.country})` : ''}
           </div>
+          {licenses.length > 0 ? (
+            <div className="mt-3 flex items-center gap-2">
+              <span className={`text-sm font-semibold font-display px-3 py-1 rounded-full ${scoreData.score >= 80 ? 'bg-settled/20 text-settled-light' : scoreData.score >= 60 ? 'bg-accent/20 text-accent-light' : scoreData.score >= 40 ? 'bg-caution/20 text-yellow-200' : 'bg-danger/20 text-red-300'}`}>
+                Grade {scoreData.grade} — {scoreData.message}
+              </span>
+            </div>
+          ) : (
+            <div className="mt-3 text-xs text-ink-faint italic">
+              Add licenses below to generate compliance score.
+            </div>
+          )}
         </div>
-        <div className="flex-shrink-0 flex flex-col items-center gap-2">
-          <ComplianceRing score={scoreData.score} size={130} />
-          <div className="text-gray-400 text-xs">{t('dashboard.compliance_score')}</div>
-        </div>
+        {licenses.length > 0 ? (
+          <div className="flex-shrink-0 flex flex-col items-center gap-2">
+            <ComplianceRing score={scoreData.score} size={130} />
+            <div className="text-ink-faint text-xs">{t('dashboard.compliance_score')}</div>
+          </div>
+        ) : (
+          <div className="flex-shrink-0 flex flex-col items-center justify-center gap-1.5 bg-base/10 border border-rule/20 rounded-2xl p-4 text-center max-w-[170px]">
+            <div className="text-base/70 font-bold text-xs leading-normal">
+              Add Business Data to generate Compliance Score
+            </div>
+          </div>
+        )}
       </motion.div>
 
       {/* Alert banner */}
@@ -110,7 +128,7 @@ export default function Dashboard() {
           className="bg-red-50 border-2 border-red-200 rounded-2xl p-4 flex items-center justify-between">
           <div className="flex items-center gap-3">
             <div className="w-10 h-10 bg-red-100 rounded-xl flex items-center justify-center flex-shrink-0">
-              <AlertTriangle size={20} className="text-red-600" />
+              <AlertTriangle size={20} className="text-danger" />
             </div>
             <div>
               <div className="font-bold text-red-800 text-sm">⚠️ {summary.expired} {t('dashboard.alert_expired')} {formatCurrency(totalPenalty)}</div>
@@ -122,10 +140,10 @@ export default function Dashboard() {
 
       {/* Stats row */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-        <StatCard label={t('dashboard.total_licenses')} value={summary.total} color="text-blue-600" />
-        <StatCard label="Expired" value={summary.expired} color={summary.expired > 0 ? 'text-red-600' : 'text-gray-400'} />
-        <StatCard label="Expiring This Month" value={summary.expiringMonth} color={summary.expiringMonth > 0 ? 'text-amber-600' : 'text-gray-400'} />
-        <StatCard label={t('dashboard.compliant')} value={summary.active} color="text-green-600" />
+        <StatCard label={t('dashboard.total_licenses')} value={summary.total} color="text-accent" />
+        <StatCard label="Expired" value={summary.expired} color={summary.expired > 0 ? 'text-danger' : 'text-ink-faint'} />
+        <StatCard label="Expiring This Month" value={summary.expiringMonth} color={summary.expiringMonth > 0 ? 'text-caution' : 'text-ink-faint'} />
+        <StatCard label={t('dashboard.compliant')} value={summary.active} color="text-settled" />
       </div>
 
       {/* License grid */}
@@ -134,7 +152,7 @@ export default function Dashboard() {
           <h2 className="section-title">Your Licenses</h2>
           <div className="flex items-center gap-2">
             <select value={sort} onChange={e => setSort(e.target.value)}
-              className="text-sm border border-gray-200 rounded-xl px-3 py-2 outline-none focus:ring-2 focus:ring-blue-500 bg-white">
+              className="text-sm border border-rule rounded-xl px-3 py-2 outline-none focus:ring-2 focus:ring-accent bg-surface font-sans">
               <option value="urgent">Most Urgent</option>
               <option value="az">A–Z</option>
               <option value="recent">Recently Added</option>
@@ -170,7 +188,7 @@ export default function Dashboard() {
 
       {/* FAB */}
       <button onClick={() => setShowScan(true)}
-        className="fixed bottom-24 right-4 lg:bottom-8 lg:right-8 z-30 w-14 h-14 bg-blue-600 hover:bg-blue-700 text-white rounded-full shadow-xl flex items-center justify-center transition-all hover:scale-110">
+        className="fixed bottom-24 right-4 lg:bottom-8 lg:right-8 z-30 w-14 h-14 bg-accent hover:bg-accent-dark text-white rounded-full shadow-xl flex items-center justify-center transition-all hover:scale-110">
         <Camera size={24} />
       </button>
 

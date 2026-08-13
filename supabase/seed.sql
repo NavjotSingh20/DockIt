@@ -1,5 +1,5 @@
 -- ═══════════════════════════════════════════════════════════
--- ComplianceAI — Demo Seed Data
+-- DockIt — Demo Seed Data
 -- Run AFTER schema.sql
 -- Creates a demo business + 6 licenses for judge demonstration
 -- NOTE: Replace 'REPLACE_WITH_YOUR_AUTH_USER_ID' with a real
@@ -26,10 +26,10 @@ BEGIN
     'Rajesh Kumar',
     '+91 98765 43210',
     'rajesh@spicegarden.in',
-    '12, Indiranagar 100 Feet Road',
-    'Bengaluru',
-    'Karnataka',
-    '29AABCS1429B1Z1',
+    '12, Link Road, Andheri West',
+    'Mumbai',
+    'Maharashtra',
+    '27AABCS1429B1Z1',
     52
   ) ON CONFLICT (id) DO NOTHING;
 
@@ -52,11 +52,11 @@ BEGIN
     issue_date, expiry_date, status, confidence_score, renewal_portal_url
   ) VALUES (
     demo_biz_id, 'FIRE_NOC', 'KSFE-BLR-2024-8821',
-    'Karnataka State Fire and Emergency Services',
+    'Maharashtra Fire & Emergency Services',
     today - INTERVAL '357 days',
     today + INTERVAL '8 days',
     'expiring', 88,
-    'https://ksfe.karnataka.gov.in'
+    'https://mumbaimunicipal.gov.in'
   );
 
   -- ── License 3: Trade License — expires in 23 days ────────
@@ -65,11 +65,11 @@ BEGIN
     issue_date, expiry_date, status, confidence_score, renewal_portal_url
   ) VALUES (
     demo_biz_id, 'TRADE_LICENSE', 'BBMP-TL-2024-445521',
-    'BBMP (Bruhat Bengaluru Mahanagara Palike)',
+    'BMC (Brihatmumbai Municipal Corporation)',
     today - INTERVAL '342 days',
     today + INTERVAL '23 days',
     'expiring', 92,
-    'https://bbmptax.karnataka.gov.in'
+    'https://portal.mcgm.gov.in'
   );
 
   -- ── License 4: Shop & Establishment — expires in 52 days ─
@@ -78,11 +78,11 @@ BEGIN
     issue_date, expiry_date, status, confidence_score, renewal_portal_url
   ) VALUES (
     demo_biz_id, 'SHOP_ESTABLISHMENT', 'KLAB-SE-2024-112233',
-    'Karnataka Labour Department',
+    'Maharashtra Labour Department',
     today - INTERVAL '313 days',
     today + INTERVAL '52 days',
     'expiring', 85,
-    'https://labour.karnataka.gov.in'
+    'https://mahashramm.gov.in'
   );
 
   -- ── License 5: GST — expires in 240 days ─────────────────
@@ -104,11 +104,11 @@ BEGIN
     issue_date, expiry_date, status, confidence_score, renewal_portal_url
   ) VALUES (
     demo_biz_id, 'EATING_HOUSE', 'BCP-EH-2024-33445',
-    'Bengaluru City Police',
+    'Mumbai City Police',
     today - INTERVAL '185 days',
     today + INTERVAL '180 days',
     'active', 91,
-    'https://bengalurupolice.karnataka.gov.in'
+    'https://mumbaipolice.gov.in'
   );
 
   RAISE NOTICE 'Demo data seeded successfully for business: %', demo_biz_id;

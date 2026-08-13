@@ -5,12 +5,7 @@ import { FileDown, ExternalLink, CheckSquare, Square, Loader2 } from 'lucide-rea
 import { generateFormPrefill } from '../../services/geminiService';
 import { generateRenewalPDF } from '../../services/pdfService';
 import { getLicenseById } from '../../utils/licenseTypes';
-import { motion } from 'framer-motion';
-import toast from 'react-hot-toast';
-import { FileDown, ExternalLink, CheckSquare, Square, Loader2 } from 'lucide-react';
-import { generateFormPrefill } from '../../services/geminiService';
-import { generateRenewalPDF } from '../../services/pdfService';
-import { getLicenseById } from '../../utils/licenseTypes';
+
 
 export default function RenewalForm({ license, business }) {
   const [loading, setLoading] = useState(false);

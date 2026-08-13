@@ -37,3 +37,6 @@ pnpm-debug.log*
 # Local Supabase
 supabase/.branches
 supabase/.temp
+
+# Local agent configs
+.agents/

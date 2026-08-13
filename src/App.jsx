@@ -14,9 +14,9 @@ function ProtectedRoute({ children }) {
   const { user, loading } = useAuth();
   const { isDemo } = useDemo();
   if (loading) return (
-    <div className="min-h-screen flex items-center justify-center bg-gray-50">
+    <div className="min-h-screen flex items-center justify-center bg-base">
       <div className="space-y-3 text-center">
-        <div className="w-12 h-12 bg-blue-600 rounded-2xl mx-auto skeleton" />
+        <div className="w-12 h-12 bg-accent rounded-2xl mx-auto skeleton" />
         <div className="skeleton h-4 w-32 mx-auto rounded" />
       </div>
     </div>

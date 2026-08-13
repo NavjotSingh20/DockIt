@@ -1,4 +1,4 @@
-# ComplianceAI — Backend API Contract
+# DockIt — Backend API Contract
 
 > **For frontend team use.** Every `/api/*` endpoint, its exact request shape, response shape, and error codes.  
 > Base URL (local): `http://localhost:3000` | Base URL (prod): `https://your-app.vercel.app`
@@ -93,10 +93,10 @@ Generate a pre-filled renewal form for any license type using Gemini AI.
     "owner_name": "Rajesh Kumar",
     "phone": "+91 98765 43210",
     "email": "rajesh@spicegarden.in",
-    "address": "12, Indiranagar 100 Feet Road",
-    "city": "Bengaluru",
-    "state": "Karnataka",
-    "gstin": "29AABCS1429B1Z1"
+    "address": "12, Link Road, Andheri West",
+    "city": "Mumbai",
+    "state": "Maharashtra",
+    "gstin": "27AABCS1429B1Z1"
   },
   "licenseType": "FSSAI"
 }
@@ -115,7 +115,7 @@ Generate a pre-filled renewal form for any license type using Gemini AI.
     { "fieldName": "Name of Food Business Operator", "fieldValue": "Spice Garden Restaurant", "editable": false },
     { "fieldName": "Proprietor Name", "fieldValue": "Rajesh Kumar", "editable": true },
     { "fieldName": "Business Category", "fieldValue": "Restaurant/Hotel", "editable": true },
-    { "fieldName": "Premises Address", "fieldValue": "12, Indiranagar 100 Feet Road, Bengaluru", "editable": true }
+    { "fieldName": "Premises Address", "fieldValue": "12, Link Road, Andheri West, Mumbai", "editable": true }
   ],
   "documentChecklist": [
     "Previous FSSAI License copy",
@@ -154,7 +154,7 @@ Streaming compliance chatbot using Gemini + Server-Sent Events (SSE).
   "businessContext": {
     "business_name": "Spice Garden Restaurant",
     "business_type": "Restaurant",
-    "city": "Bengaluru"
+    "city": "Mumbai"
   },
   "chatHistory": [
     { "role": "user", "text": "Hello" },
@@ -326,4 +326,4 @@ All helpers return `{ data, error }` following the Supabase convention.
 
 ---
 
-*Last updated: May 2025 — ComplianceAI Backend v1.0*
+*Last updated: May 2025 — DockIt Backend v1.0*

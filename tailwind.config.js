@@ -8,35 +8,46 @@ export default {
   theme: {
     extend: {
       colors: {
-        primary: {
-          DEFAULT: '#1A56DB',
-          dark: '#1040B0',
-          light: '#EBF5FF',
-        },
-        navy: {
-          DEFAULT: '#0D1B2A',
-          800: '#162233',
-          700: '#1e3048',
-        },
-        success: '#16A34A',
-        warning: '#F59E0B',
-        danger: '#DC2626',
-        neutral: '#6B7280',
-        bg: '#F8FAFC',
-        card: '#FFFFFF',
-        border: '#E5E7EB',
+        // DockIt design system — SKILL.md compliant
+        // Warm neutral base, one sharp accent, status tones
+        base: '#F5F2EB',
+        'base-dark': '#EDE9E0',
+        ink: '#1C1917',
+        'ink-muted': '#57534E',
+        'ink-faint': '#A8A29E',
+        accent: '#D97706',
+        'accent-dark': '#B45309',
+        'accent-light': '#FEF3C7',
+        caution: '#CA8A04',
+        settled: '#6B8F71',
+        'settled-light': '#E8F0EA',
+        surface: '#FEFDFB',
+        rule: '#E7E0D5',
+        'rule-dark': '#D6CFC4',
+
+        // Keep old tokens as aliases so other pages don't break
+        primary: { DEFAULT: '#D97706', dark: '#B45309', light: '#FEF3C7' },
+        navy: { DEFAULT: '#1C1917', 800: '#292524', 700: '#44403C' },
+        success: '#6B8F71',
+        warning: '#CA8A04',
+        danger: '#C2410C',
+        neutral: '#78716C',
+        bg: '#F5F2EB',
+        card: '#FEFDFB',
+        border: '#E7E0D5',
       },
       fontFamily: {
-        sans: ['Inter', 'system-ui', 'sans-serif'],
+        display: ['"Space Grotesk"', 'system-ui', 'sans-serif'],
+        sans: ['"DM Sans"', 'system-ui', 'sans-serif'],
       },
       borderRadius: {
         '2xl': '1rem',
         '3xl': '1.5rem',
       },
       boxShadow: {
-        card: '0 1px 3px rgba(0,0,0,0.06), 0 1px 2px rgba(0,0,0,0.04)',
-        'card-hover': '0 10px 25px rgba(0,0,0,0.10)',
-        glow: '0 0 20px rgba(26,86,219,0.3)',
+        card: '0 1px 3px rgba(28,25,23,0.05), 0 1px 2px rgba(28,25,23,0.03)',
+        'card-hover': '0 8px 24px rgba(28,25,23,0.08)',
+        glow: '0 0 20px rgba(217,119,6,0.2)',
       },
       animation: {
         'pulse-slow': 'pulse 3s cubic-bezier(0.4, 0, 0.6, 1) infinite',

@@ -5,7 +5,7 @@
  * Response:  { success: boolean, messageId: string|null, error: string|null }
  */
 
-function buildEmailHtml({ ownerName, licenseName, daysLeft, expiryDate, penalty, renewalUrl }) {
+function buildEmailHtml({ ownerName, licenseName, daysLeft, expiryDate, penalty, renewalUrl, country = 'USA' }) {
   const isOverdue = daysLeft < 0
   const isUrgent = daysLeft <= 7
   const statusColor = isOverdue ? '#DC2626' : isUrgent ? '#F59E0B' : '#1A56DB'
@@ -13,8 +13,10 @@ function buildEmailHtml({ ownerName, licenseName, daysLeft, expiryDate, penalty,
     ? `EXPIRED ${Math.abs(daysLeft)} days ago`
     : `Expires in ${daysLeft} day${daysLeft === 1 ? '' : 's'}`
 
+  const currencySymbol = country === 'India' ? '₹' : '$'
+  const formatCode = country === 'India' ? 'en-IN' : 'en-US'
   const penaltyText = penalty > 0
-    ? `₹${new Intl.NumberFormat('en-IN').format(penalty)}`
+    ? `${currencySymbol}${new Intl.NumberFormat(formatCode).format(penalty)}`
     : 'Penalties may apply'
 
   return `<!DOCTYPE html>
@@ -22,7 +24,7 @@ function buildEmailHtml({ ownerName, licenseName, daysLeft, expiryDate, penalty,
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width,initial-scale=1.0">
-  <title>License Renewal Alert — ComplianceAI</title>
+  <title>License Renewal Alert — DockIt</title>
 </head>
 <body style="margin:0;padding:0;background:#F8FAFC;font-family:'Segoe UI',Arial,sans-serif;">
   <table width="100%" cellpadding="0" cellspacing="0" style="background:#F8FAFC;padding:32px 16px;">
@@ -35,8 +37,8 @@ function buildEmailHtml({ ownerName, licenseName, daysLeft, expiryDate, penalty,
             <table width="100%" cellpadding="0" cellspacing="0">
               <tr>
                 <td>
-                  <span style="color:#FFFFFF;font-size:22px;font-weight:800;letter-spacing:-0.5px;">ComplianceAI</span>
-                  <span style="color:#6B9EC7;font-size:13px;display:block;margin-top:2px;">Smart License Management for Indian Businesses</span>
+                  <span style="color:#FFFFFF;font-size:22px;font-weight:800;letter-spacing:-0.5px;">DockIt</span>
+                  <span style="color:#6B9EC7;font-size:13px;display:block;margin-top:2px;">Smart License Management for Businesses</span>
                 </td>
                 <td align="right">
                   <span style="background:#1A56DB;color:#fff;padding:6px 14px;border-radius:20px;font-size:12px;font-weight:600;">License Alert</span>
@@ -83,7 +85,7 @@ function buildEmailHtml({ ownerName, licenseName, daysLeft, expiryDate, penalty,
             <div style="background:#FEF2F2;border:1px solid #FECACA;border-radius:10px;padding:16px 20px;margin-bottom:28px;">
               <p style="color:#991B1B;font-size:14px;margin:0;font-weight:600;">⚠️ Important</p>
               <p style="color:#DC2626;font-size:13px;margin:8px 0 0;">
-                Operating without a valid ${licenseName} can result in fines, forced closure, and criminal proceedings under Karnataka law.
+                Operating without a valid ${licenseName} can result in fines, forced closure, and regulatory proceedings under local regulations.
                 ${penalty > 0 ? `Current penalty exposure: <strong>${penaltyText}</strong>.` : ''}
               </p>
             </div>
@@ -96,7 +98,7 @@ function buildEmailHtml({ ownerName, licenseName, daysLeft, expiryDate, penalty,
             </div>
 
             <p style="color:#6B7280;font-size:13px;margin:0;">
-              You can also manage all your licenses at <a href="https://complianceai.vercel.app" style="color:#1A56DB;">ComplianceAI Dashboard</a>
+              You can also manage all your licenses at <a href="https://complianceai.vercel.app" style="color:#1A56DB;">DockIt Dashboard</a>
             </p>
           </td>
         </tr>
@@ -105,7 +107,7 @@ function buildEmailHtml({ ownerName, licenseName, daysLeft, expiryDate, penalty,
         <tr>
           <td style="background:#F8FAFC;padding:20px 36px;border-top:1px solid #E5E7EB;">
             <p style="color:#9CA3AF;font-size:12px;margin:0;text-align:center;">
-              Sent by ComplianceAI — protecting Indian businesses.<br>
+              Sent by DockIt — protecting small businesses.<br>
               This is an automated compliance alert. To unsubscribe, update your settings in the dashboard.
             </p>
           </td>
@@ -126,7 +128,7 @@ export default async function handler(req, res) {
   if (req.method === 'OPTIONS') return res.status(200).end()
   if (req.method !== 'POST') return res.status(405).json({ error: 'Method not allowed' })
 
-  const { to, ownerName, licenseName, daysLeft, expiryDate, penalty, renewalUrl } = req.body || {}
+  const { to, ownerName, licenseName, daysLeft, expiryDate, penalty, renewalUrl, country = 'USA' } = req.body || {}
 
   if (!to || !ownerName || !licenseName) {
     return res.status(400).json({ success: false, error: 'to, ownerName, and licenseName are required' })
@@ -136,8 +138,10 @@ export default async function handler(req, res) {
     return res.status(500).json({ success: false, error: 'Resend API key not configured' })
   }
 
+  const currencySymbol = country === 'India' ? '₹' : '$'
+  const formatCode = country === 'India' ? 'en-IN' : 'en-US'
   const subject = daysLeft < 0
-    ? `🚨 EXPIRED: ${licenseName} — Act Now to Avoid ₹${(penalty || 0).toLocaleString('en-IN')} Penalty`
+    ? `🚨 EXPIRED: ${licenseName} — Act Now to Avoid ${currencySymbol}${(penalty || 0).toLocaleString(formatCode)} Penalty`
     : `⚠️ ${licenseName} expires in ${daysLeft} day${daysLeft === 1 ? '' : 's'} — Renew Now`
 
   try {
@@ -148,10 +152,10 @@ export default async function handler(req, res) {
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        from: 'ComplianceAI <alerts@resend.dev>',
+        from: 'DockIt <alerts@resend.dev>',
         to: [to],
         subject,
-        html: buildEmailHtml({ ownerName, licenseName, daysLeft, expiryDate, penalty, renewalUrl }),
+        html: buildEmailHtml({ ownerName, licenseName, daysLeft, expiryDate, penalty, renewalUrl, country }),
       }),
     })
 

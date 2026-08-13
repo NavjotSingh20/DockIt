@@ -14,11 +14,18 @@ export default function AppLayout() {
   const [business, setBusiness] = useState(isDemo ? demoBusiness : undefined);
 
   useEffect(() => {
-    if (isDemo) { setBusiness(demoBusiness); return; }
+    if (isDemo) { 
+      setBusiness(demoBusiness); 
+      localStorage.setItem('country', demoBusiness?.country || 'India');
+      return; 
+    }
     if (user) {
       getBusiness(user.id)
         .then(biz => {
-          if (biz) setBusiness(biz);
+          if (biz) {
+            setBusiness(biz);
+            localStorage.setItem('country', biz.country || 'India');
+          }
           else {
             setBusiness(null);
             window.location.href = '/onboard';
@@ -33,14 +40,14 @@ export default function AppLayout() {
   }, [user, isDemo, navigate]);
 
   return (
-    <div className="flex min-h-screen bg-gray-50">
+    <div className="flex min-h-screen bg-base">
       <Sidebar business={business} />
       <div className="flex-1 lg:ml-64 flex flex-col">
         {/* Demo Banner */}
         {isDemo && (
-          <div className="bg-blue-600 text-white text-sm font-medium px-4 py-2.5 flex items-center justify-between">
-            <span>📊 Demo Mode — Sample restaurant data loaded. No real data is being saved.</span>
-            <button onClick={() => { exitDemo(); navigate('/'); }} className="flex items-center gap-1 text-blue-200 hover:text-white text-xs">
+          <div className="bg-accent text-white text-sm font-display font-medium px-4 py-2.5 flex items-center justify-between">
+            <span>📊 Demo Mode — Sample data loaded. No real data is being saved.</span>
+            <button onClick={() => { exitDemo(); navigate('/'); }} className="flex items-center gap-1 text-white/70 hover:text-white text-xs">
               <X size={14} /> Exit Demo
             </button>
           </div>

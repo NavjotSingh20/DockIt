@@ -24,10 +24,10 @@ export function AuthProvider({ children }) {
       setLoading(false);
 
       if (event === 'SIGNED_IN' && currentUser) {
-        // If user is already on /onboard, let Onboarding.jsx control its own step flow
-        if (window.location.pathname === '/onboard') return;
+        // Only redirect if user is currently on landing or onboarding routes
+        const path = window.location.pathname;
+        if (path !== '/' && path !== '/onboard') return;
 
-        // Otherwise navigate based on whether they have a business profile
         try {
           const biz = await getBusiness(currentUser.id);
           navigate(biz ? '/dashboard' : '/onboard', { replace: true });

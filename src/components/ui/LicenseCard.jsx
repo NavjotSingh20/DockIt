@@ -53,7 +53,7 @@ export default function LicenseCard({ license, onRenew }) {
       animate={{ opacity: 1, y: 0 }}
       whileHover={{ y: -4, boxShadow: '0 8px 30px rgba(28,25,23,0.08)' }}
       transition={{ duration: 0.2 }}
-      className={`bg-surface rounded-2xl border-2 ${borderColor} ${bgColor} p-5 flex flex-col gap-3 ${isExpiring && !isExpired ? 'expiring-pulse' : ''}`}
+      className={`h-full bg-surface rounded-2xl border-2 ${borderColor} ${bgColor} p-5 flex flex-col gap-3 ${isExpiring && !isExpired ? 'expiring-pulse' : ''}`}
     >
       {/* Header */}
       <div className="flex items-start justify-between gap-2">

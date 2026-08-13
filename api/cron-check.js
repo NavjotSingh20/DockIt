@@ -1,7 +1,7 @@
 /**
  * /api/cron-check.js
  * Vercel Cron Job — runs daily at 9 AM IST (3:30 AM UTC).
- * Checks ALL users' licenses and sends reminder emails at 60/30/7/1 day milestones.
+ * Checks ALL users' checklists and sends reminder emails at 60/30/7/1 day milestones.
  * Protected by CRON_SECRET header to prevent unauthorized calls.
  *
  * Schedule defined in vercel.json: "0 3 * * *"
@@ -10,8 +10,8 @@ import { createClient } from '@supabase/supabase-js'
 
 // Service role client — bypasses RLS to read all users' data
 const supabaseAdmin = createClient(
-  process.env.VITE_SUPABASE_URL,
-  process.env.SUPABASE_SERVICE_ROLE_KEY, // add this to Vercel env vars
+  process.env.VITE_SUPABASE_URL || '',
+  process.env.SUPABASE_SERVICE_ROLE_KEY || '', // add this to Vercel env vars
   { auth: { autoRefreshToken: false, persistSession: false } }
 )
 
@@ -43,36 +43,41 @@ export default async function handler(req, res) {
     const today = new Date()
     today.setHours(0, 0, 0, 0)
 
-    // 1. Fetch all licenses expiring within 65 days (includes overdue)
-    const { data: licenses, error: licErr } = await supabaseAdmin
-      .from('licenses')
+    // 1. Fetch all business requirements expiring within 65 days
+    const { data: businessRequirements, error: licErr } = await supabaseAdmin
+      .from('business_requirements')
       .select(`
         id,
-        license_type,
-        expiry_date,
         status,
-        renewal_portal_url,
+        expiry_date,
+        license_number,
+        issuing_authority,
+        requirement:requirements(
+          requirement_name,
+          legacy_type_id,
+          source_url
+        ),
         businesses (
           owner_name,
           email,
-          business_name,
-          country
+          business_name
         )
       `)
       .lte('expiry_date', new Date(today.getTime() + 65 * 86400000).toISOString().split('T')[0])
-      .neq('status', 'unknown')
+      .neq('status', 'waived')
 
     if (licErr) throw new Error(`Supabase query failed: ${licErr.message}`)
-    if (!licenses?.length) {
-      return res.status(200).json({ ...results, message: 'No licenses due for reminders' })
+    if (!businessRequirements?.length) {
+      return res.status(200).json({ ...results, message: 'No requirements due for reminders' })
     }
 
-    // 2. Process each license
-    for (const lic of licenses) {
-      const biz = lic.businesses
+    // 2. Process each requirement
+    for (const br of businessRequirements) {
+      const biz = br.businesses
       if (!biz?.email) { results.skipped++; continue }
+      if (!br.expiry_date) { results.skipped++; continue }
 
-      const expiry = new Date(lic.expiry_date)
+      const expiry = new Date(br.expiry_date)
       expiry.setHours(0, 0, 0, 0)
       const daysLeft = Math.ceil((expiry - today) / 86400000)
 
@@ -85,7 +90,7 @@ export default async function handler(req, res) {
       const { data: sentRows } = await supabaseAdmin
         .from('reminders')
         .select('reminder_stage')
-        .eq('license_id', lic.id)
+        .eq('business_requirement_id', br.id)
         .eq('status', 'sent')
 
       const sentStages = sentRows?.map((r) => r.reminder_stage) ?? []
@@ -101,34 +106,37 @@ export default async function handler(req, res) {
 
       if (!stageToSend) { results.skipped++; continue }
 
+      const reqName = br.requirement?.requirement_name || 'License'
+      const country = biz.email.endsWith('.in') ? 'India' : 'USA'
+
       // 4. Send the email
       try {
         const sent = await sendEmail({
           to: biz.email,
           ownerName: biz.owner_name,
-          licenseName: lic.license_type,
+          licenseName: reqName,
           daysLeft,
-          expiryDate: lic.expiry_date,
-          penalty: 0, // simplified — full calc available via penaltyRules
-          renewalUrl: lic.renewal_portal_url || (biz?.country === 'India' ? 'https://india.gov.in' : 'https://usa.gov'),
-          country: biz?.country || 'USA',
+          expiryDate: br.expiry_date,
+          penalty: 0,
+          renewalUrl: br.requirement?.source_url || (country === 'India' ? 'https://india.gov.in' : 'https://usa.gov'),
+          country,
         })
 
         if (sent) {
           // 5. Log the sent reminder
           await supabaseAdmin.from('reminders').insert({
-            license_id: lic.id,
+            business_requirement_id: br.id,
             reminder_stage: stageToSend,
             channel: 'email',
             status: 'sent',
           })
           results.sent++
-          results.details.push({ license: lic.license_type, to: biz.email, stage: stageToSend, daysLeft })
+          results.details.push({ license: reqName, to: biz.email, stage: stageToSend, daysLeft })
         } else {
           results.errors++
         }
       } catch (emailErr) {
-        console.error(`[cron-check] Email failed for license ${lic.id}:`, emailErr)
+        console.error(`[cron-check] Email failed for business requirement ${br.id}:`, emailErr)
         results.errors++
       }
     }

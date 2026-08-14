@@ -92,19 +92,36 @@ export async function updateBusiness(id, updates) {
 
 // ── Requirements (master catalog) ────────────────────────────────────
 export async function getRequirements(businessType, cities = []) {
-  let query = supabase
-    .from('requirements')
-    .select('*')
-    .eq('business_type', businessType);
-
-  if (cities.length > 0) {
-    query = query.in('city', cities);
+  // If no cities specified, fetch all for businessType
+  if (!cities || cities.length === 0) {
+    const { data, error } = await supabase
+      .from('requirements')
+      .select('*')
+      .ilike('business_type', businessType)
+      .order('requirement_name');
+    if (error) throw error;
+    return data || [];
   }
 
-  const { data, error } = await query.order('requirement_name');
+  // To avoid PostgREST parsing errors with commas in OR/IN clauses,
+  // we fetch all items for the business type and filter client-side.
+  // This is safe since the master catalog per business_type is small.
+  const { data, error } = await supabase
+    .from('requirements')
+    .select('*')
+    .ilike('business_type', businessType)
+    .order('requirement_name');
+
   if (error) throw error;
-  return data || [];
+
+  const lowerCities = cities.map(c => c.toLowerCase());
+  
+  return (data || []).filter(r => 
+    r.jurisdiction_level?.toLowerCase() === 'federal' ||
+    lowerCities.some(c => r.city?.toLowerCase() === c || c.includes(r.city?.toLowerCase()))
+  );
 }
+
 
 // ── Business Requirements (per-business checklist) ───────────────────
 export async function getBusinessRequirements(businessId) {

@@ -1,5 +1,5 @@
 {
-  "nav": { "dashboard": "Dashboard", "analytics": "Analytics", "settings": "Settings", "sign_out": "Sign Out" },
+  "nav": { "dashboard": "Dashboard", "requirements": "My Requirements", "map": "Map", "analytics": "Analytics", "settings": "Settings", "sign_out": "Sign Out" },
   "dashboard": {
     "greeting": "Good morning", "compliance_score": "Compliance Score",
     "scan_license": "Scan License", "add_license": "Add License",

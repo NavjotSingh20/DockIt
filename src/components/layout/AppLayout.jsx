@@ -9,14 +9,14 @@ import { getBusiness } from '../../services/supabase';
 
 export default function AppLayout() {
   const { user } = useAuth();
-  const { isDemo, demoBusiness, exitDemo } = useDemo();
+  const { isDemo, demoBusiness, exitDemo, activeProfileId, switchDemoProfile, demoProfiles } = useDemo();
   const navigate = useNavigate();
   const [business, setBusiness] = useState(isDemo ? demoBusiness : undefined);
 
   useEffect(() => {
     if (isDemo) { 
       setBusiness(demoBusiness); 
-      localStorage.setItem('country', demoBusiness?.country || 'India');
+      localStorage.setItem('country', demoBusiness?.country || 'USA');
       return; 
     }
     if (user) {
@@ -37,17 +37,34 @@ export default function AppLayout() {
           window.location.href = '/onboard';
         });
     }
-  }, [user, isDemo, navigate]);
+  }, [user, isDemo, navigate, demoBusiness]);
 
   return (
     <div className="flex min-h-screen bg-base">
       <Sidebar business={business} />
       <div className="flex-1 lg:ml-64 flex flex-col">
-        {/* Demo Banner */}
+        {/* Demo Banner with Profile Switcher */}
         {isDemo && (
-          <div className="bg-accent text-white text-sm font-display font-medium px-4 py-2.5 flex items-center justify-between">
-            <span>📊 Demo Mode — Sample data loaded. No real data is being saved.</span>
-            <button onClick={() => { exitDemo(); navigate('/'); }} className="flex items-center gap-1 text-white/70 hover:text-white text-xs">
+          <div className="bg-accent text-white text-xs sm:text-sm font-display font-medium px-4 py-2 flex flex-col sm:flex-row items-center justify-between gap-2 shadow-xs">
+            <div className="flex items-center gap-2 flex-wrap">
+              <span>📊 <strong>Demo Mode Active</strong> —</span>
+              <div className="flex items-center gap-1.5 bg-black/20 px-2.5 py-1 rounded-xl">
+                <span className="text-[11px] text-white/80">Active Profile:</span>
+                <select
+                  value={activeProfileId}
+                  onChange={(e) => switchDemoProfile(e.target.value)}
+                  className="bg-transparent text-white font-bold text-xs focus:outline-none cursor-pointer"
+                >
+                  {(demoProfiles || []).map((p) => (
+                    <option key={p.id} value={p.id} className="text-ink font-medium">
+                      {p.label}
+                    </option>
+                  ))}
+                </select>
+              </div>
+            </div>
+
+            <button onClick={() => { exitDemo(); navigate('/'); }} className="flex items-center gap-1 text-white/80 hover:text-white text-xs bg-white/10 hover:bg-white/20 px-2.5 py-1 rounded-lg transition-all">
               <X size={14} /> Exit Demo
             </button>
           </div>

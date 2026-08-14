@@ -3,7 +3,7 @@ import { useParams, useNavigate, useOutletContext } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { ArrowLeft, Edit2, Trash2, ExternalLink,
   UtensilsCrossed, Flame, Store, Building2, Coffee,
-  Receipt, SignpostBig, Pill, FileText } from 'lucide-react';
+  Receipt, SignpostBig, Pill, FileText, FileDown } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { useTranslation } from 'react-i18next';
 import { useDemo } from '../context/DemoContext';
@@ -11,6 +11,7 @@ import { useAuth } from '../hooks/useAuth';
 import { useLicenses } from '../hooks/useLicenses';
 import { getLicenseById } from '../utils/licenseTypes';
 import { formatDate, formatCurrency } from '../utils/formatters';
+import { fillOfficialForm } from '../utils/formFillEngine';
 import StatusBadge from '../components/ui/StatusBadge';
 import PenaltyCalculator from '../components/features/PenaltyCalculator';
 import RenewalForm from '../components/features/RenewalForm';
@@ -154,12 +155,43 @@ export default function LicenseDetail() {
 
         {/* Action buttons */}
         {!editing && (
-          <div className="flex gap-3 mt-6 pt-4 border-t border-rule/50">
-            <button onClick={() => setEditing(true)} className="btn-secondary flex-1">
+          <div className="flex flex-wrap gap-3 mt-6 pt-4 border-t border-rule/50">
+            <button
+              onClick={async () => {
+                const toastId = toast.loading('Generating official application packet...');
+                try {
+                  const reqObj = license.requirement || {
+                    requirement_name: def?.name || license.license_type,
+                    issuing_agency: license.issuing_authority || def?.issuing_authority,
+                    template_url: license.template_url || license.requirement?.template_url,
+                    form_field_map: license.form_field_map || license.requirement?.form_field_map,
+                  };
+                  const pdfBlob = await fillOfficialForm(reqObj, business);
+                  const url = URL.createObjectURL(pdfBlob);
+                  const a = document.createElement('a');
+                  a.href = url;
+                  const safeName = (reqObj.requirement_name || 'Application_Packet').replace(/[^a-zA-Z0-9_]/g, '_');
+                  a.download = `${safeName}_Application_Packet.pdf`;
+                  document.body.appendChild(a);
+                  a.click();
+                  document.body.removeChild(a);
+                  URL.revokeObjectURL(url);
+                  toast.success('Downloaded application packet!', { id: toastId });
+                } catch (err) {
+                  console.error(err);
+                  toast.error('Failed to generate application packet.', { id: toastId });
+                }
+              }}
+              className="btn-secondary flex-1 border-accent/40 text-accent font-semibold"
+            >
+              <FileDown size={15} /> Download Application Packet
+            </button>
+
+            <button onClick={() => setEditing(true)} className="btn-secondary px-4">
               <Edit2 size={15} /> Edit
             </button>
             {def?.renewal_portal && (
-              <a href={def.renewal_portal} target="_blank" rel="noopener noreferrer" className="btn-primary flex-1">
+              <a href={def.renewal_portal} target="_blank" rel="noopener noreferrer" className="btn-primary px-4">
                 <ExternalLink size={15} /> Renew Online
               </a>
             )}

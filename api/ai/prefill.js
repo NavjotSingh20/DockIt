@@ -33,8 +33,8 @@ export default async function handler(req, res) {
 
   const country = businessProfile.country || 'USA';
   const currencySymbol = country === 'India' ? 'INR (₹)' : 'USD ($)';
-  const costEstimate = country === 'India' ? '₹2,000 - ₹5,000' : '$100 - $300';
-  const prompt = `You are a compliance expert for small businesses in ${country === 'India' ? 'India' : 'the USA'}.
+  const cities = Array.isArray(businessProfile.cities) ? businessProfile.cities.join(', ') : businessProfile.city || country;
+  const prompt = `You are a compliance expert specializing in business licensing for ${country}.
 Given the business profile and license type, generate a pre-filled renewal form as JSON.
 Return ONLY valid JSON — no markdown, no explanation.
 
@@ -51,13 +51,13 @@ Return this exact structure:
   "documentChecklist": ["string"],
   "renewalInstructions": ["string"],
   "estimatedTime": "string (e.g. '3-5 working days')",
-  "estimatedCost": "string (e.g. '${costEstimate}')"
+  "estimatedCost": "string in ${currencySymbol}"
 }
 
 Use the business profile to pre-fill as many fields as possible.
 Mark editable: false only for system-generated or fixed government fields.
-Include all standard fields required for this specific license renewal in ${country === 'India' ? 'India' : 'the USA'}.
-Amounts must be in ${currencySymbol}. All instructions must be specific to the relevant municipality or state.`;
+Include all standard fields required for this specific license renewal in ${cities}.
+Amounts must be in ${currencySymbol}. Instructions must be specific to the relevant municipality, state, or jurisdiction.`;
 
   try {
     const result = await model.generateContent(prompt)

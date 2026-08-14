@@ -4,13 +4,16 @@ import { X, Upload, Camera, CheckCircle, AlertTriangle } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import toast from 'react-hot-toast';
 import { extractTextFromImage, preprocessImage } from '../../services/ocrService';
-import { extractLicenseFromText } from '../../services/geminiService';
-import { getLicenseById, LICENSE_TYPES } from '../../utils/licenseTypes';
 import { formatDate } from '../../utils/formatters';
 
 const STATES = { UPLOAD: 'upload', SCANNING: 'scanning', RESULTS: 'results', SUCCESS: 'success' };
 
-export default function ScanModal({ onClose, onSave }) {
+/**
+ * ScanModal — OCR scan + AI extraction.
+ * Receives businessType and cities from the parent so the server can build
+ * a catalog-matched extraction prompt rather than using hardcoded categories.
+ */
+export default function ScanModal({ onClose, onSave, businessType, cities = [] }) {
   const { t } = useTranslation();
   const [state, setState] = useState(STATES.UPLOAD);
   const [preview, setPreview] = useState(null);
@@ -20,6 +23,9 @@ export default function ScanModal({ onClose, onSave }) {
   const [confidence, setConfidence] = useState(0);
   const [fields, setFields] = useState({});
   const [dragging, setDragging] = useState(false);
+  // catalogNames comes back from /api/ai/extract so the dropdown is always
+  // aligned with what the AI matched against — no stale hardcoded list.
+  const [catalogNames, setCatalogNames] = useState([]);
 
   const handleFile = useCallback(async (file) => {
     if (!file) return;
@@ -35,11 +41,20 @@ export default function ScanModal({ onClose, onSave }) {
 
       setStatusText('Extracting fields with AI...');
       setProgress(65);
-      const { data, confidence: aiConf, error } = await extractLicenseFromText(text);
+
+      // Call the serverless route — Gemini API key stays server-side
+      const response = await fetch('/api/ai/extract', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ ocrText: text, businessType, cities }),
+      });
+      const { data, confidence: aiConf, error, catalogNames: names } = await response.json();
       setProgress(90);
 
+      // Populate dropdown with names returned by the server
+      if (names && names.length > 0) setCatalogNames(names);
+
       if (error || !data) {
-        // Manual fallback
         setExtracted(null);
         setFields({ license_type: '', license_number: '', issuing_authority: '', expiry_date: '', issue_date: '' });
         setConfidence(ocrConf);
@@ -61,7 +76,7 @@ export default function ScanModal({ onClose, onSave }) {
       toast.error('Scan failed: ' + err.message);
       setState(STATES.UPLOAD);
     }
-  }, []);
+  }, [businessType, cities]);
 
   const handleDrop = (e) => {
     e.preventDefault(); setDragging(false);
@@ -162,7 +177,13 @@ export default function ScanModal({ onClose, onSave }) {
                         {type === 'select'
                           ? <select value={fields[key] || ''} onChange={e => setFields(f => ({ ...f, [key]: e.target.value }))} className="input text-sm">
                               <option value="">Select type…</option>
-                              {LICENSE_TYPES.map(l => <option key={l.id} value={l.id}>{l.name}</option>)}
+                              {/* Dynamic list from the server — reflects actual catalog for this business */}
+                              {catalogNames.length > 0
+                                ? catalogNames.map(name => <option key={name} value={name}>{name}</option>)
+                                : fields[key]
+                                  ? <option value={fields[key]}>{fields[key]}</option>
+                                  : null
+                              }
                             </select>
                           : <input type={type || 'text'} value={fields[key] || ''} onChange={e => setFields(f => ({ ...f, [key]: e.target.value }))} className="input text-sm" />
                         }

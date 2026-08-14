@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import toast from 'react-hot-toast';
 import { FileDown, ExternalLink, CheckSquare, Square, Loader2 } from 'lucide-react';
-import { generateFormPrefill } from '../../services/geminiService';
+// generateFormPrefill moved to /api/ai/prefill (serverless — Gemini key server-side only)
 import { generateRenewalPDF } from '../../services/pdfService';
 import { getLicenseById } from '../../utils/licenseTypes';
 
@@ -17,8 +17,13 @@ export default function RenewalForm({ license, business }) {
   const handlePrefill = async () => {
     setLoading(true);
     try {
-      const { data, error } = await generateFormPrefill(business, license.license_type);
-      if (error) throw new Error(error);
+      const res = await fetch('/api/ai/prefill', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ businessProfile: business, licenseType: license.license_type }),
+      });
+      const data = await res.json();
+      if (data.error) throw new Error(data.error);
       setFormData(data);
     } catch (err) {
       toast.error('AI unavailable — using standard checklist');

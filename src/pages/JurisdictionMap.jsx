@@ -10,15 +10,16 @@ import { useAuth } from '../hooks/useAuth';
 import { getBusinessRequirements } from '../services/supabase';
 import { calculateComplianceScore, getLicenseSummary } from '../utils/complianceScore';
 import { getCityCoordinates } from '../utils/cityCoordinates';
+import { getDeptLocations, DEPT_TYPE_CONFIG } from '../utils/deptLocations';
 import { getDaysLeft } from '../utils/formatters';
 
 // ─── Status color config ────────────────────────────────────────────────────
 const GRADE_CONFIG = {
-  A: { color: '#22c55e', bg: 'bg-green-500',  text: 'text-green-700',  lightBg: 'bg-green-50',  border: 'border-green-200', label: 'Fully Compliant',    emoji: '✅' },
-  B: { color: '#3b82f6', bg: 'bg-blue-500',   text: 'text-blue-700',   lightBg: 'bg-blue-50',   border: 'border-blue-200',  label: 'Mostly Compliant',   emoji: '🔵' },
-  C: { color: '#f59e0b', bg: 'bg-amber-500',  text: 'text-amber-700',  lightBg: 'bg-amber-50',  border: 'border-amber-200', label: 'Needs Attention',    emoji: '⚠️' },
-  D: { color: '#ef4444', bg: 'bg-red-500',    text: 'text-red-700',    lightBg: 'bg-red-50',    border: 'border-red-200',   label: 'Critical Action Req.', emoji: '🔴' },
-  '—': { color: '#9ca3af', bg: 'bg-gray-400',  text: 'text-gray-600',   lightBg: 'bg-gray-50',   border: 'border-gray-200',  label: 'No Data Yet',        emoji: '⬜' },
+  A: { color: '#22c55e', bg: 'bg-green-500',  text: 'text-green-700',  lightBg: 'bg-green-50',  border: 'border-green-200', label: 'Fully Compliant' },
+  B: { color: '#3b82f6', bg: 'bg-blue-500',   text: 'text-blue-700',   lightBg: 'bg-blue-50',   border: 'border-blue-200',  label: 'Mostly Compliant' },
+  C: { color: '#f59e0b', bg: 'bg-amber-500',  text: 'text-amber-700',  lightBg: 'bg-amber-50',  border: 'border-amber-200', label: 'Needs Attention' },
+  D: { color: '#ef4444', bg: 'bg-red-500',    text: 'text-red-700',    lightBg: 'bg-red-50',    border: 'border-red-200',   label: 'Critical Action Req.' },
+  '—': { color: '#9ca3af', bg: 'bg-gray-400',  text: 'text-gray-600',   lightBg: 'bg-gray-50',   border: 'border-gray-200',  label: 'No Data Yet' },
 };
 
 // ─── SVG pin icon factory ───────────────────────────────────────────────────
@@ -174,8 +175,8 @@ export default function JurisdictionMap() {
 
         mapInstanceRef.current = map;
 
-        // Dark-styled tile layer
-        L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', {
+        // Colorful Voyager tile layer
+        L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png', {
           attribution: '© OpenStreetMap contributors © CARTO',
           subdomains: 'abcd',
           maxZoom: 19,
@@ -207,11 +208,11 @@ export default function JurisdictionMap() {
               </div>
               ${summary ? `
                 <div style="font-size: 12px; color: #475569; margin-bottom: 8px; display: grid; grid-template-columns: 1fr 1fr; gap: 4px;">
-                  ${summary.satisfied > 0 ? `<span>✅ ${summary.satisfied} satisfied</span>` : ''}
-                  ${summary.needed > 0 ? `<span>📋 ${summary.needed} needed</span>` : ''}
-                  ${summary.expiringMonth > 0 ? `<span>⏰ ${summary.expiringMonth} expiring</span>` : ''}
-                  ${summary.expired > 0 ? `<span>🔴 ${summary.expired} lapsed</span>` : ''}
-                  ${summary.inProgress > 0 ? `<span>🔄 ${summary.inProgress} in-progress</span>` : ''}
+                  ${summary.satisfied > 0 ? `<span>• ${summary.satisfied} satisfied</span>` : ''}
+                  ${summary.needed > 0 ? `<span>• ${summary.needed} needed</span>` : ''}
+                  ${summary.expiringMonth > 0 ? `<span>• ${summary.expiringMonth} expiring</span>` : ''}
+                  ${summary.expired > 0 ? `<span>• ${summary.expired} lapsed</span>` : ''}
+                  ${summary.inProgress > 0 ? `<span>• ${summary.inProgress} in-progress</span>` : ''}
                   ${summary.total === 0 ? '<span style="grid-column: span 2; color: #94a3b8;">No tracked requirements yet</span>' : ''}
                 </div>
               ` : '<div style="font-size: 12px; color: #94a3b8; margin-bottom: 8px;">No tracked requirements yet</div>'}
@@ -237,6 +238,52 @@ export default function JurisdictionMap() {
         if (bounds.length > 1) {
           map.fitBounds(bounds, { padding: [60, 60] });
         }
+
+        // ── Department / Agency location pins ──────────────────────────────
+        cityData.forEach(({ city }) => {
+          const depts = getDeptLocations(city);
+          depts.forEach((dept) => {
+            const cfg = DEPT_TYPE_CONFIG[dept.type] || DEPT_TYPE_CONFIG.business;
+            const deptIconHtml = `
+              <svg xmlns="http://www.w3.org/2000/svg" width="26" height="26" viewBox="0 0 26 26">
+                <rect x="1" y="1" width="24" height="24" rx="6" fill="${cfg.color}" opacity="0.95"/>
+                <text x="13" y="17" text-anchor="middle" font-size="11" font-weight="800" font-family="system-ui, sans-serif" fill="#ffffff">${cfg.icon}</text>
+              </svg>
+            `;
+            const deptIcon = L.divIcon({
+              html: deptIconHtml,
+              className: '',
+              iconSize: [26, 26],
+              iconAnchor: [13, 13],
+              popupAnchor: [0, -16],
+            });
+            const deptMarker = L.marker([dept.lat, dept.lng], { icon: deptIcon }).addTo(map);
+            const deptPopupHtml = `
+              <div style="font-family: system-ui, sans-serif; min-width: 220px; padding: 4px;">
+                <div style="display:flex;align-items:center;gap:6px;margin-bottom:6px;">
+                  <div style="width:24px;height:24px;background:${cfg.color};color:#fff;border-radius:6px;display:flex;align-items:center;justify-content:center;font-weight:800;font-size:11px;">${cfg.icon}</div>
+                  <div>
+                    <div style="font-weight:800;font-size:13px;color:#0f172a;line-height:1.3;">${dept.name}</div>
+                    <div style="font-size:10px;font-weight:700;color:${cfg.color};text-transform:uppercase;letter-spacing:0.5px;">${cfg.label}</div>
+                  </div>
+                </div>
+                <div style="font-size:11px;color:#475569;margin-bottom:4px;">Address: ${dept.address}</div>
+                ${dept.phone ? `<div style="font-size:11px;color:#475569;margin-bottom:4px;">Phone: ${dept.phone}</div>` : ''}
+                <div style="font-size:11px;background:#f8fafc;border:1px solid #e2e8f0;border-radius:6px;padding:6px;margin-bottom:8px;">
+                  <span style="font-weight:700;color:#334155;">Issues: </span>${dept.issues}
+                </div>
+                <a href="${dept.url}" target="_blank" rel="noopener" style="display:block;text-align:center;background:${cfg.color};color:white;border-radius:8px;padding:5px 10px;font-size:11px;font-weight:700;text-decoration:none;">
+                  Visit Official Website →
+                </a>
+              </div>
+            `;
+            deptMarker.bindPopup(deptPopupHtml, { maxWidth: 280, className: 'dockit-dept-popup' });
+            // Open on hover
+            deptMarker.on('mouseover', function() { this.openPopup(); });
+            deptMarker.on('mouseout', function() { this.closePopup(); });
+            markersRef.current.push(deptMarker);
+          });
+        });
 
         setMapReady(true);
       } catch (err) {
@@ -320,7 +367,6 @@ export default function JurisdictionMap() {
                 key={city}
                 className={`text-xs font-bold font-display px-3 py-1.5 rounded-xl border ${cfg.lightBg} ${cfg.text} ${cfg.border} flex items-center gap-1.5`}
               >
-                <span>{cfg.emoji}</span>
                 {city}
                 {data && <span className="font-black">· {data.status.grade}</span>}
               </span>
@@ -457,9 +503,9 @@ export default function JurisdictionMap() {
                 {summary && summary.total > 0 ? (
                   <div className="grid grid-cols-2 gap-1.5 text-xs text-ink-muted mb-3">
                     {summary.satisfied > 0 && <span className="flex items-center gap-1"><span className="text-green-500">✓</span> {summary.satisfied} satisfied</span>}
-                    {summary.needed > 0 && <span className="flex items-center gap-1"><span>📋</span> {summary.needed} needed</span>}
-                    {summary.expiringMonth > 0 && <span className="flex items-center gap-1"><span className="text-amber-500">⏰</span> {summary.expiringMonth} expiring</span>}
-                    {summary.expired > 0 && <span className="flex items-center gap-1 text-danger font-semibold"><span>🔴</span> {summary.expired} lapsed</span>}
+                    {summary.needed > 0 && <span className="flex items-center gap-1"><span>•</span> {summary.needed} needed</span>}
+                    {summary.expiringMonth > 0 && <span className="flex items-center gap-1"><span className="text-amber-500">•</span> {summary.expiringMonth} expiring</span>}
+                    {summary.expired > 0 && <span className="flex items-center gap-1 text-danger font-semibold"><span>•</span> {summary.expired} lapsed</span>}
                   </div>
                 ) : (
                   <p className="text-xs text-ink-faint italic mb-3">No requirements tracked yet for this city. Visit My Requirements to add them.</p>

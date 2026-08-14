@@ -157,7 +157,7 @@ export default function MyRequirements() {
         deltaRequirements.forEach(req => addDemoRequirement(req));
 
         toast.success(
-          `📍 ${cityStateStr} added! Smart-Diff added ${deltaRequirements.length} new permit(s) (${sharedRequirements.length} shared permits preserved).`
+          `${cityStateStr} added! Smart-Diff added ${deltaRequirements.length} new permit(s) (${sharedRequirements.length} shared permits preserved).`
         );
       } else {
         if (!business?.id) {
@@ -200,7 +200,7 @@ export default function MyRequirements() {
         }
 
         toast.success(
-          `📍 ${cityStateStr} added! Smart-Diff added ${addedCount} new state/local permit(s) (${sharedCount} shared permit(s) preserved).`
+          `${cityStateStr} added! Smart-Diff added ${addedCount} new state/local permit(s) (${sharedCount} shared permit(s) preserved).`
         );
       }
       setShowAddCityModal(false);
@@ -341,8 +341,9 @@ export default function MyRequirements() {
           </span>
 
           {operatingCities.map((city, idx) => (
-            <span key={idx} className="text-xs font-display font-semibold px-3 py-1.5 bg-accent/10 text-accent-dark rounded-xl border border-accent/20 flex items-center gap-1">
-              📍 {city}
+            <span key={idx} className="text-xs font-display font-semibold px-3 py-1.5 bg-accent/10 text-accent-dark rounded-xl border border-accent/20 flex items-center gap-1.5">
+              <MapPin size={12} className="text-accent" />
+              {city}
             </span>
           ))}
 
@@ -379,8 +380,8 @@ export default function MyRequirements() {
               </p>
             </div>
           </div>
-          <div className="text-xs font-bold font-display px-3 py-1.5 bg-surface text-ink rounded-xl border border-rule self-start md:self-auto shadow-xs">
-            ✨ Reusable Federal Covered / New City Permits Merged
+          <div className="text-xs font-bold font-display px-3 py-1.5 bg-surface text-ink rounded-xl border border-rule self-start md:self-auto shadow-xs flex items-center gap-1.5">
+            <Sparkles size={14} className="text-accent" /> Reusable Federal Covered / New City Permits Merged
           </div>
         </motion.div>
       )}
@@ -528,8 +529,8 @@ export default function MyRequirements() {
                           <span className={`text-[11px] font-display font-bold uppercase tracking-wider px-2.5 py-1 rounded-lg border ${jurisClass}`}>
                             {req.jurisdiction_level}
                           </span>
-                          <span className="text-xs text-ink-faint font-medium">
-                            📍 {req.city}
+                          <span className="text-xs text-ink-faint font-medium flex items-center gap-1">
+                            <MapPin size={12} /> {req.city}
                           </span>
                         </div>
 

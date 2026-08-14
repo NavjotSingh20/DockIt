@@ -418,6 +418,145 @@ function SmartDiffDemo() {
 /* ════════════════════════════════════════════════════════════════
    LANDING PAGE
    ════════════════════════════════════════════════════════════════ */
+/* ─── Compliance Risk Calculator Data ─── */
+const CALCULATOR_DATA = {
+  food_truck: {
+    name: 'Food Truck / Cart',
+    cities: {
+      'New York, NY': {
+        time: '30-45 Days',
+        startupCost: '$300 - $800',
+        violations: [
+          { name: 'Operating without Health Permit (DOHMH)', penalty: '$1,000 per day', law: 'NYC Health Code § 81.05' },
+          { name: 'Uncertified Food Protection Manager', penalty: '$250 - $500', law: 'NYC Health Code § 81.15' },
+          { name: 'Missing Fire Safety Certificate (FDNY)', penalty: '$1,000 per check', law: 'FC § 105.6' }
+        ]
+      },
+      'Los Angeles, CA': {
+        time: '45-60 Days',
+        startupCost: '$500 - $1,200',
+        violations: [
+          { name: 'Operating without Health Permit (LACDPH)', penalty: '$500 + shut down', law: 'LA County Code § 8.04.140' },
+          { name: 'No CA Sales Tax Certificate (CDTFA)', penalty: '$1,000 - $5,000', law: 'CA Rev & Tax Code § 6071' },
+          { name: 'Missing BTRC Registration', penalty: '$250 fine + back taxes', law: 'LAMC § 21.03' }
+        ]
+      },
+      'Mumbai, Maharashtra': {
+        time: '15-30 Days',
+        startupCost: '₹8,000 - ₹25,000',
+        violations: [
+          { name: 'Missing FSSAI License', penalty: 'Up to ₹5,00,000 / 6 months jail', law: 'Food Safety Act § 63' },
+          { name: 'Operating without Shop & Establishment Act', penalty: '₹2,000 - ₹10,000', law: 'Maharashtra Shops Act § 35' },
+          { name: 'Missing BMC Trade License', penalty: '₹5,000 + confiscation', law: 'MMC Act § 394' }
+        ]
+      }
+    }
+  },
+  restaurant: {
+    name: 'Restaurant / Cafe',
+    cities: {
+      'New York, NY': {
+        time: '60-90 Days',
+        startupCost: '$1,500 - $4,000',
+        violations: [
+          { name: 'Operating without Health Permit (DOHMH)', penalty: '$2,000 per day', law: 'NYC Health Code § 81.05' },
+          { name: 'Failure to Display Grade Card', penalty: '$1,000 flat fine', law: 'NYC Health Code § 81.51' }
+        ]
+      },
+      'Los Angeles, CA': {
+        time: '90-120 Days',
+        startupCost: '$2,000 - $5,000',
+        violations: [
+          { name: 'Operating without Health Permit (LACDPH)', penalty: '$1,000 per day', law: 'LA County Code § 8.04.140' },
+          { name: 'Missing liquor license compliance', penalty: 'Shut down + $5,000 fine', law: 'CA ABC Act § 23300' }
+        ]
+      },
+      'Mumbai, Maharashtra': {
+        time: '45-75 Days',
+        startupCost: '₹30,000 - ₹1,20,000',
+        violations: [
+          { name: 'Missing Eating House License (Mumbai Police)', penalty: '₹10,000 + shut down', law: 'Mumbai Police Act § 33' },
+          { name: 'Missing fire clearance / NOC', penalty: '₹50,000 + electricity cutoff', law: 'Maharashtra Fire Act § 3' }
+        ]
+      }
+    }
+  }
+};
+
+function ComplianceRiskCalculator() {
+  const [bizType, setBizType] = useState('food_truck');
+  const [city, setCity] = useState('New York, NY');
+  
+  const bizData = CALCULATOR_DATA[bizType];
+  const cityConfig = bizData?.cities[city] || bizData?.cities['New York, NY'];
+
+  return (
+    <div className="bg-surface rounded-3xl border border-rule p-6 md:p-8 max-w-3xl mx-auto shadow-card">
+      <div className="text-center max-w-md mx-auto mb-6">
+        <span className="text-xs font-bold font-display text-accent uppercase tracking-wider">Interactive tool</span>
+        <h3 className="text-xl font-bold font-display text-ink mt-1">Compliance &amp; Penalty Risk Calculator</h3>
+        <p className="text-xs text-ink-faint mt-1">Estimate setup timelines, costs, and penalty risks for your city.</p>
+      </div>
+
+      <div className="grid sm:grid-cols-2 gap-4 mb-6">
+        <div>
+          <label className="text-xs font-bold font-display text-ink-muted uppercase tracking-wide block mb-1.5">Business Type</label>
+          <div className="flex gap-2">
+            {Object.entries(CALCULATOR_DATA).map(([key, data]) => (
+              <button key={key} onClick={() => setBizType(key)}
+                className={`flex-1 py-2 px-3 text-xs font-bold font-display rounded-xl border transition-all ${bizType === key ? 'bg-accent border-accent text-white' : 'bg-surface border-rule text-ink-muted hover:bg-base'}`}>
+                {data.name}
+              </button>
+            ))}
+          </div>
+        </div>
+
+        <div>
+          <label className="text-xs font-bold font-display text-ink-muted uppercase tracking-wide block mb-1.5">Operating City</label>
+          <select value={city} onChange={(e) => setCity(e.target.value)}
+            className="w-full input text-xs font-bold font-display py-2.5">
+            <option value="New York, NY">New York, NY</option>
+            <option value="Los Angeles, CA">Los Angeles, CA</option>
+            <option value="Mumbai, Maharashtra">Mumbai, Maharashtra</option>
+          </select>
+        </div>
+      </div>
+
+      {cityConfig && (
+        <div className="space-y-6 pt-4 border-t border-rule/50">
+          <div className="grid grid-cols-2 gap-4">
+            <div className="bg-base/30 rounded-2xl p-4 border border-rule/30 text-center">
+              <span className="text-[10px] font-bold font-display text-ink-faint uppercase tracking-wider">Est. Setup Time</span>
+              <div className="text-lg font-black font-display text-ink mt-1">{cityConfig.time}</div>
+            </div>
+            <div className="bg-base/30 rounded-2xl p-4 border border-rule/30 text-center">
+              <span className="text-[10px] font-bold font-display text-ink-faint uppercase tracking-wider">Permit Fees</span>
+              <div className="text-lg font-black font-display text-accent mt-1">{cityConfig.startupCost}</div>
+            </div>
+          </div>
+
+          <div className="space-y-3">
+            <span className="text-xs font-bold font-display text-ink-muted uppercase tracking-wide block">Violations &amp; Fine Risks</span>
+            <div className="space-y-2">
+              {cityConfig.violations.map((v, i) => (
+                <div key={i} className="flex flex-col sm:flex-row sm:items-center sm:justify-between p-3.5 bg-surface rounded-xl border border-rule hover:border-rule-dark transition-all gap-1.5">
+                  <div>
+                    <div className="text-xs font-bold text-ink">{v.name}</div>
+                    <div className="text-[10px] text-ink-faint font-display mt-0.5">{v.law}</div>
+                  </div>
+                  <div className="text-xs font-bold font-display text-danger bg-danger/10 px-2.5 py-1 rounded-lg self-start sm:self-auto shrink-0">
+                    {v.penalty}
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
 export default function Landing() {
   const navigate = useNavigate();
   const { enterDemo } = useDemo();
@@ -553,6 +692,13 @@ export default function Landing() {
               <SmartDiffDemo />
             </motion.div>
           </div>
+        </div>
+      </section>
+
+      {/* ─── Interactive Calculator Section ─── */}
+      <section className="py-16 md:py-24 px-4 bg-base border-t border-b border-rule/30">
+        <div className="max-w-5xl mx-auto">
+          <ComplianceRiskCalculator />
         </div>
       </section>
 

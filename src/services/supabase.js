@@ -145,12 +145,48 @@ export async function getBusinessRequirements(businessId) {
   return await res.json();
 }
 
-export async function createBusinessRequirement(data) {
+export async function createBusinessRequirement(payload) {
+  const { extracted_data, business_name, confidence, confidence_score, license_type, ...cleanPayload } = payload;
+
+  let requirement_id = cleanPayload.requirement_id;
+
+  if (!requirement_id) {
+    try {
+      const typeName = license_type || 'General Business License';
+      const { data: existing } = await supabase
+        .from('requirements')
+        .select('id')
+        .ilike('requirement_name', `%${typeName}%`)
+        .limit(1)
+        .maybeSingle();
+
+      if (existing?.id) {
+        requirement_id = existing.id;
+      } else {
+        const { data: fallbackReq } = await supabase
+          .from('requirements')
+          .select('id')
+          .limit(1)
+          .maybeSingle();
+        requirement_id = fallbackReq?.id;
+      }
+    } catch (e) {
+      console.warn('Could not auto-link requirement_id:', e);
+    }
+  }
+
+  const finalPayload = {
+    ...cleanPayload,
+    ...(requirement_id ? { requirement_id } : {}),
+    extracted_via_ocr: true,
+  };
+
   const { data: br, error } = await supabase
     .from('business_requirements')
-    .insert([data])
+    .insert([finalPayload])
     .select('*, requirement:requirements(*)')
     .single();
+
   if (error) throw error;
   return br;
 }

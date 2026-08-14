@@ -61,7 +61,7 @@ export default function Dashboard() {
   const { t } = useTranslation();
   const navigate = useNavigate();
   const { user } = useAuth();
-  const { isDemo, demoLicenses } = useDemo();
+  const { isDemo, demoLicenses, addScannedDemoLicense } = useDemo();
   const { business } = useOutletContext();
   const [showScan, setShowScan] = useState(false);
   const [sort, setSort] = useState('urgent');
@@ -111,15 +111,26 @@ export default function Dashboard() {
     }, 0);
 
   const handleSave = async (fields) => {
-    if (isDemo) { toast('Demo mode — data not saved'); throw new Error('Demo mode'); }
+    if (isDemo) {
+      addScannedDemoLicense(fields);
+      toast.success('License scanned & saved to profile!');
+      return;
+    }
     if (!business?.id) throw new Error('No business found');
-    const { business_name, ...validFields } = fields;
+
+    const { business_name, extracted_data, confidence, confidence_score, ...validFields } = fields;
+
     await addLicense({
-      ...validFields,
+      license_type: validFields.license_type || 'Scanned Document',
+      license_number: validFields.license_number || null,
+      issuing_authority: validFields.issuing_authority || null,
+      issue_date: validFields.issue_date || null,
+      expiry_date: validFields.expiry_date || null,
       business_id: business.id,
-      status: 'active',
-      extracted_data: fields
+      status: validFields.expiry_date && new Date(validFields.expiry_date) < new Date() ? 'expired' : 'satisfied',
+      extracted_via_ocr: true,
     });
+    toast.success('License saved successfully!');
   };
 
   const hour = new Date().getHours();
@@ -313,10 +324,14 @@ export default function Dashboard() {
         )}
       </div>
 
-      {/* FAB */}
-      <button onClick={() => setShowScan(true)}
-        className="fixed bottom-24 right-4 lg:bottom-8 lg:right-8 z-30 w-14 h-14 bg-accent hover:bg-accent-dark text-white rounded-full shadow-xl flex items-center justify-center transition-all hover:scale-110">
-        <Camera size={24} />
+      {/* Camera / Scan FAB — sits LEFT of the chatbot bubble */}
+      <button
+        onClick={() => setShowScan(true)}
+        title="Scan a License"
+        className="fixed bottom-20 right-[4.75rem] lg:bottom-6 lg:right-24 z-30 w-14 h-14 bg-ink hover:bg-ink/80 text-white rounded-full shadow-xl flex flex-col items-center justify-center gap-0.5 transition-all hover:scale-110"
+      >
+        <Camera size={20} />
+        <span className="text-[9px] font-bold font-display tracking-wide leading-none">SCAN</span>
       </button>
 
       {/* Scan Modal */}

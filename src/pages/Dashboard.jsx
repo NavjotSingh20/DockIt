@@ -118,16 +118,13 @@ export default function Dashboard() {
     }
     if (!business?.id) throw new Error('No business found');
 
-    const { business_name, extracted_data, confidence, confidence_score, ...validFields } = fields;
-
     await addLicense({
-      license_type: validFields.license_type || 'Scanned Document',
-      license_number: validFields.license_number || null,
-      issuing_authority: validFields.issuing_authority || null,
-      issue_date: validFields.issue_date || null,
-      expiry_date: validFields.expiry_date || null,
+      license_type: fields.license_type || 'Scanned Document',
+      license_number: fields.license_number || null,
+      issuing_authority: fields.issuing_authority || null,
+      expiry_date: fields.expiry_date || null,
       business_id: business.id,
-      status: validFields.expiry_date && new Date(validFields.expiry_date) < new Date() ? 'expired' : 'satisfied',
+      status: fields.expiry_date && new Date(fields.expiry_date) < new Date() ? 'expired' : 'satisfied',
       extracted_via_ocr: true,
     });
     toast.success('License saved successfully!');

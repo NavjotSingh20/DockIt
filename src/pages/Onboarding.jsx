@@ -174,9 +174,16 @@ export default function Onboarding() {
     finally { setLoading(false); }
   };
 
-  // Step 3 — Save profile
   const completeSetup = async () => {
-    if (!profile.business_name || !profile.owner_name || !profile.phone || !profile.city || !profile.state) {
+    let activeCity = profile.city;
+    let activeState = profile.state;
+    if ((!activeCity || !activeState) && cityInput) {
+      const parts = cityInput.split(',').map(s => s.trim());
+      activeCity = parts[0] || '';
+      activeState = parts[1] || '';
+    }
+
+    if (!profile.business_name || !profile.owner_name || !profile.phone || !activeCity || !activeState) {
       toast.error('Please fill required fields (Name, Owner, Phone, City, State)'); return;
     }
     setLoading(true);
@@ -187,7 +194,7 @@ export default function Onboarding() {
         owner_name: profile.owner_name,
         phone: profile.phone,
         address: profile.address,
-        cities: [`${profile.city}, ${profile.state}`],
+        cities: [`${activeCity}, ${activeState}`],
         business_type: businessType,
         owner_id: user.id,
         email: user.email
@@ -195,7 +202,7 @@ export default function Onboarding() {
 
       // Auto-populate the checklist with "needed" requirements for this business type and city
       try {
-        const cityStr = `${profile.city}, ${profile.state}`;
+        const cityStr = `${activeCity}, ${activeState}`;
         const reqs = await getRequirements(businessType, [cityStr]);
         
         // If there are no city-specific matches, it might fall back to general ones

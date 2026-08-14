@@ -29,7 +29,8 @@ CREATE TABLE IF NOT EXISTS requirements (
   template_url          TEXT,
   form_field_map        JSONB,
   last_verified_date    DATE          DEFAULT CURRENT_DATE,
-  created_at            TIMESTAMPTZ   DEFAULT NOW()
+  created_at            TIMESTAMPTZ   DEFAULT NOW(),
+  CONSTRAINT uq_requirements_type_city_name UNIQUE (business_type, city, requirement_name)
 );
 
 CREATE INDEX IF NOT EXISTS idx_requirements_type_city ON requirements(business_type, city);

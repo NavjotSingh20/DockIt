@@ -12,7 +12,7 @@ const ICON_MAP = { UtensilsCrossed, Flame, Store, Building2, Coffee, Receipt, Si
 function MiniRing({ daysLeft, totalDays = 365 }) {
   const size = 72, sw = 6, radius = (size - sw) / 2;
   const circ = 2 * Math.PI * radius;
-  const pct = daysLeft < 0 ? 0 : Math.min(1, daysLeft / totalDays);
+  const pct = (daysLeft === null || daysLeft === undefined || daysLeft < 0) ? 0 : Math.min(1, daysLeft / totalDays);
   const offset = circ - pct * circ;
   const color = daysLeft < 0 ? '#C2410C' : daysLeft <= 7 ? '#C2410C' : daysLeft <= 30 ? '#CA8A04' : '#6B8F71';
   return (
@@ -23,10 +23,13 @@ function MiniRing({ daysLeft, totalDays = 365 }) {
           strokeDasharray={circ} strokeDashoffset={offset} strokeLinecap="round" />
       </svg>
       <div className="absolute text-center">
-        {daysLeft < 0
-          ? <span className="text-danger font-black font-display" style={{fontSize:9}}>EXP</span>
-          : <span className="font-black font-display text-ink" style={{fontSize:11}}>{daysLeft}d</span>
-        }
+        {daysLeft === null || daysLeft === undefined ? (
+          <span className="font-bold text-ink-faint" style={{fontSize:16}}>—</span>
+        ) : daysLeft < 0 ? (
+          <span className="text-danger font-black font-display" style={{fontSize:9}}>EXP</span>
+        ) : (
+          <span className="font-black font-display text-ink" style={{fontSize:11}}>{daysLeft}d</span>
+        )}
       </div>
     </div>
   );
@@ -73,10 +76,14 @@ export default function LicenseCard({ license, onRenew }) {
       <div className="flex items-center justify-between">
         <MiniRing daysLeft={daysLeft} />
         <div className="text-right">
-          <div className={`text-2xl font-black font-display ${isExpired ? 'text-danger' : isExpiring ? 'text-caution' : 'text-settled'}`}>
-            {isExpired ? `${Math.abs(daysLeft)}d` : `${daysLeft}d`}
+          <div className={`text-2xl font-black font-display ${daysLeft === null || daysLeft === undefined ? 'text-ink-faint' : isExpired ? 'text-danger' : isExpiring ? 'text-caution' : 'text-settled'}`}>
+            {daysLeft === null || daysLeft === undefined ? '—' : isExpired ? `${Math.abs(daysLeft)}d` : `${daysLeft}d`}
           </div>
-          <div className="text-xs text-ink-faint">{isExpired ? 'overdue' : t('dashboard.days_left')}</div>
+          <div className="text-xs text-ink-faint">
+            {daysLeft === null || daysLeft === undefined 
+              ? (license.status === 'needed' ? 'action required' : license.status === 'in_progress' ? 'in progress' : 'pending')
+              : (isExpired ? 'overdue' : t('dashboard.days_left'))}
+          </div>
           {isExpired && currentPenalty && (
             <div className="text-xs font-bold text-danger mt-1">{formatCurrency(currentPenalty)} fine</div>
           )}

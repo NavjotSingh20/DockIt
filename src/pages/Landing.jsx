@@ -609,14 +609,12 @@ export default function Landing() {
             >
               <h1 className="font-display font-bold text-ink text-3xl md:text-[2.75rem] md:leading-[1.15] leading-snug mb-5 tracking-tight">
                 <SeamlessStrokeText 
-                  text="You don't just forget to renew — you don't know what you need in the first place." 
-                  highlight="you don't know what you need"
+                  text="Know What You Need. Before You Open." 
+                  highlight="Before You Open."
                 />
               </h1>
               <p className="text-ink-muted text-base md:text-lg leading-relaxed mb-8 max-w-lg">
-                Every city has different permit rules. DockIt tells food truck operators
-                exactly which licenses, permits, and inspections they need — city by city,
-                before they get fined.
+                DockIt tells small businesses exactly which licenses, permits, and inspections they need city by city.
               </p>
               <div className="flex flex-col sm:flex-row gap-3">
                 <button onClick={handleGetStarted} className="btn-primary text-base px-7 py-3.5">

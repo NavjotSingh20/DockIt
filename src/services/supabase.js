@@ -146,13 +146,11 @@ export async function getBusinessRequirements(businessId) {
 }
 
 export async function createBusinessRequirement(payload) {
-  const { extracted_data, business_name, confidence, confidence_score, license_type, ...cleanPayload } = payload;
-
-  let requirement_id = cleanPayload.requirement_id;
+  let requirement_id = payload.requirement_id;
 
   if (!requirement_id) {
     try {
-      const typeName = license_type || 'General Business License';
+      const typeName = payload.license_type || payload.requirement_name || 'General Business License';
       const { data: existing } = await supabase
         .from('requirements')
         .select('id')
@@ -175,15 +173,24 @@ export async function createBusinessRequirement(payload) {
     }
   }
 
-  const finalPayload = {
-    ...cleanPayload,
+  // STRICT WHITELIST: Only valid columns in business_requirements table
+  const dbRecord = {
+    business_id: payload.business_id,
     ...(requirement_id ? { requirement_id } : {}),
-    extracted_via_ocr: true,
+    status: payload.status || 'satisfied',
+    license_number: payload.license_number || null,
+    issuing_authority: payload.issuing_authority || null,
+    document_url: payload.document_url || null,
+    expiry_date: payload.expiry_date || null,
+    extracted_via_ocr: payload.extracted_via_ocr ?? true,
   };
+
+  // Strip out any undefined keys
+  Object.keys(dbRecord).forEach(k => dbRecord[k] === undefined && delete dbRecord[k]);
 
   const { data: br, error } = await supabase
     .from('business_requirements')
-    .insert([finalPayload])
+    .insert([dbRecord])
     .select('*, requirement:requirements(*)')
     .single();
 
@@ -192,9 +199,15 @@ export async function createBusinessRequirement(payload) {
 }
 
 export async function updateBusinessRequirement(id, updates) {
+  const allowedKeys = ['status', 'license_number', 'issuing_authority', 'document_url', 'expiry_date', 'extracted_via_ocr'];
+  const cleanUpdates = {};
+  for (const k of allowedKeys) {
+    if (k in updates) cleanUpdates[k] = updates[k];
+  }
+
   const { data, error } = await supabase
     .from('business_requirements')
-    .update(updates)
+    .update(cleanUpdates)
     .eq('id', id)
     .select('*, requirement:requirements(*)')
     .single();

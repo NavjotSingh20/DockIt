@@ -229,7 +229,8 @@ export default function Onboarding() {
 
             {/* Step 1 — Email OTP */}
             {step === 0 && (
-              <motion.div key="step0" initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -20 }} className="space-y-5">
+              <motion.div key="step0" initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -20 }}>
+                <form onSubmit={e => { e.preventDefault(); if (otpSent) { verifyOtpCode(); } else { handleAuth(); } }} className="space-y-5">
                 {/* Sign Up / Log In Tabs */}
                 {!otpSent && (
                   <div className="flex bg-base p-1 rounded-xl border border-rule mb-2">
@@ -270,7 +271,7 @@ export default function Onboarding() {
 
                   {!otpSent
                     ? <>
-                        <button onClick={handleAuth} disabled={loading} className="btn-primary w-full">
+                        <button type="submit" disabled={loading} className="btn-primary w-full">
                           {loading ? <Loader2 size={16} className="animate-spin" /> : null}
                           {loading ? 'Processing…' : (useOtp ? (isSignUp ? 'Send OTP' : 'Send Login Code') : (isSignUp ? 'Create Account' : 'Log In'))} <ArrowRight size={16} />
                         </button>
@@ -294,14 +295,15 @@ export default function Onboarding() {
                             ))}
                           </div>
                         </div>
-                        <button onClick={verifyOtpCode} disabled={loading} className="btn-primary w-full">
+                        <button type="submit" disabled={loading} className="btn-primary w-full">
                           {loading ? <Loader2 size={16} className="animate-spin" /> : <Check size={16} />}
                           Verify & Continue
                         </button>
-                        <button onClick={() => setOtpSent(false)} className="text-sm text-accent w-full text-center hover:underline">← Change email</button>
+                        <button type="button" onClick={() => setOtpSent(false)} className="text-sm text-accent w-full text-center hover:underline">← Change email</button>
                       </>
                   }
                 </div>
+                </form>
               </motion.div>
             )}
 
@@ -333,7 +335,8 @@ export default function Onboarding() {
 
             {/* Step 3 — Profile */}
             {step === 2 && (
-              <motion.div key="step2" initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -20 }} className="space-y-4">
+              <motion.div key="step2" initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -20 }}>
+                <form onSubmit={e => { e.preventDefault(); completeSetup(); }} className="space-y-4">
                 <div>
                   <h2 className="text-2xl font-bold font-display text-ink">Business Profile</h2>
                   <p className="text-ink-muted text-sm mt-1">Used to pre-fill renewal forms automatically</p>
@@ -394,14 +397,15 @@ export default function Onboarding() {
                 </div>
 
                 <div className="flex gap-3 pt-2">
-                  <button onClick={() => setStep(1)} className="btn-secondary flex-1"><ArrowLeft size={16} /> Back</button>
-                  <button onClick={completeSetup} disabled={loading} className="btn-primary flex-1">
+                  <button type="button" onClick={() => setStep(1)} className="btn-secondary flex-1"><ArrowLeft size={16} /> Back</button>
+                  <button type="submit" disabled={loading} className="btn-primary flex-1">
                     {loading ? <Loader2 size={16} className="animate-spin" /> : <Check size={16} />}
                     {loading ? 'Setting up…' : 'Complete Setup'}
                   </button>
                 </div>
-              </motion.div>
-            )}
+              </form>
+            </motion.div>
+          )}
           </AnimatePresence>
         </div>
       </div>

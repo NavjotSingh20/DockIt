@@ -1,4 +1,5 @@
 import { createClient } from '@supabase/supabase-js';
+import { isRequirementApplicable, synthesizeCityRequirements } from '../utils/jurisdictionEngine';
 
 const rawUrl = import.meta.env.VITE_SUPABASE_URL || '';
 const rawKey = import.meta.env.VITE_SUPABASE_ANON_KEY || '';
@@ -90,36 +91,40 @@ export async function updateBusiness(id, updates) {
   return mapBusiness(data);
 }
 
-// ── Requirements (master catalog) ────────────────────────────────────
 export async function getRequirements(businessType, cities = []) {
-  // If no cities specified, fetch all for businessType
-  if (!cities || cities.length === 0) {
-    const { data, error } = await supabase
-      .from('requirements')
-      .select('*')
-      .ilike('business_type', businessType)
-      .order('requirement_name');
-    if (error) throw error;
-    return data || [];
+  let query = supabase.from('requirements').select('*');
+  if (businessType && businessType !== 'all') {
+    query = query.or(`business_type.ilike.${businessType},business_type.eq.all`);
   }
 
-  // To avoid PostgREST parsing errors with commas in OR/IN clauses,
-  // we fetch all items for the business type and filter client-side.
-  // This is safe since the master catalog per business_type is small.
-  const { data, error } = await supabase
-    .from('requirements')
-    .select('*')
-    .ilike('business_type', businessType)
-    .order('requirement_name');
-
+  const { data, error } = await query.order('requirement_name');
   if (error) throw error;
 
-  const lowerCities = cities.map(c => c.toLowerCase());
-  
-  return (data || []).filter(r => 
-    r.jurisdiction_level?.toLowerCase() === 'federal' ||
-    lowerCities.some(c => r.city?.toLowerCase() === c || c.includes(r.city?.toLowerCase()))
-  );
+  const catalog = data || [];
+  if (!cities || cities.length === 0) {
+    return catalog;
+  }
+
+  const matched = catalog.filter(r => isRequirementApplicable(r, cities, businessType));
+
+  // Deduplicate by requirement_name and city/jurisdiction to prevent duplicate catalog entries
+  const seenKeys = new Set();
+  const deduplicated = [];
+  for (const r of matched) {
+    const key = `${r.requirement_name?.toLowerCase().trim()}_${(r.city || '').toLowerCase().trim()}`;
+    if (!seenKeys.has(key)) {
+      seenKeys.add(key);
+      deduplicated.push(r);
+    }
+  }
+
+  // If specific cities have no matched catalog rows in DB, synthesize statutory defaults
+  if (deduplicated.length === 0 && cities.length > 0) {
+    const allSynthesized = cities.flatMap(c => synthesizeCityRequirements(c, businessType));
+    return allSynthesized;
+  }
+
+  return deduplicated;
 }
 
 

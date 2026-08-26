@@ -13,12 +13,12 @@ INSERT INTO requirements (business_type, city, jurisdiction_level, requirement_n
 ('restaurant', 'Mumbai, Maharashtra', 'city',    'Eating House License', 'Mumbai City Police', 2000, 5000, 12, '21-45 business days', 'Police license required for any establishment serving food and beverages. Ensures public safety compliance.', 'https://mumbaipolice.gov.in', CURRENT_DATE),
 ('restaurant', 'Mumbai, Maharashtra', 'federal', 'GST Registration', 'GST Council of India', 0, 0, NULL, '3-7 business days', 'Goods and Services Tax registration. Mandatory for businesses with annual turnover exceeding threshold.', 'https://www.gst.gov.in', CURRENT_DATE),
 ('restaurant', 'Mumbai, Maharashtra', 'city',    'Signage / Hoarding License', 'BMC Advertisement Department', 1000, 15000, 12, '14-30 business days', 'License for displaying business signage, hoardings, or advertisements on or near the premises.', 'https://portal.mcgm.gov.in', CURRENT_DATE)
-ON CONFLICT DO NOTHING;
+ON CONFLICT (business_type, city, requirement_name) DO NOTHING;
 
 -- ── Federal / All Cities (Food Truck) ─────────────────────
 INSERT INTO requirements (business_type, city, jurisdiction_level, requirement_name, issuing_agency, fee_min, fee_max, renewal_cycle_months, processing_time, description, source_url, last_verified_date) VALUES
 ('food_truck', 'Federal / All Cities', 'federal', 'Employer Identification Number (EIN)', 'IRS (Internal Revenue Service)', 0, 0, NULL, 'Instant online', 'Federal Tax Identification Number issued by the Internal Revenue Service for business tax reporting and hiring employees.', 'https://www.irs.gov/businesses/small-businesses-self-employed/apply-for-an-employer-identification-number-ein-online', CURRENT_DATE)
-ON CONFLICT DO NOTHING;
+ON CONFLICT (business_type, city, requirement_name) DO NOTHING;
 
 -- ── New York, NY (Food Truck) ──────────────────────────────
 INSERT INTO requirements (business_type, city, jurisdiction_level, requirement_name, issuing_agency, fee_min, fee_max, renewal_cycle_months, processing_time, description, source_url, template_url, form_field_map, last_verified_date) VALUES
@@ -63,7 +63,30 @@ INSERT INTO requirements (business_type, city, jurisdiction_level, requirement_n
  'https://www.nyc.gov/assets/doh/downloads/pdf/sbs/314c-standard-form.pdf',
  '{"mode":"overlay","fields":{"business_name":{"page":0,"x":140,"y":665,"fontSize":10},"owner_name":{"page":0,"x":140,"y":635,"fontSize":10},"phone":{"page":0,"x":420,"y":635,"fontSize":10},"email":{"page":0,"x":140,"y":610,"fontSize":10},"address":{"page":0,"x":140,"y":585,"fontSize":10},"city":{"page":0,"x":420,"y":585,"fontSize":10},"business_type":{"page":0,"x":140,"y":555,"fontSize":10},"date":{"page":0,"x":450,"y":710,"fontSize":10}}}',
  CURRENT_DATE)
-ON CONFLICT DO NOTHING;
+ON CONFLICT (business_type, city, requirement_name) DO NOTHING;
+
+-- ── New York, NY (Restaurant) ──────────────────────────────
+INSERT INTO requirements (business_type, city, jurisdiction_level, requirement_name, issuing_agency, fee_min, fee_max, renewal_cycle_months, processing_time, description, source_url, last_verified_date) VALUES
+('restaurant', 'New York, NY', 'city',  'Food Service Establishment Permit',
+ 'DOHMH (NYC Dept. of Health & Mental Hygiene)', 280, 280, 12, '14-30 business days',
+ 'Mandatory health permit for operating any restaurant or food service establishment in NYC.',
+ 'https://www.nyc.gov/site/doh/business/food-operators/food-service-establishment-permits.page', CURRENT_DATE),
+
+('restaurant', 'New York, NY', 'city',  'Food Protection Certificate',
+ 'DOHMH (NYC Dept. of Health & Mental Hygiene)', 114, 114, NULL, '1-3 business days',
+ 'Mandatory certificate required for restaurant supervisors overseeing food preparation in NYC.',
+ 'https://www.nyc.gov/site/doh/business/food-operators/food-safety-course.page', CURRENT_DATE),
+
+('restaurant', 'New York, NY', 'state', 'NYS Certificate of Authority (Sales Tax)',
+ 'NY State Dept. of Taxation & Finance', 0, 0, NULL, '5-10 business days',
+ 'State certificate authorizing collection of sales tax on retail food and beverage sales in New York.',
+ 'https://www.tax.ny.gov', CURRENT_DATE),
+
+('restaurant', 'New York, NY', 'federal', 'Employer Identification Number (EIN)',
+ 'IRS (Internal Revenue Service)', 0, 0, NULL, 'Instant online',
+ 'Federal Tax Identification Number issued by the IRS for business tax reporting.',
+ 'https://www.irs.gov', CURRENT_DATE)
+ON CONFLICT (business_type, city, requirement_name) DO NOTHING;
 
 -- ── Los Angeles, CA (Food Truck) ───────────────────────────
 INSERT INTO requirements (business_type, city, jurisdiction_level, requirement_name, issuing_agency, fee_min, fee_max, renewal_cycle_months, processing_time, description, source_url, template_url, form_field_map, last_verified_date) VALUES
@@ -110,4 +133,39 @@ INSERT INTO requirements (business_type, city, jurisdiction_level, requirement_n
  'CA Dept. of Housing & Community Development', NULL, NULL, NULL, '14-30 business days',
  'State safety certification insignia for commercial mobile food trucks and trailers with electrical or gas systems.',
  'https://runpitstop.com/blog/food-truck-permits-california', NULL, NULL, CURRENT_DATE)
-ON CONFLICT DO NOTHING;
+ON CONFLICT (business_type, city, requirement_name) DO NOTHING;
+
+-- ── Los Angeles, CA (Restaurant) ───────────────────────────
+INSERT INTO requirements (business_type, city, jurisdiction_level, requirement_name, issuing_agency, fee_min, fee_max, renewal_cycle_months, processing_time, description, source_url, template_url, form_field_map, last_verified_date) VALUES
+('restaurant', 'Los Angeles, CA', 'city',  'LA County Public Health Permit',
+ 'LACDPH (LA County Dept. of Public Health)', 450, 950, 12, '14-30 business days',
+ 'Mandatory public health operating permit for food service establishments in LA County.',
+ 'http://publichealth.lacounty.gov/eh',
+ 'http://publichealth.lacounty.gov/eh/docs/permit/Public-Health-Permit-License-Application.pdf',
+ '{"mode":"acroform","fields":{"LEGAL NAME OF BUSINESS DBA":"business_name","Business Street AddressRow1":"address","CityRow1":"city","ZipRow1":"zip","OWNER 1":"owner_name","PhoneOWNER 1":"phone","EmailOWNER 1":"email","Print Name Title":"owner_name","Date of Application":"date","Signature Date":"date","New Business":"checkbox_true"}}',
+ CURRENT_DATE),
+
+('restaurant', 'Los Angeles, CA', 'city',  'City of LA Business Tax Registration Certificate (BTRC)',
+ 'City of LA Office of Finance', 0, 150, 12, '3-7 business days',
+ 'Mandatory municipal tax registration for doing business within City of Los Angeles limits.',
+ 'https://streetlegal.io/blog/california/los-angeles-food-truck-permit-guide', NULL, NULL, CURRENT_DATE),
+
+('restaurant', 'Los Angeles, CA', 'state', 'California Seller''s Permit',
+ 'CDTFA (California Dept. of Tax & Fee Administration)', 0, 0, NULL, '1-5 business days',
+ 'State sales tax permit required for retail sales of food and goods within California.',
+ 'https://streetlegal.io/blog/california/los-angeles-food-truck-permit-guide', NULL, NULL, CURRENT_DATE),
+
+('restaurant', 'Los Angeles, CA', 'state', 'California Food Handler Card',
+ 'CA Dept. of Public Health', 15, 30, 36, '1-2 business days',
+ 'State-mandated food handler training certificate for food service workers.',
+ 'https://getvendorloop.com/guides/how-to-start-a-food-truck-in-los-angeles', NULL, NULL, CURRENT_DATE),
+
+('restaurant', 'Los Angeles, CA', 'city',  'Food Protection Manager Certification',
+ 'LACDPH', 150, 200, 60, '1-5 business days',
+ 'Certified food safety manager accreditation required for person-in-charge of food facility operations.',
+ 'https://getvendorloop.com/guides/how-to-start-a-food-truck-in-los-angeles',
+ 'http://publichealth.lacounty.gov/eh/docs/permit/Public-Health-Permit-License-Application.pdf',
+ '{"mode":"acroform","fields":{"LEGAL NAME OF BUSINESS DBA":"business_name","Business Street AddressRow1":"address","CityRow1":"city","ZipRow1":"zip","OWNER 1":"owner_name","PhoneOWNER 1":"phone","EmailOWNER 1":"email","Print Name Title":"owner_name","Date of Application":"date","Signature Date":"date","New Business":"checkbox_true"}}',
+ CURRENT_DATE)
+ON CONFLICT (business_type, city, requirement_name) DO NOTHING;
+

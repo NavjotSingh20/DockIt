@@ -10,6 +10,7 @@ import { useDemo } from '../context/DemoContext';
 import { getRequirements, getBusinessRequirements, createBusinessRequirement, updateBusiness } from '../services/supabase';
 import { formatCurrency } from '../utils/formatters';
 import { fillOfficialForm } from '../utils/formFillEngine';
+import { computeSmartDiff, isRequirementApplicable } from '../utils/jurisdictionEngine';
 
 const CITIES_DATA = {
   India: [
@@ -77,12 +78,7 @@ export default function MyRequirements() {
       const userList = demoBusinessRequirements || [];
 
       // Filter requirements matching business_type and any operating city OR federal items
-      const matched = masterList.filter(req => {
-        const typeMatch = !businessType || req.business_type === businessType || req.business_type === 'restaurant' || req.business_type === 'food_truck';
-        const isFederal = req.jurisdiction_level === 'federal';
-        const cityMatch = operatingCities.some(c => (req.city || '').toLowerCase().includes(c.split(',')[0].trim().toLowerCase()));
-        return typeMatch && (isFederal || cityMatch);
-      });
+      const matched = masterList.filter(req => isRequirementApplicable(req, operatingCities, businessType));
 
       if (isMounted) {
         setRequirements(matched.length > 0 ? matched : masterList);
@@ -132,6 +128,7 @@ export default function MyRequirements() {
 
 
   // Handle Adding a New Operating City (Smart-Diff Trigger)
+  // Handle Adding a New Operating City (Smart-Diff Trigger)
   const handleAddCity = async (cityStateStr) => {
     if (!cityStateStr || operatingCities.includes(cityStateStr)) {
       toast.error('City is already in your operating jurisdictions.');
@@ -148,14 +145,63 @@ export default function MyRequirements() {
           city: cityStateStr.split(',')[0].trim(),
           state: cityStateStr.split(',')[1]?.trim() || ''
         });
-        toast.success(`📍 ${cityStateStr} added to operating cities! Smart-Diff checklist updated.`);
+
+        // Smart-Diff for Demo Mode
+        const { deltaRequirements, sharedRequirements } = computeSmartDiff(
+          demoBusinessRequirements,
+          cityStateStr,
+          businessType,
+          demoRequirements
+        );
+
+        deltaRequirements.forEach(req => addDemoRequirement(req));
+
+        toast.success(
+          `📍 ${cityStateStr} added! Smart-Diff added ${deltaRequirements.length} new permit(s) (${sharedRequirements.length} shared permits preserved).`
+        );
       } else {
         if (!business?.id) {
           toast.error('Please complete onboarding setup first.');
           return;
         }
         await updateBusiness(business.id, { cities: updatedCities });
-        toast.success(`📍 ${cityStateStr} added to operating cities! Smart-Diff checklist updated.`);
+
+        let addedCount = 0;
+        let sharedCount = 0;
+        try {
+          const [catalogReqs, existingBrs] = await Promise.all([
+            getRequirements(businessType, [cityStateStr]),
+            getBusinessRequirements(business.id).catch(() => [])
+          ]);
+
+          const { deltaRequirements, sharedRequirements } = computeSmartDiff(
+            existingBrs,
+            cityStateStr,
+            businessType,
+            catalogReqs
+          );
+
+          addedCount = deltaRequirements.length;
+          sharedCount = sharedRequirements.length;
+
+          if (deltaRequirements.length > 0) {
+            const createPromises = deltaRequirements.map(req =>
+              createBusinessRequirement({
+                business_id: business.id,
+                requirement_id: req.id,
+                status: 'needed',
+                issuing_authority: req.issuing_agency,
+              })
+            );
+            await Promise.all(createPromises);
+          }
+        } catch (smartDiffErr) {
+          console.error("Smart-Diff auto-population failed:", smartDiffErr);
+        }
+
+        toast.success(
+          `📍 ${cityStateStr} added! Smart-Diff added ${addedCount} new state/local permit(s) (${sharedCount} shared permit(s) preserved).`
+        );
       }
       setShowAddCityModal(false);
       setSelectedNewCity('');
@@ -236,6 +282,7 @@ export default function MyRequirements() {
   const { coveredFederalReqs, citySpecificGroups } = useMemo(() => {
     const coveredFederal = [];
     const cityMap = {};
+    const seenReqKeys = new Set();
 
     filteredRequirements.forEach(req => {
       const isTracked = trackedReqIds.has(req.id);
@@ -243,12 +290,19 @@ export default function MyRequirements() {
 
       if (isFederal && isTracked) {
         // Federal items tracked under any city are auto-satisfied for all cities
-        coveredFederal.push(req);
+        if (!seenReqKeys.has(`federal_${req.requirement_name.toLowerCase()}`)) {
+          seenReqKeys.add(`federal_${req.requirement_name.toLowerCase()}`);
+          coveredFederal.push(req);
+        }
       } else {
-        // Group by city name
+        // Group by city name and deduplicate
         const cityKey = req.city || 'General / Federal';
-        if (!cityMap[cityKey]) cityMap[cityKey] = [];
-        cityMap[cityKey].push(req);
+        const dedupeKey = `${cityKey}_${req.requirement_name?.toLowerCase().trim()}`;
+        if (!seenReqKeys.has(dedupeKey)) {
+          seenReqKeys.add(dedupeKey);
+          if (!cityMap[cityKey]) cityMap[cityKey] = [];
+          cityMap[cityKey].push(req);
+        }
       }
     });
 

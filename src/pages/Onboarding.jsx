@@ -5,7 +5,7 @@ import { ArrowRight, ArrowLeft, Check, Loader2,
   HardHat, GraduationCap, Factory, Briefcase } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import toast from 'react-hot-toast';
-import { supabase, signInWithOtp, verifyOtp, createBusiness, getBusiness, getRequirements, createBusinessRequirement } from '../services/supabase';
+import { supabase, signInWithOtp, verifyOtp, createBusiness, getBusiness } from '../services/supabase';
 import { BUSINESS_TYPES } from '../utils/licenseTypes';
 import { useDemo } from '../context/DemoContext';
 
@@ -90,7 +90,7 @@ export default function Onboarding() {
       if (session?.user) {
         getBusiness(session.user.id).then((biz) => {
           if (biz) {
-            navigate('/dashboard', { replace: true });
+            navigate('/requirements', { replace: true });
           } else {
             setStep(1);
           }
@@ -106,7 +106,7 @@ export default function Onboarding() {
         try {
           const biz = await getBusiness(session.user.id);
           if (biz) {
-            navigate('/dashboard', { replace: true });
+            navigate('/requirements', { replace: true });
           } else {
             setStep(1);
           }
@@ -189,7 +189,7 @@ export default function Onboarding() {
     setLoading(true);
     try {
       const { data: { user } } = await supabase.auth.getUser();
-      const newBiz = await createBusiness({
+      await createBusiness({
         business_name: profile.business_name,
         owner_name: profile.owner_name,
         phone: profile.phone,
@@ -200,30 +200,9 @@ export default function Onboarding() {
         email: user.email
       });
 
-      // Auto-populate the checklist with "needed" requirements for this business type and city
-      try {
-        const cityStr = `${activeCity}, ${activeState}`;
-        const reqs = await getRequirements(businessType, [cityStr]);
-        
-        // If there are no city-specific matches, it might fall back to general ones
-        if (reqs && reqs.length > 0) {
-          const promises = reqs.map(req => 
-            createBusinessRequirement({
-              business_id: newBiz.id,
-              requirement_id: req.id,
-              status: 'needed',
-              issuing_authority: req.issuing_agency,
-            })
-          );
-          await Promise.all(promises);
-        }
-      } catch (autoErr) {
-        console.error("Auto-population of checklist failed:", autoErr);
-        // We don't block onboarding if auto-population fails
-      }
       localStorage.setItem('country', profile.country || 'USA');
-      navigate('/dashboard', { replace: true });
-      toast.success('Welcome to DockIt!');
+      navigate('/requirements', { replace: true });
+      toast.success('Welcome to DockIt! Browse your requirements below.');
     } catch (err) {
       console.error("Save Profile Error:", err);
       toast.error(err.message || err.error_description || JSON.stringify(err) || 'Failed to save profile');

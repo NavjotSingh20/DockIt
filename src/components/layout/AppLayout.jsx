@@ -6,6 +6,7 @@ import { useDemo } from '../../context/DemoContext';
 import { X } from 'lucide-react';
 import { useAuth } from '../../hooks/useAuth';
 import { getBusiness } from '../../services/supabase';
+import ChatBot from '../features/ChatBot';
 
 export default function AppLayout() {
   const { user } = useAuth();
@@ -47,7 +48,7 @@ export default function AppLayout() {
         {isDemo && (
           <div className="bg-accent text-white text-xs sm:text-sm font-display font-medium px-4 py-2 flex flex-col sm:flex-row items-center justify-between gap-2 shadow-xs">
             <div className="flex items-center gap-2 flex-wrap">
-              <span>📊 <strong>Demo Mode Active</strong> —</span>
+              <span><strong>Demo Mode Active</strong> —</span>
               <div className="flex items-center gap-1.5 bg-black/20 px-2.5 py-1 rounded-xl">
                 <span className="text-[11px] text-white/80">Active Profile:</span>
                 <select
@@ -74,6 +75,7 @@ export default function AppLayout() {
         </main>
       </div>
       <BottomNav />
+      <ChatBot />
     </div>
   );
 }

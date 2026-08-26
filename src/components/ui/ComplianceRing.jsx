@@ -1,12 +1,13 @@
 import { useEffect, useState } from 'react';
 
-export default function ComplianceRing({ score, size = 140, strokeWidth = 10 }) {
+export default function ComplianceRing({ score, size = 140, strokeWidth = 10, color: colorOverride }) {
   const [displayed, setDisplayed] = useState(0);
   const radius = (size - strokeWidth) / 2;
   const circ = 2 * Math.PI * radius;
   const offset = circ - (displayed / 100) * circ;
 
-  const color = score >= 80 ? '#6B8F71' : score >= 60 ? '#D97706' : score >= 40 ? '#CA8A04' : '#C2410C';
+  const autoColor = score >= 80 ? '#6B8F71' : score >= 60 ? '#D97706' : score >= 40 ? '#CA8A04' : '#C2410C';
+  const color = colorOverride || autoColor;
   const grade = score >= 80 ? 'A' : score >= 60 ? 'B' : score >= 40 ? 'C' : 'D';
 
   useEffect(() => {

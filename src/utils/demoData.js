@@ -1,0 +1,105 @@
+/**
+ * demoData.js
+ * Demo business + 6 licenses with dynamically computed dates.
+ * Used in demo mode — no Supabase reads/writes.
+ */
+import { addDays, subDays, format } from 'date-fns'
+
+const today = new Date()
+
+export const DEMO_BUSINESS = {
+  id: 'demo-001',
+  owner_id: 'demo-user',
+  business_name: 'Spice Garden Restaurant',
+  business_type: 'Restaurant',
+  owner_name: 'Rajesh Kumar',
+  phone: '+91 98765 43210',
+  email: 'rajesh@spicegarden.in',
+  address: '12, Indiranagar 100 Feet Road',
+  city: 'Bengaluru',
+  state: 'Karnataka',
+  gstin: '29AABCS1429B1Z1',
+  compliance_score: 52,
+  created_at: subDays(today, 120).toISOString(),
+}
+
+export const DEMO_LICENSES = [
+  {
+    id: 'demo-lic-001',
+    business_id: 'demo-001',
+    license_type: 'FSSAI',
+    license_number: 'FSSAI-10023456789',
+    issuing_authority: 'Food Safety and Standards Authority of India',
+    issue_date: format(subDays(today, 377), 'yyyy-MM-dd'),
+    expiry_date: format(subDays(today, 12), 'yyyy-MM-dd'),
+    status: 'expired',
+    document_url: null,
+    confidence_score: 95,
+    renewal_portal_url: 'https://foscos.fssai.gov.in',
+  },
+  {
+    id: 'demo-lic-002',
+    business_id: 'demo-001',
+    license_type: 'FIRE_NOC',
+    license_number: 'KSFE-BLR-2024-8821',
+    issuing_authority: 'Karnataka State Fire and Emergency Services',
+    issue_date: format(subDays(today, 357), 'yyyy-MM-dd'),
+    expiry_date: format(addDays(today, 8), 'yyyy-MM-dd'),
+    status: 'expiring',
+    document_url: null,
+    confidence_score: 88,
+    renewal_portal_url: 'https://ksfe.karnataka.gov.in',
+  },
+  {
+    id: 'demo-lic-003',
+    business_id: 'demo-001',
+    license_type: 'TRADE_LICENSE',
+    license_number: 'BBMP-TL-2024-445521',
+    issuing_authority: 'BBMP (Bruhat Bengaluru Mahanagara Palike)',
+    issue_date: format(subDays(today, 342), 'yyyy-MM-dd'),
+    expiry_date: format(addDays(today, 23), 'yyyy-MM-dd'),
+    status: 'expiring',
+    document_url: null,
+    confidence_score: 92,
+    renewal_portal_url: 'https://bbmptax.karnataka.gov.in',
+  },
+  {
+    id: 'demo-lic-004',
+    business_id: 'demo-001',
+    license_type: 'SHOP_ESTABLISHMENT',
+    license_number: 'KLAB-SE-2024-112233',
+    issuing_authority: 'Karnataka Labour Department',
+    issue_date: format(subDays(today, 313), 'yyyy-MM-dd'),
+    expiry_date: format(addDays(today, 52), 'yyyy-MM-dd'),
+    status: 'expiring',
+    document_url: null,
+    confidence_score: 85,
+    renewal_portal_url: 'https://labour.karnataka.gov.in',
+  },
+  {
+    id: 'demo-lic-005',
+    business_id: 'demo-001',
+    license_type: 'GST',
+    license_number: '29AABCS1429B1Z1',
+    issuing_authority: 'GST Council of India',
+    issue_date: format(subDays(today, 125), 'yyyy-MM-dd'),
+    expiry_date: format(addDays(today, 240), 'yyyy-MM-dd'),
+    status: 'active',
+    document_url: null,
+    confidence_score: 99,
+    renewal_portal_url: 'https://www.gst.gov.in',
+  },
+  {
+    id: 'demo-lic-006',
+    business_id: 'demo-001',
+    license_type: 'EATING_HOUSE',
+    license_number: 'BCP-EH-2024-33445',
+    issuing_authority: 'Bengaluru City Police',
+    issue_date: format(subDays(today, 185), 'yyyy-MM-dd'),
+    expiry_date: format(addDays(today, 180), 'yyyy-MM-dd'),
+    status: 'active',
+    document_url: null,
+    confidence_score: 91,
+    renewal_portal_url: 'https://bengalurupolice.karnataka.gov.in',
+  },
+]

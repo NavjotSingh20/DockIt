@@ -12,8 +12,14 @@ export function DemoProvider({ children }) {
     daysLeft: getDaysLeft(l.expiry_date),
   }));
 
-  const enterDemo = () => setIsDemo(true);
-  const exitDemo = () => setIsDemo(false);
+  const enterDemo = () => {
+    localStorage.setItem('country', DEMO_BUSINESS.country || 'India');
+    setIsDemo(true);
+  };
+  const exitDemo = () => {
+    localStorage.removeItem('country');
+    setIsDemo(false);
+  };
 
   return (
     <DemoContext.Provider value={{ isDemo, enterDemo, exitDemo, demoBusiness: DEMO_BUSINESS, demoLicenses }}>

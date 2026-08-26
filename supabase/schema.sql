@@ -1,5 +1,5 @@
 -- ═══════════════════════════════════════════════════════════
--- ComplianceAI — Supabase Database Schema
+-- DockIt — Supabase Database Schema
 -- Run this entire file in Supabase SQL Editor
 -- Project: https://supabase.com → your project → SQL Editor
 -- ═══════════════════════════════════════════════════════════
@@ -20,8 +20,9 @@ CREATE TABLE IF NOT EXISTS businesses (
   phone           TEXT,
   email           TEXT,
   address         TEXT,
-  city            TEXT          DEFAULT 'Bengaluru',
-  state           TEXT          DEFAULT 'Karnataka',
+  city            TEXT          DEFAULT 'New York',
+  state           TEXT          DEFAULT 'NY',
+  country         TEXT          DEFAULT 'USA',
   gstin           TEXT,
   compliance_score INTEGER      DEFAULT 100 CHECK (compliance_score >= 0 AND compliance_score <= 100),
   created_at      TIMESTAMPTZ   DEFAULT NOW(),

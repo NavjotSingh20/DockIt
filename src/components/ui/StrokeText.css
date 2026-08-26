@@ -1,0 +1,26 @@
+/* StrokeText — SVG outlined text with stroke-draw + fill-reveal animation */
+.stroke-text-container {
+  display: inline-block;
+  line-height: 1;
+}
+
+.stroke-text-svg {
+  display: block;
+  overflow: visible;
+  max-width: 100%;
+  height: auto;
+}
+
+.stroke-text-char {
+  /* Initial state — hidden until GSAP animates */
+  stroke-dasharray: 1000;
+  stroke-dashoffset: 1000;
+}
+
+/* Reduced motion: show everything immediately */
+@media (prefers-reduced-motion: reduce) {
+  .stroke-text-char {
+    stroke-dashoffset: 0 !important;
+    fill-opacity: 1 !important;
+  }
+}

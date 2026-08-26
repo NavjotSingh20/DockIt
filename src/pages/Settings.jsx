@@ -1,13 +1,38 @@
 import { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
-import { useTranslation } from 'react-i18next';
 import toast from 'react-hot-toast';
-import { Moon, Sun, Globe, Bell, LogOut, Zap, Save } from 'lucide-react';
-import i18n from '../i18n';
+import { Bell, LogOut, Zap, Save, Pencil } from 'lucide-react';
 import { useDemo } from '../context/DemoContext';
 import { useAuth } from '../hooks/useAuth';
 import { getBusiness, updateBusiness, signOut } from '../services/supabase';
 import { useNavigate } from 'react-router-dom';
+
+const CITIES_DATA = {
+  India: [
+    { city: 'Mumbai', state: 'Maharashtra' },
+    { city: 'Delhi', state: 'NCT' },
+    { city: 'Chennai', state: 'Tamil Nadu' },
+    { city: 'Kolkata', state: 'West Bengal' },
+    { city: 'Hyderabad', state: 'Telangana' },
+    { city: 'Pune', state: 'Maharashtra' },
+    { city: 'Ahmedabad', state: 'Gujarat' },
+    { city: 'Jaipur', state: 'Rajasthan' },
+    { city: 'Lucknow', state: 'Uttar Pradesh' }
+  ],
+  USA: [
+    { city: 'New York', state: 'NY' },
+    { city: 'Los Angeles', state: 'CA' },
+    { city: 'Chicago', state: 'IL' },
+    { city: 'Houston', state: 'TX' },
+    { city: 'Phoenix', state: 'AZ' },
+    { city: 'Philadelphia', state: 'PA' },
+    { city: 'San Antonio', state: 'TX' },
+    { city: 'San Diego', state: 'CA' },
+    { city: 'San Francisco', state: 'CA' },
+    { city: 'Seattle', state: 'WA' },
+    { city: 'Boston', state: 'MA' }
+  ]
+};
 
 const REMINDER_OPTIONS = [
   { label: '60 days before', value: 60 },
@@ -18,32 +43,73 @@ const REMINDER_OPTIONS = [
 
 function Section({ title, children }) {
   return (
-    <div className="bg-white rounded-2xl border border-gray-100 p-6 space-y-4">
-      <h2 className="section-title border-b border-gray-50 pb-3">{title}</h2>
+    <div className="bg-surface rounded-2xl border border-rule p-6 space-y-4">
+      <h2 className="section-title border-b border-rule/50 pb-3">{title}</h2>
       {children}
     </div>
   );
 }
 
 export default function Settings() {
-  const { t } = useTranslation();
   const { isDemo, demoBusiness, enterDemo, exitDemo } = useDemo();
   const { user } = useAuth();
   const navigate = useNavigate();
 
-  const [darkMode, setDarkMode] = useState(document.documentElement.classList.contains('dark'));
-  const [lang, setLang] = useState(i18n.language);
   const [emailReminders, setEmailReminders] = useState(true);
   const [reminderDays, setReminderDays] = useState([60, 30, 7]);
-  const [profile, setProfile] = useState({ business_name: '', owner_name: '', phone: '', address: '', city: 'Bengaluru', state: 'Karnataka', gstin: '', email: '' });
+  const [isEditing, setIsEditing] = useState(false);
+  const [profile, setProfile] = useState({ business_name: '', owner_name: '', phone: '', address: '', city: 'New York', state: 'NY', country: 'USA', email: '' });
+  const [originalProfile, setOriginalProfile] = useState(null);
+  const [cityInput, setCityInput] = useState('New York, NY');
+  const [originalCityInput, setOriginalCityInput] = useState('New York, NY');
+  const [suggestions, setSuggestions] = useState([]);
+  const [showSuggest, setShowSuggest] = useState(false);
   const [saving, setSaving] = useState(false);
   const [bizId, setBizId] = useState(null);
 
+  const handleCitySearch = (val) => {
+    setCityInput(val);
+    if (!val) {
+      setSuggestions([]);
+      return;
+    }
+    const country = profile.country || 'USA';
+    const matches = (CITIES_DATA[country] || []).filter(c =>
+      `${c.city}, ${c.state}`.toLowerCase().includes(val.toLowerCase())
+    );
+    setSuggestions(matches);
+    setShowSuggest(true);
+  };
+
+  const selectSuggestion = (s) => {
+    setProfile(p => ({ ...p, city: s.city, state: s.state }));
+    setCityInput(`${s.city}, ${s.state}`);
+    setShowSuggest(false);
+  };
+
   useEffect(() => {
-    if (isDemo) { setProfile({ ...demoBusiness, email: demoBusiness?.email || '' }); return; }
+    if (isDemo) { 
+      const p = { ...demoBusiness, email: demoBusiness?.email || '', country: demoBusiness?.country || 'USA' };
+      const c = `${demoBusiness?.city || ''}${demoBusiness?.state ? `, ${demoBusiness.state}` : ''}`;
+      setProfile(p);
+      setOriginalProfile(p);
+      setCityInput(c);
+      setOriginalCityInput(c);
+      localStorage.setItem('country', p.country);
+      return;
+    }
     if (user) {
       getBusiness(user.id).then(biz => {
-        if (biz) { setProfile({ ...biz, email: user.email || '' }); setBizId(biz.id); }
+        if (biz) {
+          const p = { ...biz, email: user.email || '', country: biz.country || 'USA' };
+          const c = `${biz.city || ''}${biz.state ? `, ${biz.state}` : ''}`;
+          setProfile(p);
+          setOriginalProfile(p);
+          setCityInput(c);
+          setOriginalCityInput(c);
+          setBizId(biz.id);
+          localStorage.setItem('country', p.country);
+        }
       }).catch(() => {});
     }
   }, [user, isDemo]);
@@ -55,25 +121,37 @@ export default function Settings() {
     localStorage.setItem('darkMode', isDark);
   };
 
-  const changeLanguage = (lng) => {
-    setLang(lng);
-    i18n.changeLanguage(lng);
-    localStorage.setItem('lang', lng);
-    toast.success(lng === 'kn' ? 'ಕನ್ನಡಕ್ಕೆ ಬದಲಾಯಿಸಲಾಗಿದೆ' : 'Switched to English');
-  };
+  // Language switcher removed - localized monolingual English
 
   const handleSave = async () => {
-    if (isDemo) { toast.success(t('settings.saved')); return; }
+    if (isDemo) {
+      setOriginalProfile(profile);
+      setOriginalCityInput(cityInput);
+      setIsEditing(false);
+      localStorage.setItem('country', profile.country);
+      toast.success('Changes saved successfully!');
+      return;
+    }
     setSaving(true);
     try {
       await updateBusiness(bizId, {
         business_name: profile.business_name, owner_name: profile.owner_name,
         phone: profile.phone, address: profile.address, city: profile.city,
-        state: profile.state, gstin: profile.gstin,
+        state: profile.state, country: profile.country,
       });
-      toast.success(t('settings.saved'));
+      setOriginalProfile(profile);
+      setOriginalCityInput(cityInput);
+      setIsEditing(false);
+      localStorage.setItem('country', profile.country);
+      toast.success('Business profile updated!');
     } catch (err) { toast.error(err.message); }
     finally { setSaving(false); }
+  };
+
+  const handleCancel = () => {
+    if (originalProfile) setProfile(originalProfile);
+    if (originalCityInput) setCityInput(originalCityInput);
+    setIsEditing(false);
   };
 
   const handleSignOut = async () => {
@@ -86,54 +164,120 @@ export default function Settings() {
 
   const ProfileField = ({ label, keyName, type = 'text', readOnly = false }) => (
     <div>
-      <label className="block text-xs font-bold text-gray-400 uppercase tracking-wide mb-1.5">{label}</label>
+      <label className="block text-xs font-bold font-display text-ink-faint uppercase tracking-wide mb-1.5">{label}</label>
       <input type={type} value={profile[keyName] || ''} readOnly={readOnly}
         onChange={e => setProfile(p => ({ ...p, [keyName]: e.target.value }))}
-        className={`input ${readOnly ? 'bg-gray-50 text-gray-400 cursor-not-allowed' : ''}`} />
+        className={`input ${readOnly ? 'bg-base text-ink-faint cursor-not-allowed' : ''}`} />
     </div>
   );
 
   return (
     <div className="space-y-5 max-w-2xl mx-auto">
-      <motion.h1 initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="page-title">{t('settings.title')}</motion.h1>
+      <motion.h1 initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="page-title">Settings</motion.h1>
 
       {/* Business Profile */}
-      <Section title={t('settings.business_profile')}>
-        <ProfileField label="Business Name" keyName="business_name" />
-        <ProfileField label="Owner Name" keyName="owner_name" />
-        <ProfileField label="Phone" keyName="phone" type="tel" />
-        <ProfileField label="Address" keyName="address" />
-        <div className="grid grid-cols-2 gap-4">
-          <ProfileField label="City" keyName="city" />
-          <ProfileField label="State" keyName="state" />
+      <div className="bg-surface rounded-2xl border border-rule p-6 space-y-4">
+        <div className="flex items-center justify-between border-b border-rule/50 pb-3">
+          <h2 className="section-title">Business Profile</h2>
+          {!isEditing && (
+            <button
+              onClick={() => setIsEditing(true)}
+              className="btn-secondary text-xs px-3 py-1.5 flex items-center gap-1.5"
+            >
+              <Pencil size={14} /> Edit Profile
+            </button>
+          )}
         </div>
-        <ProfileField label="GSTIN" keyName="gstin" />
+
+        <ProfileField label="Business Name" keyName="business_name" readOnly={!isEditing} />
+        <ProfileField label="Owner Name" keyName="owner_name" readOnly={!isEditing} />
+        <ProfileField label="Phone" keyName="phone" type="tel" readOnly={!isEditing} />
+        <ProfileField label="Address" keyName="address" readOnly={!isEditing} />
+        
+        {/* Country dropdown */}
+        <div className="flex flex-col gap-1.5">
+          <label className="text-xs font-bold font-display text-ink-faint uppercase tracking-wide">Country *</label>
+          <select
+            value={profile.country || 'USA'}
+            disabled={!isEditing}
+            onChange={e => {
+              const c = e.target.value;
+              setProfile(p => ({ ...p, country: c, city: '', state: '' }));
+              setCityInput('');
+            }}
+            className={`input ${!isEditing ? 'bg-base text-ink-faint cursor-not-allowed' : ''}`}
+          >
+            <option value="India">India</option>
+            <option value="USA">USA</option>
+          </select>
+        </div>
+
+        {/* City, State Autocomplete dropdown */}
+        <div className="relative flex flex-col gap-1.5">
+          <label className="text-xs font-bold font-display text-ink-faint uppercase tracking-wide">City, State *</label>
+          <input
+            type="text"
+            value={cityInput}
+            readOnly={!isEditing}
+            onChange={e => handleCitySearch(e.target.value)}
+            onFocus={() => { if (isEditing) { if (cityInput) handleCitySearch(cityInput); else setShowSuggest(true); } }}
+            onBlur={() => setTimeout(() => setShowSuggest(false), 200)}
+            className={`input ${!isEditing ? 'bg-base text-ink-faint cursor-not-allowed' : ''}`}
+            placeholder="Type city/state (e.g. New York, Los Angeles)..."
+          />
+          {isEditing && showSuggest && (CITIES_DATA[profile.country] || []).length > 0 && (
+            <div className="absolute z-10 w-full bg-surface border border-rule rounded-xl shadow-lg mt-[70px] max-h-48 overflow-y-auto">
+              {(suggestions.length > 0 ? suggestions : CITIES_DATA[profile.country]).map((s, idx) => (
+                <button
+                  key={idx}
+                  type="button"
+                  onClick={() => selectSuggestion(s)}
+                  className="w-full text-left px-4 py-2 text-sm hover:bg-accent-light text-ink transition-colors"
+                >
+                  {s.city}, {s.state}
+                </button>
+              ))}
+              {suggestions.length === 0 && cityInput && (
+                <div className="px-4 py-2 text-sm text-ink-faint italic">No matching locations found</div>
+              )}
+            </div>
+          )}
+        </div>
+
         <ProfileField label="Email" keyName="email" type="email" readOnly />
-        <button onClick={handleSave} disabled={saving} className="btn-primary w-full">
-          <Save size={16} /> {saving ? 'Saving…' : t('settings.save_changes')}
-        </button>
-      </Section>
+        
+        {isEditing && (
+          <div className="flex gap-3 pt-2">
+            <button onClick={handleCancel} disabled={saving} className="btn-secondary flex-1">
+              Cancel
+            </button>
+            <button onClick={handleSave} disabled={saving} className="btn-primary flex-1">
+              <Save size={16} /> {saving ? 'Saving…' : 'Save Changes'}
+            </button>
+          </div>
+        )}
+      </div>
 
       {/* Notifications */}
-      <Section title={t('settings.notifications')}>
+      <Section title="Notifications">
         <div className="flex items-center justify-between">
           <div>
-            <div className="text-sm font-semibold text-gray-800">{t('settings.email_reminders')}</div>
-            <div className="text-xs text-gray-400 mt-0.5">Get reminders before license expiry</div>
+            <div className="text-sm font-semibold text-ink">Email Expiry Reminders</div>
+            <div className="text-xs text-ink-faint mt-0.5">Get reminders before license expiry</div>
           </div>
           <button onClick={() => setEmailReminders(!emailReminders)}
-            className={`w-12 h-6 rounded-full transition-colors relative flex-shrink-0 ${emailReminders ? 'bg-blue-600' : 'bg-gray-200'}`}>
+            className={`w-12 h-6 rounded-full transition-colors relative flex-shrink-0 ${emailReminders ? 'bg-accent' : 'bg-rule'}`}>
             <div className={`absolute top-0.5 w-5 h-5 bg-white rounded-full shadow transition-transform ${emailReminders ? 'translate-x-6' : 'translate-x-0.5'}`} />
           </button>
         </div>
         {emailReminders && (
           <div>
-            <div className="text-xs font-bold text-gray-400 uppercase tracking-wide mb-2">{t('settings.reminder_timing')}</div>
+            <div className="text-xs font-bold font-display text-ink-faint uppercase tracking-wide mb-2">Reminder Frequency</div>
             <div className="flex flex-wrap gap-2">
               {REMINDER_OPTIONS.map(({ label, value }) => (
                 <button key={value}
                   onClick={() => setReminderDays(prev => prev.includes(value) ? prev.filter(d => d !== value) : [...prev, value])}
-                  className={`px-3 py-1.5 rounded-xl text-sm font-semibold transition-all border-2 ${reminderDays.includes(value) ? 'bg-blue-600 text-white border-blue-600' : 'border-gray-200 text-gray-600 hover:border-blue-300'}`}>
+                  className={`px-3 py-1.5 rounded-xl text-sm font-semibold transition-all border-2 ${reminderDays.includes(value) ? 'bg-accent text-white border-accent' : 'border-rule text-ink-muted hover:border-accent/50'}`}>
                   {label}
                 </button>
               ))}
@@ -142,55 +286,22 @@ export default function Settings() {
         )}
       </Section>
 
-      {/* Display */}
-      <Section title={t('settings.display')}>
-        {/* Dark mode */}
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            {darkMode ? <Moon size={18} className="text-gray-700" /> : <Sun size={18} className="text-amber-500" />}
-            <div>
-              <div className="text-sm font-semibold text-gray-800">{t('settings.dark_mode')}</div>
-              <div className="text-xs text-gray-400">{darkMode ? 'Dark theme active' : 'Light theme active'}</div>
-            </div>
-          </div>
-          <button onClick={toggleDark}
-            className={`w-12 h-6 rounded-full transition-colors relative flex-shrink-0 ${darkMode ? 'bg-blue-600' : 'bg-gray-200'}`}>
-            <div className={`absolute top-0.5 w-5 h-5 bg-white rounded-full shadow transition-transform ${darkMode ? 'translate-x-6' : 'translate-x-0.5'}`} />
-          </button>
-        </div>
-        {/* Language */}
-        <div>
-          <div className="flex items-center gap-2 mb-3">
-            <Globe size={16} className="text-blue-600" />
-            <span className="text-sm font-semibold text-gray-800">{t('settings.language')}</span>
-          </div>
-          <div className="flex gap-2">
-            {[{ code: 'en', label: 'English' }, { code: 'kn', label: 'ಕನ್ನಡ' }].map(({ code, label }) => (
-              <button key={code} onClick={() => changeLanguage(code)}
-                className={`flex-1 py-2.5 rounded-xl text-sm font-bold border-2 transition-all ${lang === code ? 'bg-blue-600 text-white border-blue-600' : 'border-gray-200 text-gray-600 hover:border-blue-300'}`}>
-                {label}
-              </button>
-            ))}
-          </div>
-        </div>
-      </Section>
-
       {/* Account */}
-      <Section title={t('settings.account')}>
-        <div className="text-sm text-gray-600">
+      <Section title="Account">
+        <div className="text-sm text-ink-muted">
           Signed in as <strong>{isDemo ? demoBusiness?.email : user?.email || 'Demo User'}</strong>
         </div>
         <button onClick={handleSignOut} className="btn-danger w-full">
-          <LogOut size={16} /> {isDemo ? t('dashboard.exit_demo') : t('nav.sign_out')}
+          <LogOut size={16} /> {isDemo ? 'Exit Demo Mode' : 'Sign Out'}
         </button>
       </Section>
 
       {/* Demo mode */}
-      <Section title={t('settings.demo_mode')}>
-        <p className="text-sm text-gray-500">Load sample restaurant data to explore all features without signing in.</p>
+      <Section title="Demo Sandbox">
+        <p className="text-sm text-ink-muted">Load sample data to explore all features without signing in.</p>
         <button onClick={() => { enterDemo(); navigate('/dashboard'); toast.success('Demo mode activated!'); }}
           className="btn-secondary w-full">
-          <Zap size={16} /> {t('settings.load_demo')}
+          <Zap size={16} /> Load Demo Data
         </button>
       </Section>
     </div>

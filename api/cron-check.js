@@ -17,11 +17,11 @@ const supabaseAdmin = createClient(
 
 const REMINDER_STAGES = [60, 30, 7, 1] // days before expiry
 
-async function sendEmail({ to, ownerName, licenseName, daysLeft, expiryDate, penalty, renewalUrl }) {
+async function sendEmail({ to, ownerName, licenseName, daysLeft, expiryDate, penalty, renewalUrl, country }) {
   const response = await fetch(`${process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : 'http://localhost:3000'}/api/send-reminder`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ to, ownerName, licenseName, daysLeft, expiryDate, penalty, renewalUrl }),
+    body: JSON.stringify({ to, ownerName, licenseName, daysLeft, expiryDate, penalty, renewalUrl, country }),
   })
   return response.ok
 }
@@ -55,7 +55,8 @@ export default async function handler(req, res) {
         businesses (
           owner_name,
           email,
-          business_name
+          business_name,
+          country
         )
       `)
       .lte('expiry_date', new Date(today.getTime() + 65 * 86400000).toISOString().split('T')[0])
@@ -109,7 +110,8 @@ export default async function handler(req, res) {
           daysLeft,
           expiryDate: lic.expiry_date,
           penalty: 0, // simplified — full calc available via penaltyRules
-          renewalUrl: lic.renewal_portal_url || 'https://www.karnataka.gov.in',
+          renewalUrl: lic.renewal_portal_url || (biz?.country === 'India' ? 'https://india.gov.in' : 'https://usa.gov'),
+          country: biz?.country || 'USA',
         })
 
         if (sent) {

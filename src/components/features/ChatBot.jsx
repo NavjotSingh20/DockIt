@@ -12,6 +12,7 @@ const SUGGESTED = [
 ];
 
 export default function ChatBot() {
+  return null; // Temporarily disabled
   const [open, setOpen] = useState(false);
   const [messages, setMessages] = useState([]);
   const [input, setInput] = useState('');
@@ -68,7 +69,7 @@ export default function ChatBot() {
                     <Shield size={18} className="text-white" />
                   </div>
                   <div>
-                    <div className="text-white font-bold text-sm">ComplianceAI Assistant</div>
+                    <div className="text-white font-bold text-sm">DockIt Assistant</div>
                     <div className="flex items-center gap-1.5"><div className="w-1.5 h-1.5 bg-green-400 rounded-full" /><span className="text-blue-200 text-xs">Online</span></div>
                   </div>
                 </div>

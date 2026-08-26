@@ -10,7 +10,7 @@ export async function sendReminderEmail(to, ownerName, licenseName, daysLeft, ex
 <body style="margin:0;padding:0;font-family:Inter,Arial,sans-serif;background:#F8FAFC;">
   <table width="100%" cellpadding="0" cellspacing="0" style="max-width:600px;margin:0 auto;">
     <tr><td style="background:#0D1B2A;padding:28px 32px;border-radius:12px 12px 0 0;">
-      <div style="color:#1A56DB;font-size:22px;font-weight:800;">⚡ ComplianceAI</div>
+      <div style="color:#1A56DB;font-size:22px;font-weight:800;">⚡ DockIt</div>
       <div style="color:#94a3b8;font-size:13px;margin-top:4px;">Business License Compliance Platform</div>
     </td></tr>
     <tr><td style="background:#fff;padding:32px;">
@@ -22,7 +22,7 @@ export async function sendReminderEmail(to, ownerName, licenseName, daysLeft, ex
       </div>
       ${penalty ? `<div style="background:#FEF2F2;border-radius:10px;padding:16px;margin-bottom:24px;"><div style="color:#DC2626;font-size:14px;font-weight:700;">⚖️ Penalty if not renewed</div><div style="color:#DC2626;font-size:24px;font-weight:800;margin-top:4px;">${penalty}</div></div>` : ''}
       <a href="${renewalUrl}" style="display:block;background:#1A56DB;color:#fff;text-decoration:none;text-align:center;padding:16px;border-radius:10px;font-size:16px;font-weight:700;margin-bottom:24px;">Renew Now →</a>
-      <p style="color:#6B7280;font-size:13px;text-align:center;margin:0;">Sent by ComplianceAI — protecting Indian businesses<br>You are receiving this because you enabled email reminders.</p>
+      <p style="color:#6B7280;font-size:13px;text-align:center;margin:0;">Sent by DockIt — protecting small businesses<br>You are receiving this because you enabled email reminders.</p>
     </td></tr>
   </table>
 </body></html>`;
@@ -30,7 +30,7 @@ export async function sendReminderEmail(to, ownerName, licenseName, daysLeft, ex
   const res = await fetch('https://api.resend.com/emails', {
     method: 'POST',
     headers: { Authorization: `Bearer ${RESEND_KEY}`, 'Content-Type': 'application/json' },
-    body: JSON.stringify({ from: 'ComplianceAI <alerts@resend.dev>', to: [to], subject: `⚠️ ${licenseName} — ${urgencyLabel}`, html }),
+    body: JSON.stringify({ from: 'DockIt <alerts@resend.dev>', to: [to], subject: `⚠️ ${licenseName} — ${urgencyLabel}`, html }),
   });
 
   if (!res.ok) { const err = await res.json(); throw new Error(err.message || 'Failed to send email'); }

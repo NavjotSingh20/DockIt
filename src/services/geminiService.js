@@ -87,7 +87,9 @@ export async function chatWithAI(message, businessContext, chatHistory, onChunk)
       return;
     }
 
-    const systemPrompt = `You are ComplianceAI's helpful assistant for Indian small business owners. You specialize in Indian business compliance, government licenses, penalties, and renewal procedures — specifically for Karnataka and Bengaluru. Always use INR (₹) for money. Be concise and practical. Current business: ${JSON.stringify(businessContext || {})}.`;
+    const country = businessContext?.country || 'USA';
+    const currencySymbol = country === 'India' ? 'INR (₹)' : 'USD ($)';
+    const systemPrompt = `You are DockIt's helpful assistant for small business owners. You specialize in business compliance, government licenses, penalties, and renewal procedures — specifically for ${country === 'India' ? 'India' : 'the USA'} (and the city/state in the business context). Always use ${currencySymbol} for money. Be concise and practical. Current business: ${JSON.stringify(businessContext || {})}.`;
 
     const history = (chatHistory || []).slice(-10).map(m => ({
       role: m.role === 'model' ? 'model' : 'user',
@@ -95,7 +97,7 @@ export async function chatWithAI(message, businessContext, chatHistory, onChunk)
     }));
 
     const chat = model.startChat({
-      history: [{ role: 'user', parts: [{ text: systemPrompt }] }, { role: 'model', parts: [{ text: 'Understood! I am ready to help with Indian business compliance questions.' }] }, ...history],
+      history: [{ role: 'user', parts: [{ text: systemPrompt }] }, { role: 'model', parts: [{ text: `Understood! I am ready to help with business compliance questions for ${country === 'India' ? 'India' : 'the USA'}.` }] }, ...history],
     });
 
     const result = await chat.sendMessageStream(message);

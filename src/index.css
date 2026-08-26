@@ -3,71 +3,64 @@
 @tailwind utilities;
 
 @layer base {
-  :root {
-    --primary: #1A56DB;
-    --primary-dark: #1040B0;
-    --primary-light: #EBF5FF;
-    --navy: #0D1B2A;
-    --success: #16A34A;
-    --warning: #F59E0B;
-    --danger: #DC2626;
-    --neutral: #6B7280;
-    --bg: #F8FAFC;
-    --card: #FFFFFF;
-    --border: #E5E7EB;
-  }
-  
-  html, body {
-    @apply bg-bg text-navy antialiased min-h-screen font-sans;
-  }
-
-  /* Custom Scrollbar for a premium feel */
-  ::-webkit-scrollbar {
-    width: 6px;
-    height: 6px;
-  }
-  ::-webkit-scrollbar-track {
-    background: transparent;
-  }
-  ::-webkit-scrollbar-thumb {
-    @apply bg-neutral rounded-full;
-  }
-  ::-webkit-scrollbar-thumb:hover {
-    @apply bg-gray-500;
-  }
+  * { box-sizing: border-box; }
+  body { @apply bg-gray-50 text-gray-900 font-sans; }
+  html { scroll-behavior: smooth; }
 }
 
 @layer components {
-  /* Common UI standard classes */
-  .card {
-    @apply rounded-2xl shadow-sm border border-gray-100 bg-white p-6 transition-all duration-200 hover:shadow-card-hover hover:-translate-y-1;
-  }
-  
   .btn-primary {
-    @apply bg-blue-600 hover:bg-blue-700 text-white rounded-xl px-6 py-3 font-semibold transition-all duration-200 active:scale-[0.98] disabled:opacity-50 disabled:pointer-events-none flex items-center justify-center gap-2;
+    @apply bg-blue-600 hover:bg-blue-700 active:scale-95 text-white rounded-xl px-6 py-3 font-semibold transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed inline-flex items-center justify-center gap-2 cursor-pointer;
   }
-  
   .btn-secondary {
-    @apply border-2 border-blue-600 text-blue-600 hover:bg-blue-50 rounded-xl px-6 py-3 font-semibold transition-all duration-200 active:scale-[0.98] disabled:opacity-50 disabled:pointer-events-none flex items-center justify-center gap-2;
+    @apply border-2 border-blue-600 text-blue-600 hover:bg-blue-50 rounded-xl px-6 py-3 font-semibold transition-all duration-200 inline-flex items-center justify-center gap-2 cursor-pointer;
   }
-  
-  .input-field {
-    @apply border border-gray-200 rounded-xl px-4 py-3 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none w-full bg-white transition-all duration-200 placeholder-gray-400;
+  .btn-danger {
+    @apply border-2 border-red-400 text-red-600 hover:bg-red-50 rounded-xl px-6 py-3 font-semibold transition-all duration-200 inline-flex items-center justify-center gap-2 cursor-pointer;
   }
-  
-  .badge-green {
-    @apply rounded-full px-3 py-1 text-xs font-bold bg-green-100 text-green-700;
+  .input {
+    @apply border border-gray-200 rounded-xl px-4 py-3 focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none w-full text-sm transition-all duration-200 bg-white text-gray-900;
   }
-  
-  .badge-yellow {
-    @apply rounded-full px-3 py-1 text-xs font-bold bg-amber-100 text-amber-700;
+  .card {
+    @apply bg-white rounded-2xl shadow-sm border border-gray-100 p-6;
   }
-  
-  .badge-red {
-    @apply rounded-full px-3 py-1 text-xs font-bold bg-red-100 text-red-700;
+  .page-title {
+    @apply text-2xl md:text-3xl font-black text-gray-900;
   }
-
-  .badge-gray {
-    @apply rounded-full px-3 py-1 text-xs font-bold bg-gray-100 text-gray-700;
+  .section-title {
+    @apply text-lg font-bold text-gray-800;
+  }
+  .label {
+    @apply text-xs font-semibold text-blue-600 uppercase tracking-wide;
+  }
+  .skeleton {
+    @apply bg-gray-200 animate-pulse rounded-lg;
   }
 }
+
+/* Scanning laser animation */
+@keyframes scanLine {
+  0%, 100% { top: 2%; }
+  50% { top: 94%; }
+}
+.scan-laser {
+  animation: scanLine 2.2s ease-in-out infinite;
+}
+
+/* Expiring card pulse */
+@keyframes borderPulse {
+  0%, 100% { box-shadow: 0 0 0 0 rgba(245, 158, 11, 0.35); }
+  50% { box-shadow: 0 0 0 6px rgba(245, 158, 11, 0); }
+}
+.expiring-pulse {
+  animation: borderPulse 2.5s ease-in-out infinite;
+}
+
+/* Chat scroll */
+.chat-scroll { scrollbar-width: thin; scrollbar-color: #e5e7eb transparent; }
+.chat-scroll::-webkit-scrollbar { width: 4px; }
+.chat-scroll::-webkit-scrollbar-thumb { background: #e5e7eb; border-radius: 999px; }
+
+/* Leaflet overrides */
+.leaflet-container { z-index: 1; border-radius: 16px; }
+.leaflet-control-attribution { font-size: 10px !important; }

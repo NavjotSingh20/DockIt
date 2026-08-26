@@ -20,8 +20,16 @@ export default function Sidebar({ business }) {
   const handleSignOut = async () => {
     if (isDemo) { exitDemo(); navigate('/'); return; }
     signOut().catch(console.error);
+    const emailRem = localStorage.getItem('emailReminders');
+    const remDays = localStorage.getItem('reminderDays');
+    const country = localStorage.getItem('country');
+    const cities = localStorage.getItem('cities');
     localStorage.clear();
     sessionStorage.clear();
+    if (emailRem !== null) localStorage.setItem('emailReminders', emailRem);
+    if (remDays !== null) localStorage.setItem('reminderDays', remDays);
+    if (country !== null) localStorage.setItem('country', country);
+    if (cities !== null) localStorage.setItem('cities', cities);
     window.location.href = '/';
   };
 

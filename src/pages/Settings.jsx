@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import toast from 'react-hot-toast';
-import { Bell, LogOut, Zap, Save, Pencil } from 'lucide-react';
+import { Bell, LogOut, Zap, Save, Pencil, Check } from 'lucide-react';
 import { useDemo } from '../context/DemoContext';
 import { useAuth } from '../hooks/useAuth';
 import { getBusiness, updateBusiness, signOut } from '../services/supabase';
@@ -55,8 +55,30 @@ export default function Settings() {
   const { user } = useAuth();
   const navigate = useNavigate();
 
-  const [emailReminders, setEmailReminders] = useState(true);
-  const [reminderDays, setReminderDays] = useState([60, 30, 7]);
+  const [emailReminders, setEmailReminders] = useState(() => {
+    const saved = localStorage.getItem('emailReminders');
+    return saved !== null ? JSON.parse(saved) : true;
+  });
+  const [reminderDays, setReminderDays] = useState(() => {
+    const saved = localStorage.getItem('reminderDays');
+    return saved !== null ? JSON.parse(saved) : [60, 30, 7];
+  });
+
+  const handleToggleEmailReminders = () => {
+    const newVal = !emailReminders;
+    setEmailReminders(newVal);
+    localStorage.setItem('emailReminders', JSON.stringify(newVal));
+    toast.success(newVal ? 'Email reminders enabled!' : 'Email reminders disabled!');
+  };
+
+  const handleToggleReminderDay = (day) => {
+    setReminderDays(prev => {
+      const next = prev.includes(day) ? prev.filter(d => d !== day) : [...prev, day];
+      localStorage.setItem('reminderDays', JSON.stringify(next));
+      return next;
+    });
+  };
+
   const [isEditing, setIsEditing] = useState(false);
   const [profile, setProfile] = useState({ business_name: '', owner_name: '', phone: '', address: '', city: 'New York', state: 'NY', country: 'USA', email: '' });
   const [originalProfile, setOriginalProfile] = useState(null);
@@ -101,14 +123,25 @@ export default function Settings() {
     if (user) {
       getBusiness(user.id).then(biz => {
         if (biz) {
-          const p = { ...biz, email: user.email || '', country: biz.country || 'USA' };
-          const c = `${biz.city || ''}${biz.state ? `, ${biz.state}` : ''}`;
+          const firstCityState = biz.cities?.[0] || 'New York, NY';
+          const parts = firstCityState.split(',').map(s => s.trim());
+          const city = parts[0] || '';
+          const state = parts[1] || '';
+          const country = localStorage.getItem('country') || 'USA';
+          const p = {
+            ...biz,
+            email: user.email || '',
+            city,
+            state,
+            country
+          };
+          const c = firstCityState;
           setProfile(p);
           setOriginalProfile(p);
           setCityInput(c);
           setOriginalCityInput(c);
           setBizId(biz.id);
-          localStorage.setItem('country', p.country);
+          localStorage.setItem('country', country);
         }
       }).catch(() => {});
     }
@@ -135,9 +168,11 @@ export default function Settings() {
     setSaving(true);
     try {
       await updateBusiness(bizId, {
-        business_name: profile.business_name, owner_name: profile.owner_name,
-        phone: profile.phone, address: profile.address, city: profile.city,
-        state: profile.state, country: profile.country,
+        business_name: profile.business_name,
+        owner_name: profile.owner_name,
+        phone: profile.phone,
+        address: profile.address,
+        cities: [`${profile.city}, ${profile.state}`],
       });
       setOriginalProfile(profile);
       setOriginalCityInput(cityInput);
@@ -157,8 +192,16 @@ export default function Settings() {
   const handleSignOut = async () => {
     if (isDemo) { exitDemo(); navigate('/'); return; }
     signOut().catch(console.error);
+    const emailRem = localStorage.getItem('emailReminders');
+    const remDays = localStorage.getItem('reminderDays');
+    const country = localStorage.getItem('country');
+    const cities = localStorage.getItem('cities');
     localStorage.clear();
     sessionStorage.clear();
+    if (emailRem !== null) localStorage.setItem('emailReminders', emailRem);
+    if (remDays !== null) localStorage.setItem('reminderDays', remDays);
+    if (country !== null) localStorage.setItem('country', country);
+    if (cities !== null) localStorage.setItem('cities', cities);
     window.location.href = '/';
   };
 
@@ -263,24 +306,43 @@ export default function Settings() {
         <div className="flex items-center justify-between">
           <div>
             <div className="text-sm font-semibold text-ink">Email Expiry Reminders</div>
-            <div className="text-xs text-ink-faint mt-0.5">Get reminders before license expiry</div>
+            <div className="text-xs text-ink-faint mt-0.5">Receive email alerts before any of your permits expire</div>
           </div>
-          <button onClick={() => setEmailReminders(!emailReminders)}
+          <button onClick={handleToggleEmailReminders}
             className={`w-12 h-6 rounded-full transition-colors relative flex-shrink-0 ${emailReminders ? 'bg-accent' : 'bg-rule'}`}>
             <div className={`absolute top-0.5 w-5 h-5 bg-white rounded-full shadow transition-transform ${emailReminders ? 'translate-x-6' : 'translate-x-0.5'}`} />
           </button>
         </div>
         {emailReminders && (
-          <div>
-            <div className="text-xs font-bold font-display text-ink-faint uppercase tracking-wide mb-2">Reminder Frequency</div>
-            <div className="flex flex-wrap gap-2">
-              {REMINDER_OPTIONS.map(({ label, value }) => (
-                <button key={value}
-                  onClick={() => setReminderDays(prev => prev.includes(value) ? prev.filter(d => d !== value) : [...prev, value])}
-                  className={`px-3 py-1.5 rounded-xl text-sm font-semibold transition-all border-2 ${reminderDays.includes(value) ? 'bg-accent text-white border-accent' : 'border-rule text-ink-muted hover:border-accent/50'}`}>
-                  {label}
-                </button>
-              ))}
+          <div className="space-y-3 mt-4 border-t border-gray-50 pt-4">
+            <div className="text-xs font-bold font-display text-ink-faint uppercase tracking-wider mb-2">Send email alerts at these intervals:</div>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+              {REMINDER_OPTIONS.map(({ label, value }) => {
+                const active = reminderDays.includes(value);
+                return (
+                  <button
+                    key={value}
+                    onClick={() => handleToggleReminderDay(value)}
+                    className={`flex items-center justify-between p-3.5 rounded-2xl border text-left transition-all ${
+                      active 
+                        ? 'border-accent bg-accent/5 text-ink shadow-sm' 
+                        : 'border-gray-100 bg-white text-ink-muted hover:border-gray-200'
+                    }`}
+                  >
+                    <div className="space-y-0.5">
+                      <div className="text-sm font-semibold">{label}</div>
+                      <div className="text-xs text-ink-faint">Alerts sent {value} day{value > 1 ? 's' : ''} prior to expiration</div>
+                    </div>
+                    <div className={`w-5 h-5 rounded-full border flex items-center justify-center transition-all ${
+                      active 
+                        ? 'border-accent bg-accent text-white' 
+                        : 'border-gray-200 bg-white'
+                    }`}>
+                      {active && <Check size={12} strokeWidth={3} />}
+                    </div>
+                  </button>
+                );
+              })}
             </div>
           </div>
         )}

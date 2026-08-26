@@ -38,13 +38,7 @@ export async function getSession() {
   return data?.session ?? null;
 }
 
-// ── Businesses ───────────────────────────────────────────────────────
-export async function createBusiness(data) {
-  const { data: biz, error } = await supabase.from('businesses').insert([data]).select().single();
-  if (error) throw error;
-  return biz;
-}
-
+// ── Helpers ──────────────────────────────────────────────────────────
 function getLocalToken() {
   try {
     const projectId = safeUrl.match(/https:\/\/(.+?)\.supabase\.co/)?.[1];
@@ -58,6 +52,25 @@ function getLocalToken() {
   return safeKey;
 }
 
+function mapBusiness(biz) {
+  if (!biz) return null;
+  const firstCityState = biz.cities?.[0] || 'New York, NY';
+  const parts = firstCityState.split(',').map(s => s.trim());
+  return {
+    ...biz,
+    city: parts[0] || '',
+    state: parts[1] || '',
+    country: localStorage.getItem('country') || 'USA'
+  };
+}
+
+// ── Businesses ───────────────────────────────────────────────────────
+export async function createBusiness(data) {
+  const { data: biz, error } = await supabase.from('businesses').insert([data]).select().single();
+  if (error) throw error;
+  return mapBusiness(biz);
+}
+
 export async function getBusiness(userId) {
   const token = getLocalToken();
   const res = await fetch(`${safeUrl}/rest/v1/businesses?owner_id=eq.${userId}&order=created_at.desc&limit=1`, {
@@ -68,44 +81,102 @@ export async function getBusiness(userId) {
   });
   if (!res.ok) throw new Error('Failed to fetch business');
   const data = await res.json();
-  return data.length > 0 ? data[0] : null;
+  return data.length > 0 ? mapBusiness(data[0]) : null;
 }
 
 export async function updateBusiness(id, updates) {
   const { data, error } = await supabase.from('businesses').update(updates).eq('id', id).select().single();
   if (error) throw error;
-  return data;
+  return mapBusiness(data);
 }
 
-// ── Licenses ─────────────────────────────────────────────────────────
-export async function getLicenses(businessId) {
+// ── Requirements (master catalog) ────────────────────────────────────
+export async function getRequirements(businessType, cities = []) {
+  let query = supabase
+    .from('requirements')
+    .select('*')
+    .eq('business_type', businessType);
+
+  if (cities.length > 0) {
+    query = query.in('city', cities);
+  }
+
+  const { data, error } = await query.order('requirement_name');
+  if (error) throw error;
+  return data || [];
+}
+
+// ── Business Requirements (per-business checklist) ───────────────────
+export async function getBusinessRequirements(businessId) {
   const token = getLocalToken();
-  const res = await fetch(`${safeUrl}/rest/v1/licenses?business_id=eq.${businessId}&order=expiry_date.asc`, {
-    headers: {
-      'apikey': safeKey,
-      'Authorization': `Bearer ${token}`,
+  // Use PostgREST embedded resource syntax to join requirements
+  const res = await fetch(
+    `${safeUrl}/rest/v1/business_requirements?business_id=eq.${businessId}&select=*,requirement:requirements(*)&order=expiry_date.asc`,
+    {
+      headers: {
+        'apikey': safeKey,
+        'Authorization': `Bearer ${token}`,
+      }
     }
-  });
-  if (!res.ok) throw new Error('Failed to fetch licenses');
+  );
+  if (!res.ok) throw new Error('Failed to fetch business requirements');
   return await res.json();
 }
 
-export async function createLicense(data) {
-  const { data: lic, error } = await supabase.from('licenses').insert([data]).select().single();
+export async function createBusinessRequirement(data) {
+  const { data: br, error } = await supabase
+    .from('business_requirements')
+    .insert([data])
+    .select('*, requirement:requirements(*)')
+    .single();
   if (error) throw error;
-  return lic;
+  return br;
 }
 
-export async function updateLicense(id, updates) {
-  const { data, error } = await supabase.from('licenses').update(updates).eq('id', id).select().single();
+export async function updateBusinessRequirement(id, updates) {
+  const { data, error } = await supabase
+    .from('business_requirements')
+    .update(updates)
+    .eq('id', id)
+    .select('*, requirement:requirements(*)')
+    .single();
   if (error) throw error;
   return data;
 }
 
-export async function deleteLicense(id) {
-  const { error } = await supabase.from('licenses').delete().eq('id', id);
+export async function deleteBusinessRequirement(id) {
+  const { error } = await supabase.from('business_requirements').delete().eq('id', id);
   if (error) throw error;
 }
+
+// ── OCR Extractions (audit trail) ────────────────────────────────────
+export async function createOcrExtraction(data) {
+  const { data: extraction, error } = await supabase
+    .from('ocr_extractions')
+    .insert([data])
+    .select()
+    .single();
+  if (error) throw error;
+  return extraction;
+}
+
+export async function getOcrExtractions(businessRequirementId) {
+  const { data, error } = await supabase
+    .from('ocr_extractions')
+    .select('*')
+    .eq('business_requirement_id', businessRequirementId)
+    .order('created_at', { ascending: false });
+  if (error) throw error;
+  return data || [];
+}
+
+// ── Legacy aliases (backward compat during UI migration) ─────────────
+// Components that still call getLicenses/createLicense/etc. will
+// continue to work via these aliases.
+export const getLicenses = getBusinessRequirements;
+export const createLicense = createBusinessRequirement;
+export const updateLicense = updateBusinessRequirement;
+export const deleteLicense = deleteBusinessRequirement;
 
 // ── Storage ──────────────────────────────────────────────────────────
 export async function uploadDocument(file, path) {

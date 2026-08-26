@@ -185,8 +185,25 @@ export async function createBusinessRequirement(payload) {
     extracted_via_ocr: payload.extracted_via_ocr ?? true,
   };
 
-  // Strip out any undefined keys
-  Object.keys(dbRecord).forEach(k => dbRecord[k] === undefined && delete dbRecord[k]);
+  // Check if a business_requirement entry already exists for this (business_id, requirement_id)
+  let existingBR = null;
+  if (dbRecord.business_id && dbRecord.requirement_id) {
+    try {
+      const { data: found } = await supabase
+        .from('business_requirements')
+        .select('id')
+        .eq('business_id', dbRecord.business_id)
+        .eq('requirement_id', dbRecord.requirement_id)
+        .maybeSingle();
+      existingBR = found;
+    } catch (e) {
+      console.warn('Check existing BR error:', e);
+    }
+  }
+
+  if (existingBR?.id) {
+    return await updateBusinessRequirement(existingBR.id, dbRecord);
+  }
 
   const { data: br, error } = await supabase
     .from('business_requirements')
@@ -194,7 +211,21 @@ export async function createBusinessRequirement(payload) {
     .select('*, requirement:requirements(*)')
     .single();
 
-  if (error) throw error;
+  if (error) {
+    // Fallback if unique constraint error 23505 occurs
+    if (error.code === '23505' && dbRecord.business_id && dbRecord.requirement_id) {
+      const { data: found } = await supabase
+        .from('business_requirements')
+        .select('id')
+        .eq('business_id', dbRecord.business_id)
+        .eq('requirement_id', dbRecord.requirement_id)
+        .maybeSingle();
+      if (found?.id) {
+        return await updateBusinessRequirement(found.id, dbRecord);
+      }
+    }
+    throw error;
+  }
   return br;
 }
 

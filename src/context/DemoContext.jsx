@@ -87,31 +87,53 @@ export function DemoProvider({ children }) {
     const daysLeft = getDaysLeft(expiryDate);
     const typeName = fields.license_type || 'Scanned Document';
     const authority = fields.issuing_authority || 'Government Authority';
+    const cleanTypeName = typeName.toLowerCase().trim();
 
-    const newBr = {
-      id: `demo-scanned-${Date.now()}`,
-      business_id: demoBusiness.id || 'demo-001',
-      requirement_id: `req-scanned-${Date.now()}`,
-      status: daysLeft !== null && daysLeft < 0 ? 'expired' : 'satisfied',
-      license_number: fields.license_number || 'N/A',
-      issuing_authority: authority,
-      expiry_date: expiryDate,
-      issue_date: fields.issue_date || null,
-      extracted_via_ocr: true,
-      daysLeft: daysLeft,
-      license_type: typeName,
-      confidence_score: 90,
-      renewal_portal_url: '',
-      requirement: {
-        id: `req-scanned-${Date.now()}`,
-        requirement_name: typeName,
-        issuing_agency: authority,
-        business_type: demoBusiness.business_type || 'General',
-        city: demoBusiness.cities?.[0] || 'New York, NY',
+    setAddedRequirements((prev) => {
+      const existingIdx = prev.findIndex(r =>
+        (r.license_type || '').toLowerCase().trim() === cleanTypeName ||
+        (r.requirement?.requirement_name || '').toLowerCase().trim() === cleanTypeName
+      );
+
+      if (existingIdx >= 0) {
+        const updated = [...prev];
+        updated[existingIdx] = {
+          ...updated[existingIdx],
+          status: daysLeft !== null && daysLeft < 0 ? 'expired' : 'satisfied',
+          license_number: fields.license_number || updated[existingIdx].license_number,
+          issuing_authority: authority || updated[existingIdx].issuing_authority,
+          expiry_date: expiryDate,
+          daysLeft: daysLeft,
+          extracted_via_ocr: true,
+          confidence_score: 90,
+        };
+        return updated;
       }
-    };
-    setAddedRequirements((prev) => [newBr, ...prev]);
-    return newBr;
+
+      const newBr = {
+        id: `demo-scanned-${Date.now()}`,
+        business_id: demoBusiness.id || 'demo-001',
+        requirement_id: `req-scanned-${Date.now()}`,
+        status: daysLeft !== null && daysLeft < 0 ? 'expired' : 'satisfied',
+        license_number: fields.license_number || 'N/A',
+        issuing_authority: authority,
+        expiry_date: expiryDate,
+        issue_date: fields.issue_date || null,
+        extracted_via_ocr: true,
+        daysLeft: daysLeft,
+        license_type: typeName,
+        confidence_score: 90,
+        renewal_portal_url: '',
+        requirement: {
+          id: `req-scanned-${Date.now()}`,
+          requirement_name: typeName,
+          issuing_agency: authority,
+          business_type: demoBusiness.business_type || 'General',
+          city: demoBusiness.cities?.[0] || 'New York, NY',
+        }
+      };
+      return [newBr, ...prev];
+    });
   };
 
   const updateDemoBusiness = (updates) => {

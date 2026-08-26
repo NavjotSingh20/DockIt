@@ -239,6 +239,7 @@ BEGIN
    '{"mode":"acroform","fields":{"LEGAL NAME OF BUSINESS DBA":"business_name","Business Street AddressRow1":"address","CityRow1":"city","ZipRow1":"zip","OWNER 1":"owner_name","PhoneOWNER 1":"phone","EmailOWNER 1":"email","Print Name Title":"owner_name","Date of Application":"date","Signature Date":"date","Mobile Food Facility":"checkbox_true","New Business":"checkbox_true"}}'::jsonb,
    CURRENT_DATE);
 
+  INSERT INTO requirements (id, business_type, city, jurisdiction_level, requirement_name, issuing_agency, fee_min, fee_max, renewal_cycle_months, processing_time, description, source_url, last_verified_date) VALUES
   (req_la_7, 'food_truck', 'Los Angeles, CA', 'state',
    'HCD Insignia (Vehicle Inspection)',
    'CA Dept. of Housing & Community Development',

@@ -51,7 +51,7 @@ function Section({ title, children }) {
 }
 
 export default function Settings() {
-  const { isDemo, demoBusiness, enterDemo, exitDemo } = useDemo();
+  const { isDemo, demoBusiness, enterDemo, exitDemo, updateDemoBusiness } = useDemo();
   const { user } = useAuth();
   const navigate = useNavigate();
 
@@ -145,7 +145,7 @@ export default function Settings() {
         }
       }).catch(() => {});
     }
-  }, [user, isDemo]);
+  }, [user, isDemo, demoBusiness]);
 
   const toggleDark = () => {
     const isDark = !darkMode;
@@ -158,6 +158,16 @@ export default function Settings() {
 
   const handleSave = async () => {
     if (isDemo) {
+      updateDemoBusiness({
+        business_name: profile.business_name,
+        owner_name: profile.owner_name,
+        phone: profile.phone,
+        address: profile.address,
+        country: profile.country,
+        city: profile.city,
+        state: profile.state,
+        cities: [`${profile.city}, ${profile.state}`],
+      });
       setOriginalProfile(profile);
       setOriginalCityInput(cityInput);
       setIsEditing(false);
@@ -255,9 +265,9 @@ export default function Settings() {
           </select>
         </div>
 
-        {/* City, State Autocomplete dropdown */}
+        {/* Primary City, State Autocomplete dropdown */}
         <div className="relative flex flex-col gap-1.5">
-          <label className="text-xs font-bold font-display text-ink-faint uppercase tracking-wide">City, State *</label>
+          <label className="text-xs font-bold font-display text-ink-faint uppercase tracking-wide">Primary City, State *</label>
           <input
             type="text"
             value={cityInput}
@@ -285,6 +295,41 @@ export default function Settings() {
               )}
             </div>
           )}
+        </div>
+
+        {/* Operating Cities Array */}
+        <div className="flex flex-col gap-1.5">
+          <label className="text-xs font-bold font-display text-ink-faint uppercase tracking-wide">Active Operating Jurisdictions</label>
+          <div className="flex flex-wrap items-center gap-2 bg-base p-3 rounded-xl border border-rule">
+            {(profile.cities || [`${profile.city}, ${profile.state}`]).map((c, i) => (
+              <span key={i} className="text-xs font-display font-bold px-3 py-1 bg-accent/10 text-accent-dark rounded-xl border border-accent/20 flex items-center gap-1">
+                📍 {c}
+              </span>
+            ))}
+            {isEditing && (
+              <select
+                onChange={(e) => {
+                  if (e.target.value) {
+                    const newCity = e.target.value;
+                    const existing = profile.cities || [`${profile.city}, ${profile.state}`];
+                    if (!existing.includes(newCity)) {
+                      setProfile(p => ({ ...p, cities: [...existing, newCity] }));
+                      toast.success(`Added ${newCity} to operating jurisdictions`);
+                    }
+                  }
+                }}
+                className="text-xs bg-surface border border-rule rounded-xl px-2 py-1 font-display font-semibold text-accent"
+              >
+                <option value="">+ Add Another City</option>
+                {(CITIES_DATA[profile.country || 'USA'] || [])
+                  .map(c => `${c.city}, ${c.state}`)
+                  .filter(c => !(profile.cities || []).includes(c))
+                  .map((c, idx) => (
+                    <option key={idx} value={c}>{c}</option>
+                  ))}
+              </select>
+            )}
+          </div>
         </div>
 
         <ProfileField label="Email" keyName="email" type="email" readOnly />

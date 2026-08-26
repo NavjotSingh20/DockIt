@@ -1,9 +1,11 @@
 import { NavLink } from 'react-router-dom';
-import { LayoutDashboard, BarChart2, Settings } from 'lucide-react';
+import { LayoutDashboard, ClipboardList, BarChart2, Settings, Map } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 
 const NAV = [
   { to: '/dashboard', icon: LayoutDashboard, key: 'nav.dashboard' },
+  { to: '/requirements', icon: ClipboardList, key: 'nav.requirements' },
+  { to: '/map', icon: Map, key: 'nav.map' },
   { to: '/analytics', icon: BarChart2, key: 'nav.analytics' },
   { to: '/settings', icon: Settings, key: 'nav.settings' },
 ];

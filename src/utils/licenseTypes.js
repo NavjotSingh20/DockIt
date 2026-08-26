@@ -158,6 +158,7 @@ export const getLicenseById = (id) => LICENSE_TYPES.find((l) => l.id === id);
 
 export const BUSINESS_TYPES = [
   { id: 'restaurant', label: 'Restaurant', icon: 'UtensilsCrossed', commonLicenses: ['FSSAI', 'BUSINESS_LICENSE', 'FIRE_NOC', 'FIRE_PERMIT', 'TRADE_LICENSE', 'HEALTH_PERMIT', 'SHOP_ESTABLISHMENT', 'SALES_TAX', 'EATING_HOUSE', 'FDA_REG', 'GST'] },
+  { id: 'food_truck', label: 'Food Truck / Vendor', icon: 'Truck', commonLicenses: ['BUSINESS_LICENSE', 'HEALTH_PERMIT', 'FIRE_PERMIT', 'SALES_TAX', 'FSSAI'] },
   { id: 'salon', label: 'Salon / Spa', icon: 'Scissors', commonLicenses: ['TRADE_LICENSE', 'BUSINESS_LICENSE', 'SHOP_ESTABLISHMENT', 'SALES_TAX', 'FIRE_NOC', 'FIRE_PERMIT', 'GST'] },
   { id: 'retail', label: 'Retail Shop', icon: 'ShoppingBag', commonLicenses: ['TRADE_LICENSE', 'BUSINESS_LICENSE', 'SHOP_ESTABLISHMENT', 'SALES_TAX', 'GST', 'SIGNAGE', 'SIGN_PERMIT'] },
   { id: 'clinic', label: 'Clinic / Pharmacy', icon: 'Stethoscope', commonLicenses: ['DRUG_LICENSE', 'PHARMACY_LICENSE', 'TRADE_LICENSE', 'BUSINESS_LICENSE', 'SHOP_ESTABLISHMENT', 'SALES_TAX', 'FIRE_NOC', 'FIRE_PERMIT', 'GST'] },

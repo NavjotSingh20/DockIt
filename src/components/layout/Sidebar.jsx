@@ -1,5 +1,5 @@
 import { NavLink, useNavigate } from 'react-router-dom';
-import { LayoutDashboard, BarChart2, Settings, LogOut, Zap } from 'lucide-react';
+import { LayoutDashboard, ClipboardList, BarChart2, Settings, LogOut, Zap, Map } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { useAuth } from '../../hooks/useAuth';
 import { useDemo } from '../../context/DemoContext';
@@ -7,6 +7,8 @@ import { signOut } from '../../services/supabase';
 
 const NAV = [
   { to: '/dashboard', icon: LayoutDashboard, key: 'nav.dashboard' },
+  { to: '/requirements', icon: ClipboardList, key: 'nav.requirements' },
+  { to: '/map', icon: Map, key: 'nav.map' },
   { to: '/analytics', icon: BarChart2, key: 'nav.analytics' },
   { to: '/settings', icon: Settings, key: 'nav.settings' },
 ];
@@ -14,7 +16,7 @@ const NAV = [
 export default function Sidebar({ business }) {
   const { t } = useTranslation();
   const { user } = useAuth();
-  const { isDemo, exitDemo } = useDemo();
+  const { isDemo, exitDemo, activeProfileId, switchDemoProfile, demoProfiles } = useDemo();
   const navigate = useNavigate();
 
   const handleSignOut = async () => {
@@ -65,8 +67,21 @@ export default function Sidebar({ business }) {
       {/* Bottom */}
       <div className="px-4 py-6 border-t border-white/10 space-y-3">
         {isDemo && (
-          <div className="bg-accent/20 rounded-xl px-3 py-2 flex items-center gap-2 text-xs text-accent">
-            <Zap size={12} /> Demo Mode Active
+          <div className="bg-accent/20 rounded-xl p-3 text-xs space-y-1.5">
+            <div className="flex items-center gap-1.5 text-accent font-bold">
+              <Zap size={13} /> Demo Mode Active
+            </div>
+            <select
+              value={activeProfileId}
+              onChange={(e) => switchDemoProfile(e.target.value)}
+              className="w-full bg-ink/80 text-white border border-white/20 rounded-lg px-2 py-1 text-xs focus:outline-none"
+            >
+              {(demoProfiles || []).map((p) => (
+                <option key={p.id} value={p.id} className="bg-ink text-white">
+                  {p.label}
+                </option>
+              ))}
+            </select>
           </div>
         )}
         <div className="px-3">

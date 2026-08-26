@@ -26,6 +26,8 @@ CREATE TABLE IF NOT EXISTS requirements (
   processing_time       TEXT,                                     -- e.g. '7-14 business days'
   description           TEXT,
   source_url            TEXT,
+  template_url          TEXT,
+  form_field_map        JSONB,
   last_verified_date    DATE          DEFAULT CURRENT_DATE,
   created_at            TIMESTAMPTZ   DEFAULT NOW()
 );

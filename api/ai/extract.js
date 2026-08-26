@@ -1,25 +1,14 @@
-/**
- * /api/ai/extract.js
- * Vercel Serverless Function — Gemini OCR text → structured license JSON.
- * POST body: { ocrText: string, businessType?: string, cities?: string[] }
- * Response:  { data: object, confidence: number, error: string|null }
- */
-import { GoogleGenerativeAI } from '@google/generative-ai'
+﻿import { GoogleGenerativeAI } from '@google/generative-ai'
 import { createClient } from '@supabase/supabase-js'
 
 const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY)
-const model = genAI.getGenerativeModel({ model: 'gemini-1.5-flash' })
+const model = genAI.getGenerativeModel({ model: 'gemini-2.0-flash' })
 
-// Initialize Supabase for server-side catalog lookup
 const supabase = createClient(
   process.env.VITE_SUPABASE_URL || process.env.SUPABASE_URL || '',
   process.env.VITE_SUPABASE_ANON_KEY || process.env.SUPABASE_ANON_KEY || ''
 )
 
-/**
- * Fetch distinct requirement names from the catalog filtered by this business's
- * type and cities. Returns an empty array if the catalog has no matching rows.
- */
 async function getCatalogNames(businessType, cities = []) {
   if (!businessType) return []
   try {
@@ -35,18 +24,12 @@ async function getCatalogNames(businessType, cities = []) {
       lowerCities.length === 0 ||
       lowerCities.some(c => r.city?.toLowerCase() === c || c.includes(r.city?.toLowerCase()))
     )
-
-    // Return distinct names
     return [...new Set(filtered.map(r => r.requirement_name).filter(Boolean))]
   } catch {
     return []
   }
 }
 
-/**
- * Derive the country context from the cities list (e.g. "New York, NY" → USA,
- * "Mumbai, Maharashtra" → India). Falls back to USA if ambiguous.
- */
 function deriveCountry(cities = []) {
   const indiaStates = ['maharashtra', 'karnataka', 'delhi', 'gujarat', 'rajasthan', 'tamil nadu', 'telangana', 'kerala', 'west bengal', 'punjab', 'uttar pradesh']
   for (const city of cities) {
@@ -56,15 +39,7 @@ function deriveCountry(cities = []) {
   return 'USA'
 }
 
-function stripMarkdown(text) {
-  return text
-    .replace(/```json\s*/gi, '')
-    .replace(/```\s*/gi, '')
-    .trim()
-}
-
 export default async function handler(req, res) {
-  // CORS headers
   res.setHeader('Access-Control-Allow-Origin', '*')
   res.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS')
   res.setHeader('Access-Control-Allow-Headers', 'Content-Type')
@@ -82,48 +57,45 @@ export default async function handler(req, res) {
     return res.status(500).json({ data: null, confidence: 0, error: 'Gemini API key not configured' })
   }
 
-  // Dynamically fetch valid license names for this specific business
   const catalogNames = await getCatalogNames(businessType, cities)
   const country = deriveCountry(cities)
   const jurisdiction = cities.length > 0 ? cities.join(', ') : country
 
-  // Build the license_type instruction depending on catalog availability
-  const licenseTypeInstruction = catalogNames.length > 0
-    ? `- license_type: one of [${catalogNames.map(n => `"${n}"`).join(', ')}] — pick the closest match from this list, or use the literal text from the document if none match`
-    : `- license_type: extract the license type as free text from the document — do not guess if unclear`
+  const systemPrompt = `You are an expert data extractor for any government, tax, business license, or permit document in ${jurisdiction}.
+Extract fields and return ONLY a valid JSON object matching the requested schema.
+CRITICAL: Ignore any background "DEMO" or "SAMPLE" watermarks stamped across the page. Focus purely on the actual document data.
 
-  const systemPrompt = `You are an expert at reading government license and permit documents for businesses operating in ${jurisdiction}.
-Extract fields from the following OCR text and return ONLY a valid JSON object.
-No markdown fences, no explanation, no code blocks — just raw JSON.
+Schema requirements:
+- license_type: The formal name of the document or license (e.g. "Employer Identification Number", "Health Permit"). Must be a string or null.
+- license_number: The primary identification number (e.g. EIN, License No, Permit #). Must be a string or null.
+- issuing_authority: The government body or agency issuing the document (e.g. "IRS", "Dept of Public Health"). Must be a string or null.
+- business_name: The legal name of the business receiving the document. Must be a string or null.
+- holder_name: The name of the individual holding the document (if applicable). Must be a string or null.
+- issue_date: The date the document was issued, strictly in "YYYY-MM-DD" format, or null.
+- expiry_date: The date the document expires, strictly in "YYYY-MM-DD" format, or null.
+- address: The address of the business or individual. Must be a string or null.
+- confidence: Your confidence score from 0 to 100 based on how readable the document is. Integer.
 
-Required fields:
-${licenseTypeInstruction}
-- license_number: string or null
-- issuing_authority: string or null
-- business_name: string or null
-- holder_name: string or null
-- issue_date: "YYYY-MM-DD" or null
-- expiry_date: "YYYY-MM-DD" or null
-- address: string or null
-- confidence: integer 0-100 — how clearly readable was this document? (100 = perfect quality, 0 = unreadable)
-
-Use null for fields you cannot confidently read. Do not guess.`
+Return valid JSON. Do not guess any fields you cannot clearly read.`
 
   try {
     const prompt = `${systemPrompt}\n\nOCR Text:\n${ocrText.slice(0, 4000)}`
-    const result = await model.generateContent(prompt)
+    const result = await model.generateContent({
+      contents: [{ role: 'user', parts: [{ text: prompt }] }],
+      generationConfig: { responseMimeType: "application/json" }
+    })
+    
     const rawText = result.response.text()
-    const cleaned = stripMarkdown(rawText)
-
+    
     let parsed
     try {
-      parsed = JSON.parse(cleaned)
+      parsed = JSON.parse(rawText)
     } catch {
       return res.status(200).json({
         data: null,
         confidence: 0,
         error: 'AI returned invalid JSON — please fill fields manually',
-        raw: cleaned,
+        raw: rawText,
       })
     }
 
@@ -131,7 +103,6 @@ Use null for fields you cannot confidently read. Do not guess.`
       ? Math.min(100, Math.max(0, parsed.confidence))
       : 50
 
-    // Also return the catalog names so the client can populate the dropdown
     return res.status(200).json({ data: parsed, confidence, error: null, catalogNames })
   } catch (err) {
     console.error('[/api/ai/extract]', err)

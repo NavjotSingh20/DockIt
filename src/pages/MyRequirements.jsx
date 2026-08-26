@@ -477,17 +477,27 @@ export default function MyRequirements() {
                       )}
                     </div>
 
-                    <div className="pt-4 border-t border-rule/60 flex items-center justify-between gap-2 flex-wrap">
+                    {/* Footer Action Bar */}
+                    <div className="pt-4 border-t border-rule/60">
                       <button
                         onClick={() => handleDownloadPacket(req)}
-                        className="btn-secondary text-xs px-2.5 py-1.5 flex items-center gap-1 text-accent font-semibold border-accent/30 hover:bg-accent-light"
+                        className="w-full group flex items-center gap-3 px-4 py-3 rounded-2xl bg-ink hover:bg-ink/80 text-white transition-all hover:scale-[1.01] shadow-sm"
+                        title="Download your pre-filled official application form"
                       >
-                        <FileDown size={13} /> Download Application Packet
+                        <div className="w-8 h-8 rounded-xl bg-white/10 flex items-center justify-center flex-shrink-0 group-hover:bg-white/20 transition-colors">
+                          <FileDown size={15} className="text-white" />
+                        </div>
+                        <div className="flex-1 text-left">
+                          <div className="text-xs font-bold font-display leading-none">Pre-fill &amp; Download Form</div>
+                          <div className="text-[10px] text-white/50 mt-0.5 font-display">Official form auto-filled with your business data</div>
+                        </div>
+                        <ExternalLink size={13} className="text-white/40 group-hover:text-white/70 transition-colors flex-shrink-0" />
                       </button>
-
-                      <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold font-display bg-settled/15 text-settled border border-settled/30">
-                        <Check size={14} strokeWidth={3} /> Satisfied across all locations
-                      </span>
+                      <div className="flex items-center justify-end mt-2.5">
+                        <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold font-display bg-settled/15 text-settled border border-settled/30">
+                          <Check size={13} strokeWidth={3} /> Satisfied across all locations
+                        </span>
+                      </div>
                     </div>
                   </motion.div>
                 ))}
@@ -576,30 +586,39 @@ export default function MyRequirements() {
                         </div>
                       </div>
 
-                      {/* Footer Actions */}
-                      <div className="pt-4 border-t border-rule/60 flex items-center justify-between gap-2 flex-wrap">
+                      {/* Footer Action Bar */}
+                      <div className="pt-4 border-t border-rule/60 space-y-2.5">
                         <button
                           onClick={() => handleDownloadPacket(req)}
-                          className="btn-secondary text-xs px-2.5 py-1.5 flex items-center gap-1 text-accent font-semibold border-accent/30 hover:bg-accent-light"
-                          title="Download Official Filled Application Packet"
+                          className="w-full group flex items-center gap-3 px-4 py-3 rounded-2xl bg-ink hover:bg-ink/80 text-white transition-all hover:scale-[1.01] shadow-sm"
+                          title="Download your pre-filled official application form"
                         >
-                          <FileDown size={13} /> Application Packet
+                          <div className="w-8 h-8 rounded-xl bg-white/10 flex items-center justify-center flex-shrink-0 group-hover:bg-white/20 transition-colors">
+                            <FileDown size={15} className="text-white" />
+                          </div>
+                          <div className="flex-1 text-left">
+                            <div className="text-xs font-bold font-display leading-none">Pre-fill &amp; Download Form</div>
+                            <div className="text-[10px] text-white/50 mt-0.5 font-display">Official form auto-filled with your business data</div>
+                          </div>
+                          <ExternalLink size={13} className="text-white/40 group-hover:text-white/70 transition-colors flex-shrink-0" />
                         </button>
 
-                        {isTracked ? (
-                          <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold font-display bg-settled-light/60 text-settled border border-settled/30">
-                            <Check size={14} strokeWidth={3} /> Tracking in Licenses
-                          </span>
-                        ) : (
-                          <button
-                            onClick={() => handleAddRequirement(req)}
-                            disabled={isAdding}
-                            className="btn-primary py-1.5 px-3.5 text-xs flex items-center gap-1.5"
-                          >
-                            {isAdding ? <div className="w-3.5 h-3.5 border-2 border-white/30 border-t-white rounded-full animate-spin" /> : <Plus size={14} />}
-                            Add to My Licenses
-                          </button>
-                        )}
+                        <div className="flex items-center justify-end">
+                          {isTracked ? (
+                            <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold font-display bg-settled/10 text-settled border border-settled/20">
+                              <Check size={13} strokeWidth={3} /> Tracking in Licenses
+                            </span>
+                          ) : (
+                            <button
+                              onClick={() => handleAddRequirement(req)}
+                              disabled={isAdding}
+                              className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl text-xs font-bold font-display bg-accent/10 text-accent border border-accent/30 hover:bg-accent hover:text-white transition-all"
+                            >
+                              {isAdding ? <div className="w-3 h-3 border-2 border-accent/30 border-t-accent rounded-full animate-spin" /> : <Plus size={13} />}
+                              Add to My Licenses
+                            </button>
+                          )}
+                        </div>
                       </div>
                     </motion.div>
                   );

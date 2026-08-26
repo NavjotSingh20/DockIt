@@ -1,349 +1,516 @@
-import { useMemo, useState } from 'react';
-import { motion } from 'framer-motion';
-import { 
-  LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer, 
-  PieChart, Pie, Cell, Legend, BarChart, Bar, CartesianGrid 
+﻿import { useMemo, useState, useEffect } from 'react';
+import { motion, AnimatePresence } from 'framer-motion';
+import {
+  AreaChart, Area, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid,
+  BarChart, Bar, Cell
 } from 'recharts';
-import { 
-  Download, ShieldCheck, AlertTriangle, TrendingUp, 
-  Calendar, CheckCircle2, FileText, ArrowUpRight, DollarSign, Layers 
+import {
+  AlertTriangle, ShieldCheck, Clock, DollarSign, TrendingUp, MapPin,
+  FileText, ChevronRight, Zap, Calendar, Check, X, Eye, Building2,
+  Flame, RefreshCw, CheckCircle2, AlertCircle
 } from 'lucide-react';
-import { useTranslation } from 'react-i18next';
+import { format, addDays, differenceInDays } from 'date-fns';
 import toast from 'react-hot-toast';
 import { useDemo } from '../context/DemoContext';
 import { useAuth } from '../hooks/useAuth';
 import { useLicenses } from '../hooks/useLicenses';
 import { calculateComplianceScore, getLicenseSummary } from '../utils/complianceScore';
-import { formatCurrency, formatDate } from '../utils/formatters';
-import { getLicenseById } from '../utils/licenseTypes';
-import { PENALTY_RULES } from '../utils/penaltyRules';
-import { format, subMonths, addMonths } from 'date-fns';
+import { formatCurrency } from '../utils/formatters';
+import { PENALTY_RULES, calculatePenalty } from '../utils/penaltyRules';
 
-const PIE_COLORS = { 
-  active: '#22c55e', 
-  expiring: '#f59e0b', 
-  expired: '#ef4444', 
-  needed: '#6366f1' 
-};
+// ── Helpers ──────────────────────────────────────────────────
+function getDaysLeft(expiryDate) {
+  if (!expiryDate) return null;
+  const today = new Date(); today.setHours(0, 0, 0, 0);
+  const exp = new Date(expiryDate); exp.setHours(0, 0, 0, 0);
+  return Math.round((exp - today) / (1000 * 60 * 60 * 24));
+}
 
-function StatCard({ label, value, color = 'text-accent', icon: Icon, sub }) {
+function urgencyColor(days) {
+  if (days === null) return { bg: 'bg-ink-faint/10', text: 'text-ink-faint', border: 'border-ink-faint/20', dot: 'bg-ink-faint' };
+  if (days < 0) return { bg: 'bg-red-50', text: 'text-red-600', border: 'border-red-200', dot: 'bg-red-500' };
+  if (days <= 7) return { bg: 'bg-red-50', text: 'text-red-600', border: 'border-red-200', dot: 'bg-red-500' };
+  if (days <= 30) return { bg: 'bg-amber-50', text: 'text-amber-700', border: 'border-amber-200', dot: 'bg-amber-500' };
+  if (days <= 90) return { bg: 'bg-yellow-50', text: 'text-yellow-700', border: 'border-yellow-200', dot: 'bg-yellow-500' };
+  return { bg: 'bg-green-50', text: 'text-green-700', border: 'border-green-200', dot: 'bg-green-500' };
+}
+
+// ── Sub-components ─────────────────────────────────────────
+function LiveCounter({ value, prefix = '', suffix = '', className = '' }) {
+  const [display, setDisplay] = useState(0);
+  useEffect(() => {
+    let start = 0;
+    const step = value / 40;
+    const timer = setInterval(() => {
+      start += step;
+      if (start >= value) { setDisplay(value); clearInterval(timer); }
+      else setDisplay(Math.round(start));
+    }, 18);
+    return () => clearInterval(timer);
+  }, [value]);
+  return <span className={className}>{prefix}{display.toLocaleString()}{suffix}</span>;
+}
+
+function RenewalTimelineDot({ lic, index }) {
+  const days = getDaysLeft(lic.expiry_date);
+  const col = urgencyColor(days);
+  const name = lic.requirement?.requirement_name || lic.license_type || 'License';
+  const agency = lic.requirement?.issuing_agency || lic.issuing_authority || '';
   return (
-    <div className="bg-surface rounded-2xl border border-rule p-5 flex flex-col justify-between shadow-sm">
-      <div className="flex items-center justify-between gap-2 mb-2">
-        <span className="text-xs font-bold font-display text-ink-faint uppercase tracking-wider">{label}</span>
-        {Icon && <Icon size={16} className={color} />}
+    <motion.div
+      initial={{ opacity: 0, x: -12 }} animate={{ opacity: 1, x: 0 }}
+      transition={{ delay: index * 0.06 }}
+      className={`relative flex items-start gap-3 p-3.5 rounded-2xl border ${col.bg} ${col.border} hover:scale-[1.01] transition-transform`}
+    >
+      <div className={`w-2.5 h-2.5 rounded-full ${col.dot} flex-shrink-0 mt-1 ring-2 ring-offset-1 ring-current`} style={{ ringColor: col.dot }} />
+      <div className="flex-1 min-w-0">
+        <div className="text-xs font-bold text-ink truncate">{name}</div>
+        <div className="text-[10px] text-ink-faint truncate mt-0.5">{agency}</div>
       </div>
-      <div>
-        <div className={`text-3xl font-black font-display ${color}`}>{value}</div>
-        {sub && <div className="text-xs text-ink-faint mt-1.5 font-medium">{sub}</div>}
+      <div className="text-right flex-shrink-0">
+        <div className={`text-xs font-black font-display ${col.text}`}>
+          {days === null ? '—' : days < 0 ? `${Math.abs(days)}d overdue` : `${days}d left`}
+        </div>
+        {lic.expiry_date && (
+          <div className="text-[10px] text-ink-faint mt-0.5">
+            {format(new Date(lic.expiry_date), 'MMM d, yyyy')}
+          </div>
+        )}
       </div>
-    </div>
+    </motion.div>
   );
 }
 
+// ── Main Page ──────────────────────────────────────────────
 export default function Analytics() {
-  const { t } = useTranslation();
   const { isDemo, demoLicenses, demoBusiness } = useDemo();
   const { user } = useAuth();
   const { licenses } = useLicenses(null, isDemo ? demoLicenses : null);
-  const [exporting, setExporting] = useState(false);
+  const [selectedLic, setSelectedLic] = useState(null);
+  const [tick, setTick] = useState(0);
 
-  const scoreData = calculateComplianceScore(licenses);
+  // Live clock for "accruing fines" feel
+  useEffect(() => {
+    const t = setInterval(() => setTick(n => n + 1), 1000);
+    return () => clearInterval(t);
+  }, []);
+
   const summary = getLicenseSummary(licenses);
+  const scoreData = calculateComplianceScore(licenses);
 
-  // Audit Readiness calculation (0-100%)
-  const auditReadiness = useMemo(() => {
-    if (!licenses || licenses.length === 0) return 0;
-    const satisfied = licenses.filter(l => l.status === 'satisfied' || l.status === 'active').length;
-    const total = licenses.length;
-    return Math.round((satisfied / total) * 100);
+  // ── Expired licenses → penalty calculations ─────────────
+  const expiredWithPenalties = useMemo(() => {
+    return licenses
+      .filter(l => l.status === 'expired' || (l.expiry_date && getDaysLeft(l.expiry_date) < 0))
+      .map(l => {
+        const daysOverdue = l.expiry_date ? Math.abs(getDaysLeft(l.expiry_date)) : 30;
+        const licType = l.license_type || (l.requirement?.legacy_type_id) || 'BUSINESS_LICENSE';
+        const penalty = calculatePenalty(licType, daysOverdue);
+        return { ...l, daysOverdue, penalty, licType, name: l.requirement?.requirement_name || licType };
+      });
   }, [licenses]);
 
-  // Historical 6-month trend data
-  const trendData = useMemo(() => Array.from({ length: 6 }, (_, i) => {
-    const month = subMonths(new Date(), 5 - i);
-    const jitter = i === 5 ? 0 : Math.round((5 - i) * 5);
-    return { 
-      month: format(month, 'MMM'), 
-      score: Math.max(0, Math.min(100, scoreData.score - jitter)),
-      risk: Math.max(0, (5 - i) * 120)
-    };
-  }), [scoreData.score]);
+  const totalCurrentFine = expiredWithPenalties.reduce((s, l) => s + l.penalty.currentFine, 0);
+  const totalDailyCost = expiredWithPenalties.reduce((s, l) => s + l.penalty.dailyCost, 0);
 
-  // Quarterly renewal cost forecast
-  const budgetForecast = useMemo(() => [
-    { quarter: 'Q1 (Jan-Mar)', cost: 350, items: 2 },
-    { quarter: 'Q2 (Apr-Jun)', cost: 650, items: 4 },
-    { quarter: 'Q3 (Jul-Sep)', cost: 200, items: 1 },
-    { quarter: 'Q4 (Oct-Dec)', cost: 450, items: 3 },
-  ], []);
-
-  // Status pie chart dataset
-  const pieData = useMemo(() => [
-    { name: 'Active & Compliant', value: summary.satisfied || summary.active || 0, color: PIE_COLORS.active },
-    { name: 'Expiring Within 30 Days', value: summary.expiringMonth || 0, color: PIE_COLORS.expiring },
-    { name: 'Action Needed / Expired', value: (summary.expired || 0) + (summary.needed || 0), color: PIE_COLORS.expired },
-  ].filter(d => d.value > 0), [summary]);
-
-  // Penalty Avoided list
-  const savingsData = useMemo(() => licenses
-    .map(l => { 
-      const rule = PENALTY_RULES[l.license_type]; 
-      const avoided = rule?.slabs?.[0]?.fine || 150; 
-      const meta = getLicenseById(l.license_type);
-      return { 
-        name: meta?.name || l.license_type || 'License Requirement', 
-        dept: meta?.department || 'Municipal Authority',
-        avoided, 
-        status: l.status 
-      }; 
-    }), [licenses]);
-
-  const totalSavings = savingsData.reduce((s, l) => s + l.avoided, 0);
-
-  // Risk categorization matrix
-  const riskCategories = useMemo(() => {
-    const high = licenses.filter(l => (l.license_type || '').includes('health') || (l.license_type || '').includes('food'));
-    const medium = licenses.filter(l => (l.license_type || '').includes('tax') || (l.license_type || '').includes('fire'));
-    const low = licenses.filter(l => !high.includes(l) && !medium.includes(l));
-    return [
-      { category: 'High Risk (Health & Food Safety)', count: high.length, riskLevel: 'Critical', color: 'text-red-500' },
-      { category: 'Medium Risk (Tax & Revenue)', count: medium.length, riskLevel: 'Moderate', color: 'text-amber-500' },
-      { category: 'Operational (Local Permits)', count: low.length, riskLevel: 'Standard', color: 'text-blue-500' },
-    ];
-  }, [licenses]);
-
-  // Export PDF / Audit Certificate handler
-  const handleExportReport = () => {
-    setExporting(true);
-    toast.promise(
-      new Promise(res => setTimeout(res, 1200)),
-      {
-        loading: 'Generating Audit Compliance Report...',
-        success: 'Audit Report downloaded successfully!',
-        error: 'Export failed'
-      }
-    ).then(() => {
-      setExporting(false);
-      window.print();
+  // ── Fine projection chart (next 90 days if no action taken) ─
+  const projectionData = useMemo(() => {
+    const points = [0, 7, 14, 30, 45, 60, 90];
+    return points.map(daysFromNow => {
+      const total = expiredWithPenalties.reduce((sum, l) => {
+        const futureDays = l.daysOverdue + daysFromNow;
+        const rule = PENALTY_RULES[l.licType];
+        if (!rule) return sum + 150;
+        let fine = 0;
+        for (const slab of rule.slabs) {
+          if (futureDays >= slab.days_overdue) fine = slab.fine;
+        }
+        return sum + fine;
+      }, 0);
+      return { label: daysFromNow === 0 ? 'Today' : `+${daysFromNow}d`, fine: total };
     });
-  };
+  }, [expiredWithPenalties]);
+
+  // ── Sorted renewal timeline ──────────────────────────────
+  const renewalTimeline = useMemo(() => {
+    return [...licenses]
+      .filter(l => l.expiry_date)
+      .sort((a, b) => getDaysLeft(a.expiry_date) - getDaysLeft(b.expiry_date));
+  }, [licenses]);
+
+  // ── City-by-city compliance ──────────────────────────────
+  const cityBreakdown = useMemo(() => {
+    const map = {};
+    licenses.forEach(l => {
+      const city = l.requirement?.city || l.city || 'Unknown';
+      if (!map[city]) map[city] = { city, total: 0, satisfied: 0, expired: 0, needed: 0, inProgress: 0 };
+      map[city].total++;
+      if (l.status === 'satisfied') map[city].satisfied++;
+      else if (l.status === 'expired') map[city].expired++;
+      else if (l.status === 'needed') map[city].needed++;
+      else if (l.status === 'in_progress') map[city].inProgress++;
+    });
+    return Object.values(map).map(c => ({
+      ...c,
+      score: c.total > 0 ? Math.round((c.satisfied / c.total) * 100) : 0
+    })).sort((a, b) => a.score - b.score);
+  }, [licenses]);
+
+  // ── Inspection readiness checklist ──────────────────────
+  const inspectionChecklist = useMemo(() => {
+    const checklist = [];
+    const hasExpired = licenses.filter(l => l.status === 'expired').length > 0;
+    const hasNeeded = licenses.filter(l => l.status === 'needed').length > 0;
+    const hasExpiringSoon = licenses.filter(l => { const d = getDaysLeft(l.expiry_date); return d !== null && d >= 0 && d <= 30; }).length > 0;
+    const hasOCR = licenses.filter(l => l.confidence_score > 0 || l.extracted_via_ocr).length > 0;
+
+    checklist.push({ ok: !hasExpired, label: 'All licenses are current (not expired)', critical: true });
+    checklist.push({ ok: !hasNeeded, label: 'No required permits are missing', critical: true });
+    checklist.push({ ok: !hasExpiringSoon, label: 'No renewals due within 30 days', critical: false });
+    checklist.push({ ok: hasOCR || licenses.length > 0, label: 'License documents uploaded & verified', critical: false });
+    checklist.push({ ok: licenses.filter(l => l.license_number).length === licenses.length, label: 'All license numbers recorded', critical: false });
+
+    return checklist;
+  }, [licenses]);
+
+  const inspectionScore = useMemo(() => {
+    const critical = inspectionChecklist.filter(c => c.critical);
+    const nonCritical = inspectionChecklist.filter(c => !c.critical);
+    const critPassed = critical.filter(c => c.ok).length;
+    const nonCritPassed = nonCritical.filter(c => c.ok).length;
+    if (critPassed < critical.length) return { score: Math.round((critPassed / critical.length) * 50), label: 'Fail Inspection', color: 'text-red-500', bg: 'bg-red-500' };
+    const full = 50 + Math.round((nonCritPassed / nonCritical.length) * 50);
+    return {
+      score: full,
+      label: full === 100 ? 'Ready to Pass' : 'Minor Issues',
+      color: full === 100 ? 'text-green-600' : 'text-amber-600',
+      bg: full === 100 ? 'bg-green-500' : 'bg-amber-500'
+    };
+  }, [inspectionChecklist]);
+
+  const hasData = licenses.length > 0;
 
   return (
-    <div className="space-y-8 max-w-6xl mx-auto pb-12">
-      {/* Top Header & Export Controls */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-rule pb-5">
+    <div className="space-y-6 max-w-6xl mx-auto pb-16">
+      {/* Header */}
+      <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-4 border-b border-rule pb-5">
         <div>
-          <h1 className="text-2xl sm:text-3xl font-bold font-display text-ink">Compliance Analytics &amp; Audit Intelligence</h1>
-          <p className="text-xs sm:text-sm text-ink-faint mt-1">Real-time risk scoring, penalty avoidance estimates, and renewal budget forecasting.</p>
+          <h1 className="text-2xl sm:text-3xl font-black font-display text-ink tracking-tight">Compliance Intelligence</h1>
+          <p className="text-xs sm:text-sm text-ink-faint mt-1">Live penalty tracking, inspection readiness, and renewal planning</p>
         </div>
-        <button 
-          onClick={handleExportReport} 
-          disabled={exporting}
-          className="btn-primary text-xs py-2.5 px-5 flex items-center gap-2 self-start sm:self-auto shrink-0 shadow-md">
-          <Download size={15} /> Export Executive Audit Report
-        </button>
+        {totalDailyCost > 0 && (
+          <motion.div
+            animate={{ opacity: [1, 0.7, 1] }} transition={{ repeat: Infinity, duration: 2 }}
+            className="flex items-center gap-2 bg-red-50 border border-red-200 text-red-700 px-4 py-2.5 rounded-2xl text-xs font-bold font-display shrink-0"
+          >
+            <Flame size={14} className="flex-shrink-0" />
+            {formatCurrency(totalDailyCost)}/day accruing in fines
+          </motion.div>
+        )}
       </div>
 
-      {/* Hero Audit Readiness Banner */}
-      <motion.div initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }}
-        className="bg-ink rounded-3xl p-6 md:p-8 text-white relative overflow-hidden shadow-xl">
-        <div className="absolute right-0 top-0 translate-x-12 -translate-y-12 w-64 h-64 bg-accent/10 rounded-full blur-3xl pointer-events-none" />
-        <div className="grid md:grid-cols-[1fr_auto] gap-6 items-center relative z-10">
-          <div>
-            <div className="flex items-center gap-2 mb-2">
-              <span className="bg-accent-light/20 text-accent-light px-3 py-1 rounded-full text-xs font-bold font-display uppercase tracking-wider border border-accent-light/30">
-                Audit Readiness Level
-              </span>
-              <span className="text-xs text-white/50">{demoBusiness?.business_name || 'Your Business'}</span>
-            </div>
-            <h2 className="text-2xl sm:text-4xl font-black font-display leading-tight">
-              {auditReadiness >= 80 ? 'Fully Audit-Ready' : auditReadiness >= 50 ? 'Action Recommended' : 'Attention Required'}
-            </h2>
-            <p className="text-xs sm:text-sm text-white/70 mt-2 max-w-xl leading-relaxed">
-              Your business has satisfied {auditReadiness}% of statutory requirements. Maintaining full compliance shields your business from municipal closure orders and daily fine accruals.
-            </p>
-          </div>
-
-          <div className="flex items-center gap-6 bg-white/5 border border-white/10 rounded-2xl p-4 sm:p-5 shrink-0 justify-center">
-            <div className="text-center">
-              <div className="text-3xl sm:text-4xl font-black font-display text-accent-light">{auditReadiness}%</div>
-              <div className="text-[11px] font-bold font-display text-white/60 uppercase tracking-wide mt-1">Readiness Score</div>
-            </div>
-            <div className="w-px h-12 bg-white/10" />
-            <div className="text-center">
-              <div className="text-3xl sm:text-4xl font-black font-display text-green-400">{formatCurrency(totalSavings)}</div>
-              <div className="text-[11px] font-bold font-display text-white/60 uppercase tracking-wide mt-1">Fines Avoided</div>
-            </div>
-          </div>
+      {/* ── SECTION 1: Live Penalty Exposure ── */}
+      <div>
+        <div className="flex items-center gap-2 mb-3">
+          <Flame size={16} className="text-red-500" />
+          <h2 className="text-sm font-bold font-display text-ink uppercase tracking-wide">Live Penalty Exposure</h2>
+          <span className="text-[10px] font-bold font-display px-2 py-0.5 rounded-full bg-red-100 text-red-600 border border-red-200">REAL-TIME</span>
         </div>
-      </motion.div>
 
-      {/* Key Metric Cards */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-        <StatCard 
-          label="Overall Score" 
-          value={scoreData.score} 
-          color={scoreData.score >= 80 ? 'text-settled' : scoreData.score >= 60 ? 'text-caution' : 'text-danger'}
-          icon={ShieldCheck}
-          sub={scoreData.message}
-        />
-        <StatCard 
-          label="Requirements Monitored" 
-          value={summary.total} 
-          color="text-accent"
-          icon={Layers}
-          sub="Across registered cities"
-        />
-        <StatCard 
-          label="Expiring (30 Days)" 
-          value={summary.expiringMonth} 
-          color={summary.expiringMonth > 0 ? 'text-caution' : 'text-ink-faint'}
-          icon={Calendar}
-          sub="Renewal window open"
-        />
-        <StatCard 
-          label="Potential Fine Risk" 
-          value={formatCurrency(summary.expired > 0 ? summary.expired * 500 : 0)} 
-          color={summary.expired > 0 ? 'text-danger' : 'text-settled'}
-          icon={AlertTriangle}
-          sub={summary.expired > 0 ? 'Immediate action needed' : 'Zero active fines'}
-        />
-      </div>
-
-      {/* Main Visualizations: Score Trajectory & Status Breakdown */}
-      <div className="grid lg:grid-cols-2 gap-6">
-        {/* Line Chart: Compliance Trajectory */}
-        <div className="bg-surface rounded-3xl border border-rule p-6 shadow-sm">
-          <div className="flex items-center justify-between mb-6">
+        {!hasData ? (
+          <div className="bg-surface rounded-3xl border border-rule p-8 text-center">
+            <AlertCircle size={32} className="text-ink-faint mx-auto mb-3" />
+            <div className="text-sm font-bold text-ink">No compliance data yet</div>
+            <div className="text-xs text-ink-faint mt-1">Add your licenses in My Requirements to start tracking penalties</div>
+          </div>
+        ) : expiredWithPenalties.length === 0 ? (
+          <div className="bg-gradient-to-br from-green-50 to-emerald-50 rounded-3xl border border-green-200 p-8 flex items-center gap-5">
+            <div className="w-16 h-16 rounded-2xl bg-green-100 flex items-center justify-center flex-shrink-0">
+              <ShieldCheck size={32} className="text-green-600" />
+            </div>
             <div>
-              <h3 className="text-base font-bold font-display text-ink">6-Month Compliance Trajectory</h3>
-              <p className="text-xs text-ink-faint mt-0.5">Historical trend of overall regulatory score.</p>
+              <div className="text-xl font-black font-display text-green-800">Zero Fine Exposure</div>
+              <div className="text-sm text-green-700 mt-1">All tracked licenses are current. No penalties accruing.</div>
+              <div className="text-xs text-green-600 mt-2 font-semibold">Est. fines avoided: {formatCurrency(licenses.length * 500)}</div>
             </div>
-            <TrendingUp size={18} className="text-accent" />
           </div>
-          <ResponsiveContainer width="100%" height={230}>
-            <LineChart data={trendData}>
-              <CartesianGrid strokeDasharray="3 3" stroke="#e7e0d5" vertical={false} />
-              <XAxis dataKey="month" tick={{ fontSize: 12, fill: '#8c8275' }} axisLine={false} tickLine={false} />
-              <YAxis domain={[0, 100]} tick={{ fontSize: 12, fill: '#8c8275' }} axisLine={false} tickLine={false} />
-              <Tooltip contentStyle={{ background: '#FEFDFB', border: '1px solid #E7E0D5', borderRadius: '0.75rem', fontSize: '13px' }} formatter={(v) => [`${v} PTS`, 'Compliance Score']} />
-              <Line type="monotone" dataKey="score" stroke="#6366f1" strokeWidth={3.5} dot={{ fill: '#6366f1', r: 4 }} />
-            </LineChart>
-          </ResponsiveContainer>
-        </div>
-
-        {/* Pie Chart: Status Breakdown */}
-        <div className="bg-surface rounded-3xl border border-rule p-6 shadow-sm">
-          <div className="flex items-center justify-between mb-6">
-            <div>
-              <h3 className="text-base font-bold font-display text-ink">Requirement Portfolio Health</h3>
-              <p className="text-xs text-ink-faint mt-0.5">Distribution of licenses by operational status.</p>
-            </div>
-            <ShieldCheck size={18} className="text-settled" />
-          </div>
-          {pieData.length === 0 ? (
-            <div className="flex items-center justify-center h-52 text-ink-faint text-xs">No active license records</div>
-          ) : (
-            <ResponsiveContainer width="100%" height={230}>
-              <PieChart>
-                <Pie data={pieData} cx="50%" cy="50%" innerRadius={65} outerRadius={95} paddingAngle={4} dataKey="value">
-                  {pieData.map((e, i) => <Cell key={i} fill={e.color} />)}
-                </Pie>
-                <Tooltip formatter={(v, n) => [`${v} Requirements`, n]} contentStyle={{ borderRadius: '0.75rem', fontSize: '13px' }} />
-                <Legend iconType="circle" iconSize={8} formatter={(v) => <span style={{ fontSize: '12px', color: '#57534E' }}>{v}</span>} />
-              </PieChart>
-            </ResponsiveContainer>
-          )}
-        </div>
-      </div>
-
-      {/* Quarterly Renewal Cost Forecast & Risk Matrix */}
-      <div className="grid lg:grid-cols-2 gap-6">
-        {/* Bar Chart: Budget Forecast */}
-        <div className="bg-surface rounded-3xl border border-rule p-6 shadow-sm">
-          <div className="flex items-center justify-between mb-6">
-            <div>
-              <h3 className="text-base font-bold font-display text-ink">Quarterly Renewal Cost Forecast</h3>
-              <p className="text-xs text-ink-faint mt-0.5">Projected municipal filing fees for upcoming quarters.</p>
-            </div>
-            <DollarSign size={18} className="text-accent" />
-          </div>
-          <ResponsiveContainer width="100%" height={220}>
-            <BarChart data={budgetForecast}>
-              <CartesianGrid strokeDasharray="3 3" stroke="#e7e0d5" vertical={false} />
-              <XAxis dataKey="quarter" tick={{ fontSize: 11, fill: '#8c8275' }} axisLine={false} tickLine={false} />
-              <YAxis tick={{ fontSize: 11, fill: '#8c8275' }} axisLine={false} tickLine={false} />
-              <Tooltip formatter={(v) => [formatCurrency(v), 'Est. Filing Fees']} contentStyle={{ borderRadius: '0.75rem', fontSize: '13px' }} />
-              <Bar dataKey="cost" fill="#6366f1" radius={[8, 8, 0, 0]} barSize={36} />
-            </BarChart>
-          </ResponsiveContainer>
-        </div>
-
-        {/* Risk Exposure Matrix */}
-        <div className="bg-surface rounded-3xl border border-rule p-6 shadow-sm flex flex-col justify-between">
-          <div>
-            <h3 className="text-base font-bold font-display text-ink mb-1">Risk Exposure Matrix</h3>
-            <p className="text-xs text-ink-faint mb-5">Categorization by regulatory severity and inspection priority.</p>
-            <div className="space-y-3">
-              {riskCategories.map((rc, i) => (
-                <div key={i} className="flex items-center justify-between p-3.5 bg-base/40 rounded-2xl border border-rule/50">
-                  <div>
-                    <div className="text-xs font-bold text-ink">{rc.category}</div>
-                    <div className="text-[10px] text-ink-faint mt-0.5">{rc.count} license requirement(s) tracked</div>
+        ) : (
+          <div className="space-y-4">
+            {/* Total Exposure Banner */}
+            <div className="relative bg-ink rounded-3xl p-6 overflow-hidden shadow-xl">
+              <div className="absolute -top-12 -right-12 w-48 h-48 bg-red-500/10 rounded-full blur-2xl" />
+              <div className="relative z-10 flex flex-col md:flex-row md:items-center gap-5">
+                <div className="flex-1">
+                  <div className="text-xs font-bold font-display text-white/50 uppercase tracking-widest mb-1">Current Total Exposure</div>
+                  <div className="text-4xl md:text-5xl font-black font-display text-red-400">
+                    <LiveCounter value={totalCurrentFine} prefix="$" />
                   </div>
-                  <span className={`text-xs font-bold font-display px-2.5 py-1 rounded-lg ${rc.color} bg-base border border-rule`}>
-                    {rc.riskLevel}
-                  </span>
+                  <div className="text-sm text-white/60 mt-2">
+                    +{formatCurrency(totalDailyCost)} per day if unresolved · {expiredWithPenalties.length} license(s) overdue
+                  </div>
                 </div>
+                <div className="grid grid-cols-3 gap-3">
+                  {[7, 30, 90].map(days => {
+                    const projected = projectionData.find(p => p.label === `+${days}d`)?.fine || 0;
+                    return (
+                      <div key={days} className="bg-white/5 border border-white/10 rounded-2xl p-3 text-center">
+                        <div className="text-[10px] font-bold font-display text-white/40 uppercase tracking-wide">+{days}d</div>
+                        <div className="text-base font-black font-display text-red-300 mt-1">{formatCurrency(projected)}</div>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+            </div>
+
+            {/* Projection Chart */}
+            <div className="bg-surface rounded-3xl border border-rule p-5 shadow-sm">
+              <div className="flex items-center justify-between mb-4">
+                <div>
+                  <h3 className="text-sm font-bold font-display text-ink">Fine Escalation Projection</h3>
+                  <p className="text-xs text-ink-faint mt-0.5">Cumulative penalties if no action is taken</p>
+                </div>
+                <TrendingUp size={16} className="text-red-500" />
+              </div>
+              <ResponsiveContainer width="100%" height={180}>
+                <AreaChart data={projectionData}>
+                  <defs>
+                    <linearGradient id="fineGrad" x1="0" y1="0" x2="0" y2="1">
+                      <stop offset="5%" stopColor="#ef4444" stopOpacity={0.3} />
+                      <stop offset="95%" stopColor="#ef4444" stopOpacity={0} />
+                    </linearGradient>
+                  </defs>
+                  <CartesianGrid strokeDasharray="3 3" stroke="#e7e0d5" vertical={false} />
+                  <XAxis dataKey="label" tick={{ fontSize: 11, fill: '#8c8275' }} axisLine={false} tickLine={false} />
+                  <YAxis tick={{ fontSize: 11, fill: '#8c8275' }} axisLine={false} tickLine={false} width={50}
+                    tickFormatter={v => `$${v >= 1000 ? `${(v/1000).toFixed(0)}k` : v}`} />
+                  <Tooltip formatter={v => [formatCurrency(v), 'Projected Fine']}
+                    contentStyle={{ background: '#FEFDFB', border: '1px solid #E7E0D5', borderRadius: '12px', fontSize: '12px' }} />
+                  <Area type="monotone" dataKey="fine" stroke="#ef4444" strokeWidth={2.5}
+                    fill="url(#fineGrad)" dot={{ fill: '#ef4444', r: 4, stroke: '#fff', strokeWidth: 2 }} />
+                </AreaChart>
+              </ResponsiveContainer>
+            </div>
+
+            {/* Per-License Penalty Breakdown */}
+            <div className="grid md:grid-cols-2 gap-4">
+              {expiredWithPenalties.map((l, i) => (
+                <motion.div key={l.id} initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.07 }}
+                  className="bg-surface rounded-2xl border border-red-200 p-4 cursor-pointer hover:shadow-md transition-shadow"
+                  onClick={() => setSelectedLic(selectedLic?.id === l.id ? null : l)}
+                >
+                  <div className="flex items-start justify-between gap-2 mb-2">
+                    <div className="flex-1 min-w-0">
+                      <div className="text-xs font-bold text-ink truncate">{l.name}</div>
+                      <div className="text-[10px] text-ink-faint mt-0.5">{l.daysOverdue} days overdue</div>
+                    </div>
+                    <div className="text-right flex-shrink-0">
+                      <div className="text-base font-black font-display text-red-600">{formatCurrency(l.penalty.currentFine)}</div>
+                      <div className="text-[10px] text-red-400 font-semibold">+{formatCurrency(l.penalty.dailyCost)}/day</div>
+                    </div>
+                  </div>
+                  <div className="text-[11px] font-semibold text-amber-700 bg-amber-50 px-2.5 py-1 rounded-lg border border-amber-200 w-fit">
+                    {l.penalty.currentConsequence}
+                  </div>
+                  <AnimatePresence>
+                    {selectedLic?.id === l.id && (
+                      <motion.div initial={{ height: 0, opacity: 0 }} animate={{ height: 'auto', opacity: 1 }} exit={{ height: 0, opacity: 0 }}
+                        className="mt-3 pt-3 border-t border-red-100 space-y-2 overflow-hidden"
+                      >
+                        {l.penalty.projections.map((p, j) => (
+                          <div key={j} className="flex items-center justify-between text-xs">
+                            <span className="text-ink-faint">In {p.days} days</span>
+                            <span className="font-bold text-red-600">{formatCurrency(p.fine)}</span>
+                          </div>
+                        ))}
+                        <div className="text-[10px] text-ink-faint italic mt-1">Ref: {l.penalty.legalReference}</div>
+                      </motion.div>
+                    )}
+                  </AnimatePresence>
+                </motion.div>
               ))}
             </div>
           </div>
-          <div className="mt-4 pt-4 border-t border-rule/50 flex items-center justify-between text-xs text-ink-faint">
-            <span>High-risk items require active physical display on-site.</span>
+        )}
+      </div>
+
+      {/* ── SECTION 2: Inspection Readiness Report ── */}
+      <div>
+        <div className="flex items-center gap-2 mb-3">
+          <Eye size={16} className="text-accent" />
+          <h2 className="text-sm font-bold font-display text-ink uppercase tracking-wide">Inspection Readiness Report</h2>
+        </div>
+
+        <div className="bg-surface rounded-3xl border border-rule p-5 shadow-sm">
+          <div className="flex flex-col md:flex-row gap-6">
+            {/* Score display */}
+            <div className="flex flex-col items-center justify-center shrink-0 md:w-44">
+              <div className="relative w-28 h-28">
+                <svg width="112" height="112" style={{ transform: 'rotate(-90deg)' }}>
+                  <circle cx="56" cy="56" r="46" fill="none" stroke="#e7e0d5" strokeWidth="10" />
+                  <motion.circle cx="56" cy="56" r="46" fill="none"
+                    stroke={inspectionScore.score >= 80 ? '#22c55e' : inspectionScore.score >= 50 ? '#f59e0b' : '#ef4444'}
+                    strokeWidth="10" strokeLinecap="round"
+                    initial={{ strokeDasharray: '0 290' }}
+                    animate={{ strokeDasharray: `${(inspectionScore.score / 100) * 290} 290` }}
+                    transition={{ duration: 1, ease: 'easeOut', delay: 0.2 }}
+                  />
+                </svg>
+                <div className="absolute inset-0 flex flex-col items-center justify-center">
+                  <span className={`text-2xl font-black font-display ${inspectionScore.color}`}>{inspectionScore.score}</span>
+                  <span className="text-[9px] text-ink-faint font-bold uppercase tracking-wide">/100</span>
+                </div>
+              </div>
+              <div className={`mt-2 text-xs font-bold font-display ${inspectionScore.color}`}>{inspectionScore.label}</div>
+              <div className="text-[10px] text-ink-faint text-center mt-0.5">If inspected today</div>
+            </div>
+
+            {/* Checklist */}
+            <div className="flex-1 space-y-2">
+              {inspectionChecklist.map((item, i) => (
+                <motion.div key={i} initial={{ opacity: 0, x: 12 }} animate={{ opacity: 1, x: 0 }}
+                  transition={{ delay: i * 0.07 }}
+                  className={`flex items-center gap-3 p-3 rounded-2xl border ${item.ok ? 'bg-green-50 border-green-200' : item.critical ? 'bg-red-50 border-red-200' : 'bg-amber-50 border-amber-200'}`}
+                >
+                  <div className={`w-6 h-6 rounded-full flex items-center justify-center flex-shrink-0 ${item.ok ? 'bg-green-500' : item.critical ? 'bg-red-500' : 'bg-amber-500'}`}>
+                    {item.ok ? <Check size={12} className="text-white" /> : <X size={12} className="text-white" />}
+                  </div>
+                  <span className={`text-xs font-semibold ${item.ok ? 'text-green-800' : item.critical ? 'text-red-800' : 'text-amber-800'}`}>
+                    {item.label}
+                  </span>
+                  {item.critical && !item.ok && (
+                    <span className="ml-auto text-[10px] font-bold font-display px-2 py-0.5 rounded-full bg-red-100 text-red-600 border border-red-200 flex-shrink-0">CRITICAL</span>
+                  )}
+                </motion.div>
+              ))}
+            </div>
           </div>
         </div>
       </div>
 
-      {/* Savings & Avoided Penalties Audit Table */}
-      <div className="bg-surface rounded-3xl border border-rule p-6 shadow-sm">
-        <div className="flex items-center justify-between mb-5 border-b border-rule pb-4">
-          <div>
-            <h3 className="text-base font-bold font-display text-ink">Statutory Penalty Avoidance Breakdown</h3>
-            <p className="text-xs text-ink-faint mt-0.5">Calculated financial liability saved by maintaining active licenses.</p>
+      {/* ── SECTION 3: Renewal Timeline ── */}
+      <div>
+        <div className="flex items-center justify-between mb-3">
+          <div className="flex items-center gap-2">
+            <Calendar size={16} className="text-accent" />
+            <h2 className="text-sm font-bold font-display text-ink uppercase tracking-wide">Renewal Countdown</h2>
           </div>
-          <span className="text-xs font-bold font-display text-settled bg-settled/10 px-3 py-1.5 rounded-xl border border-settled/20">
-            Total Saved: {formatCurrency(totalSavings)}
-          </span>
+          <div className="flex items-center gap-3 text-[10px] font-bold font-display text-ink-faint">
+            <span className="flex items-center gap-1"><span className="w-2 h-2 rounded-full bg-red-500" />Overdue</span>
+            <span className="flex items-center gap-1"><span className="w-2 h-2 rounded-full bg-amber-500" />&lt;30d</span>
+            <span className="flex items-center gap-1"><span className="w-2 h-2 rounded-full bg-green-500" />OK</span>
+          </div>
         </div>
 
-        <div className="overflow-x-auto">
-          <table className="w-full text-xs text-left">
-            <thead>
-              <tr className="border-b border-rule text-ink-faint uppercase font-bold font-display">
-                <th className="py-2.5 px-3">Requirement</th>
-                <th className="py-2.5 px-3">Jurisdiction Agency</th>
-                <th className="py-2.5 px-3">Status</th>
-                <th className="py-2.5 px-3 text-right">Avoided Fine</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-rule/40">
-              {savingsData.map((row, i) => (
-                <tr key={i} className="hover:bg-base/30 transition-colors">
-                  <td className="py-3 px-3 font-bold text-ink">{row.name}</td>
-                  <td className="py-3 px-3 text-ink-muted">{row.dept}</td>
-                  <td className="py-3 px-3">
-                    <span className={`inline-flex items-center gap-1 font-bold text-[10px] uppercase px-2 py-0.5 rounded-full ${row.status === 'satisfied' || row.status === 'active' ? 'bg-green-100 text-green-700' : 'bg-amber-100 text-amber-700'}`}>
-                      <CheckCircle2 size={10} /> {row.status}
-                    </span>
-                  </td>
-                  <td className="py-3 px-3 text-right font-black text-settled text-sm">
-                    {formatCurrency(row.avoided)}
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
+        {renewalTimeline.length === 0 ? (
+          <div className="bg-surface rounded-3xl border border-rule p-6 text-center text-xs text-ink-faint">
+            No expiry dates tracked yet. Scan your licenses to auto-fill expiry dates.
+          </div>
+        ) : (
+          <div className="grid md:grid-cols-2 gap-2.5">
+            {renewalTimeline.map((lic, i) => <RenewalTimelineDot key={lic.id} lic={lic} index={i} />)}
+          </div>
+        )}
+      </div>
+
+      {/* ── SECTION 4: City-by-City Compliance ── */}
+      {cityBreakdown.length > 0 && (
+        <div>
+          <div className="flex items-center gap-2 mb-3">
+            <MapPin size={16} className="text-accent" />
+            <h2 className="text-sm font-bold font-display text-ink uppercase tracking-wide">City-by-City Compliance</h2>
+          </div>
+          <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-4">
+            {cityBreakdown.map((c, i) => (
+              <motion.div key={c.city} initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.06 }}
+                className="bg-surface rounded-2xl border border-rule p-4 shadow-sm hover:shadow-md transition-shadow"
+              >
+                <div className="flex items-center justify-between mb-3">
+                  <div className="flex items-center gap-2">
+                    <MapPin size={13} className="text-accent flex-shrink-0" />
+                    <span className="text-xs font-bold text-ink truncate">{c.city}</span>
+                  </div>
+                  <span className={`text-xs font-black font-display ${c.score >= 80 ? 'text-green-600' : c.score >= 50 ? 'text-amber-600' : 'text-red-600'}`}>{c.score}%</span>
+                </div>
+                {/* Progress bar */}
+                <div className="w-full h-2 bg-base rounded-full overflow-hidden mb-3">
+                  <motion.div
+                    initial={{ width: 0 }} animate={{ width: `${c.score}%` }}
+                    transition={{ duration: 0.8, ease: 'easeOut', delay: i * 0.1 }}
+                    className={`h-full rounded-full ${c.score >= 80 ? 'bg-green-500' : c.score >= 50 ? 'bg-amber-500' : 'bg-red-500'}`}
+                  />
+                </div>
+                <div className="grid grid-cols-4 gap-1 text-center">
+                  {[
+                    { label: 'Active', value: c.satisfied, color: 'text-green-600' },
+                    { label: 'Progress', value: c.inProgress, color: 'text-amber-600' },
+                    { label: 'Expired', value: c.expired, color: 'text-red-600' },
+                    { label: 'Needed', value: c.needed, color: 'text-ink-faint' },
+                  ].map(s => (
+                    <div key={s.label}>
+                      <div className={`text-sm font-black font-display ${s.color}`}>{s.value}</div>
+                      <div className="text-[9px] text-ink-faint font-display uppercase">{s.label}</div>
+                    </div>
+                  ))}
+                </div>
+              </motion.div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* ── SECTION 5: Action Queue ── */}
+      <div>
+        <div className="flex items-center gap-2 mb-3">
+          <Zap size={16} className="text-accent" />
+          <h2 className="text-sm font-bold font-display text-ink uppercase tracking-wide">Priority Action Queue</h2>
+        </div>
+        <div className="bg-surface rounded-3xl border border-rule overflow-hidden shadow-sm">
+          {licenses.length === 0 ? (
+            <div className="p-8 text-center text-xs text-ink-faint">No licenses tracked yet.</div>
+          ) : (
+            <div className="divide-y divide-rule/40">
+              {[...licenses]
+                .sort((a, b) => {
+                  const score = l => {
+                    if (l.status === 'expired') return 0;
+                    if (l.status === 'needed') return 1;
+                    const d = getDaysLeft(l.expiry_date);
+                    if (d !== null && d <= 7) return 2;
+                    if (d !== null && d <= 30) return 3;
+                    return 4;
+                  };
+                  return score(a) - score(b);
+                })
+                .slice(0, 8)
+                .map((l, i) => {
+                  const days = getDaysLeft(l.expiry_date);
+                  const col = urgencyColor(days !== null ? days : (l.status === 'needed' ? -1 : 999));
+                  const name = l.requirement?.requirement_name || l.license_type || 'License';
+                  const action = l.status === 'expired' ? 'RENEW NOW'
+                    : l.status === 'needed' ? 'APPLY'
+                    : days !== null && days <= 30 ? 'RENEW SOON'
+                    : 'MONITOR';
+                  const actionColor = action === 'RENEW NOW' || action === 'APPLY' ? 'bg-red-600 text-white' : action === 'RENEW SOON' ? 'bg-amber-500 text-white' : 'bg-green-100 text-green-700';
+                  return (
+                    <div key={l.id} className="flex items-center gap-4 px-5 py-3.5 hover:bg-base/40 transition-colors">
+                      <div className={`w-2 h-2 rounded-full flex-shrink-0 ${col.dot}`} />
+                      <div className="flex-1 min-w-0">
+                        <div className="text-xs font-bold text-ink truncate">{name}</div>
+                        <div className="text-[10px] text-ink-faint">{l.requirement?.issuing_agency || l.issuing_authority || ''}</div>
+                      </div>
+                      <div className="text-xs text-ink-faint flex-shrink-0 hidden sm:block">
+                        {l.status === 'expired' ? `${Math.abs(days)}d overdue`
+                          : l.status === 'needed' ? 'Not obtained'
+                          : days !== null ? `${days}d left`
+                          : '—'}
+                      </div>
+                      <span className={`text-[10px] font-black font-display px-2.5 py-1 rounded-lg flex-shrink-0 ${actionColor}`}>{action}</span>
+                    </div>
+                  );
+                })}
+            </div>
+          )}
         </div>
       </div>
     </div>

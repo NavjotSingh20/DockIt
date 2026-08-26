@@ -2,7 +2,57 @@ import { useState, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { MessageCircle, X, Send, Shield, Minus } from 'lucide-react';
 import { useDemo } from '../../context/DemoContext';
-import { GoogleGenerativeAI } from '@google/generative-ai';
+import { streamChatResponse } from '../../services/geminiService';
+
+/** Lightweight markdown renderer â€” no external lib needed */
+function renderMarkdown(text) {
+  if (!text) return null;
+  const lines = text.split('\n');
+  return lines.map((line, i) => {
+    // Blank line spacer
+    if (!line.trim()) return <div key={i} className="h-1" />;
+
+    // Parse inline **bold** and *italic* within a line
+    const parseInline = (str) => {
+      const parts = [];
+      const re = /\*\*(.+?)\*\*|\*(.+?)\*/g;
+      let last = 0, m;
+      while ((m = re.exec(str)) !== null) {
+        if (m.index > last) parts.push(str.slice(last, m.index));
+        if (m[1] !== undefined) parts.push(<strong key={m.index} className="font-bold text-ink">{m[1]}</strong>);
+        else if (m[2] !== undefined) parts.push(<em key={m.index} className="italic text-ink-muted">{m[2]}</em>);
+        last = re.lastIndex;
+      }
+      if (last < str.length) parts.push(str.slice(last));
+      return parts.length ? parts : str;
+    };
+
+    // Bullet point lines (â€¢, -, *)
+    const bulletMatch = line.match(/^[â€¢\-\*]\s+(.+)/);
+    if (bulletMatch) {
+      return (
+        <div key={i} className="flex items-start gap-2 my-0.5">
+          <span className="text-accent font-bold mt-0.5 flex-shrink-0">â€¢</span>
+          <span>{parseInline(bulletMatch[1])}</span>
+        </div>
+      );
+    }
+
+    // Numbered list lines
+    const numMatch = line.match(/^(\d+)\.\s+(.+)/);
+    if (numMatch) {
+      return (
+        <div key={i} className="flex items-start gap-2 my-0.5">
+          <span className="text-accent font-bold text-xs mt-0.5 w-4 flex-shrink-0">{numMatch[1]}.</span>
+          <span>{parseInline(numMatch[2])}</span>
+        </div>
+      );
+    }
+
+    // Normal paragraph
+    return <p key={i} className="mb-0.5">{parseInline(line)}</p>;
+  });
+}
 
 const SUGGESTED = [
   'What licenses do I need for my business?',
@@ -18,34 +68,37 @@ async function streamChatLocalFallback(message, businessContext, onChunk) {
   const biz = businessContext?.business_name || 'your business';
   let reply = '';
 
-  if (msg.includes('license') || msg.includes('need') || msg.includes('permit') || msg.includes('what')) {
-    reply = `Based on DockIt's regulatory database for **${city}**, here are the key requirements for **${biz}**:
-
-• **Health Department Permit**: Mandated for food preparation, storage, and handling. Requires on-site inspection.
-• **Sales Tax Certificate**: Required by state tax authorities before conducting commercial sales.
-• **Fire Safety Clearance**: Mandatory for commercial cooking equipment, gas lines, and emergency exits.
-• **General Business License / BTRC**: Required by municipal authority for operation.
-
-You can track all these requirements in the **My Requirements** tab!`;
-  } else if (msg.includes('penalty') || msg.includes('expire') || msg.includes('fine') || msg.includes('lapsed')) {
+  // Check more-specific intents FIRST before broad catch-alls
+  if (msg.includes('penalty') || msg.includes('expire') || msg.includes('fine') || msg.includes('lapsed') || msg.includes('what happens')) {
     reply = `Operating with expired licenses in **${city}** carries serious penalty risks:
 
-• **Health Code Violations**: Fines range from **$250 to $1,000 per day**, and potential temporary closure order.
-• **Unregistered Sales Tax**: Statutory fines up to **$5,000** plus interest on uncollected tax revenue.
-• **Fire Code Failure**: Immediate order to cease cooking operations until compliant.
+â€¢ **Health Code Violations**: Fines range from **$250 to $1,000 per day**, and potential temporary closure order.
+â€¢ **Unregistered Sales Tax**: Statutory fines up to **$5,000** plus interest on uncollected tax revenue.
+â€¢ **Fire Code Failure**: Immediate order to cease cooking operations until compliant.
 
 Check the **Analytics** page for your estimated penalty exposure breakdown!`;
-  } else if (msg.includes('renew') || msg.includes('how')) {
+  } else if (msg.includes('renew') || msg.includes('how do i') || msg.includes('how to')) {
     reply = `Here is the step-by-step renewal process for **${city}**:
 
 1. Click the **Camera icon** at the bottom right to scan your current permit.
 2. DockIt AI automatically extracts your license number and expiry date.
 3. Review pre-filled fields and click **Submit Renewal Application**.
 4. DockIt routes your application to the official municipal agency portal for **${city}**.`;
+  } else if (msg.includes('license') || msg.includes('need') || msg.includes('permit') || msg.includes('what') || msg.includes('require')) {
+    reply = `Based on DockIt's regulatory database for **${city}**, here are the key requirements for **${biz}**:
+
+â€¢ **Health Department Permit**: Mandated for food preparation, storage, and handling. Requires on-site inspection.
+â€¢ **Sales Tax Certificate**: Required by state tax authorities before conducting commercial sales.
+â€¢ **Fire Safety Clearance**: Mandatory for commercial cooking equipment, gas lines, and emergency exits.
+â€¢ **General Business License / BTRC**: Required by municipal authority for operation.
+
+You can track all these requirements in the **My Requirements** tab!`;
   } else {
     reply = `Hello! I am DockIt's Compliance Assistant. I monitor government rules, renewal deadlines, and penalty risks for **${biz}** in **${city}**.
 
 How can I help you today?
+â€¢ Ask: *"What licenses do I need?"*
+â€¢ Ask: *"What are the penalty risks for expired permits?"*
 • Ask: *"What licenses do I need?"*
 • Ask: *"What are the penalty risks for expired permits?"*
 • Ask: *"How do I renew my food health permit?"*`;
@@ -59,7 +112,7 @@ How can I help you today?
   }
 }
 
-async function streamChatClient(message, businessContext, chatHistory, onChunk) {
+async function streamChatClient(message, chatHistory, businessContext, onChunk) {
   const apiKey = import.meta.env.VITE_GEMINI_API_KEY;
   if (!apiKey) {
     await streamChatLocalFallback(message, businessContext, onChunk);
@@ -80,42 +133,19 @@ Core rules:
 - Use bullet points for lists of steps or documents
 - Keep responses under 200 words unless the user explicitly asks for detail.`;
 
-    const genAI = new GoogleGenerativeAI(apiKey);
-    const model = genAI.getGenerativeModel({
-      model: 'gemini-1.5-flash',
+    const success = await streamChatResponse({
+      apiKey,
+      message,
+      chatHistory,
       systemInstruction,
+      onChunk,
     });
 
-    // Sanitize and format chat history to prevent Gemini API 400 errors
-    const validHistory = chatHistory
-      .filter(m => m.content && m.content.trim().length > 0)
-      .slice(-6)
-      .map(m => ({
-        role: m.role === 'user' ? 'user' : 'model',
-        parts: [{ text: m.content }],
-      }));
-
-    const contents = [
-      ...validHistory,
-      { role: 'user', parts: [{ text: message }] }
-    ];
-
-    const result = await model.generateContentStream({ contents });
-    let receivedChunks = false;
-
-    for await (const chunk of result.stream) {
-      const text = chunk.text();
-      if (text) {
-        receivedChunks = true;
-        onChunk(text);
-      }
-    }
-
-    if (!receivedChunks) {
+    if (!success) {
       await streamChatLocalFallback(message, businessContext, onChunk);
     }
   } catch (err) {
-    console.warn('Gemini streaming error, using local fallback:', err);
+    console.warn('Gemini streaming error across cascade, using local fallback:', err);
     await streamChatLocalFallback(message, businessContext, onChunk);
   }
 }
@@ -261,10 +291,18 @@ export default function ChatBot() {
                 {messages.map((msg, i) => (
                   <div key={i} className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'} gap-2`}>
                     {msg.role === 'model' && <div className="w-7 h-7 rounded-full bg-accent flex items-center justify-center flex-shrink-0 mt-0.5"><Shield size={13} className="text-white" /></div>}
-                    <div className={`max-w-[80%] rounded-2xl px-4 py-2.5 text-sm leading-relaxed ${msg.role === 'user' ? 'bg-accent text-white rounded-tr-sm' : 'bg-surface text-ink border border-rule shadow-sm rounded-tl-sm'}`}>
-                      {msg.content || (streaming && i === messages.length - 1
-                        ? <span className="flex gap-1 items-center h-4"><span className="w-1.5 h-1.5 bg-ink-faint rounded-full animate-bounce" style={{ animationDelay: '0ms' }} /><span className="w-1.5 h-1.5 bg-ink-faint rounded-full animate-bounce" style={{ animationDelay: '150ms' }} /><span className="w-1.5 h-1.5 bg-ink-faint rounded-full animate-bounce" style={{ animationDelay: '300ms' }} /></span>
-                        : null)}
+                    <div className={`max-w-[80%] rounded-2xl px-4 py-2.5 text-sm leading-relaxed ${
+                      msg.role === 'user'
+                        ? 'bg-accent text-white rounded-tr-sm'
+                        : 'bg-surface text-ink border border-rule shadow-sm rounded-tl-sm'
+                    }`}>
+                      {msg.content
+                        ? (msg.role === 'model'
+                            ? <div className="space-y-0.5 text-sm">{renderMarkdown(msg.content)}</div>
+                            : msg.content)
+                        : (streaming && i === messages.length - 1
+                          ? <span className="flex gap-1 items-center h-4"><span className="w-1.5 h-1.5 bg-ink-faint rounded-full animate-bounce" style={{ animationDelay: '0ms' }} /><span className="w-1.5 h-1.5 bg-ink-faint rounded-full animate-bounce" style={{ animationDelay: '150ms' }} /><span className="w-1.5 h-1.5 bg-ink-faint rounded-full animate-bounce" style={{ animationDelay: '300ms' }} /></span>
+                          : null)}
                     </div>
                   </div>
                 ))}
@@ -274,6 +312,8 @@ export default function ChatBot() {
                 <div className="flex gap-2 items-center bg-base/50 rounded-2xl px-4 py-2.5 border border-rule focus-within:border-accent focus-within:ring-2 focus-within:ring-accent-light transition-all">
                   <input type="text" value={input} onChange={e => setInput(e.target.value)}
                     onKeyDown={e => e.key === 'Enter' && sendMessage(input)}
+                    onClick={e => e.target.focus()}
+                    autoComplete="off"
                     placeholder="Ask about licenses, penalties..." className="flex-1 bg-transparent text-sm outline-none placeholder-ink-faint text-ink" />
                   <button onClick={() => sendMessage(input)} disabled={!input.trim() || streaming}
                     className="w-8 h-8 bg-accent rounded-xl flex items-center justify-center text-white disabled:opacity-40 hover:bg-accent-dark transition-colors flex-shrink-0">

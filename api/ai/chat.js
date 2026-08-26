@@ -1,13 +1,13 @@
-/**
+﻿/**
  * /api/ai/chat.js
- * Vercel Serverless Function — Streaming chatbot via Gemini + SSE.
+ * Vercel Serverless Function â€” Streaming chatbot via Gemini + SSE.
  * POST body: { message: string, businessContext: object, chatHistory: Array }
- * Response:  text/event-stream — sends "data: <chunk>\n\n" per token, ends with "data: [DONE]\n\n"
+ * Response:  text/event-stream â€” sends "data: <chunk>\n\n" per token, ends with "data: [DONE]\n\n"
  */
 import { GoogleGenerativeAI } from '@google/generative-ai'
 
 const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY)
-const model = genAI.getGenerativeModel({ model: 'gemini-1.5-flash' })
+const model = genAI.getGenerativeModel({ model: 'gemini-2.0-flash' })
 
 const SYSTEM_INSTRUCTION_BASE = `You are DockIt's helpful assistant for small business owners.
 You specialize in business compliance, government licenses, penalties, and renewal procedures.`;
@@ -26,9 +26,9 @@ export default async function handler(req, res) {
   if (!process.env.GEMINI_API_KEY) return res.status(500).json({ error: 'Gemini API key not configured' })
 
   const country = businessContext?.country || 'USA';
-  const currencySymbol = country === 'India' ? 'INR (₹)' : 'USD ($)';
+  const currencySymbol = country === 'India' ? 'INR (â‚¹)' : 'USD ($)';
 
-  const systemInstruction = `${SYSTEM_INSTRUCTION_BASE} — specifically for ${country === 'India' ? 'India' : 'the USA'} (and the city/state in the business context).
+  const systemInstruction = `${SYSTEM_INSTRUCTION_BASE} â€” specifically for ${country === 'India' ? 'India' : 'the USA'} (and the city/state in the business context).
 
 Core rules:
 - Always use ${currencySymbol} for money amounts
@@ -36,7 +36,7 @@ Core rules:
 - Cite specific laws, regulations, or ordinances when discussing penalties
 - Give exact portal URLs when relevant
 - If asked about specific penalties, give exact amounts from the relevant local/state regulations
-- If you don't know something, say so honestly — don't guess
+- If you don't know something, say so honestly â€” don't guess
 - Use bullet points for lists of steps or documents
 - Keep responses under 200 words unless the user explicitly asks for detail`;
 

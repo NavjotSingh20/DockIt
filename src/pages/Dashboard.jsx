@@ -193,7 +193,12 @@ export default function Dashboard() {
       </button>
 
       {/* Scan Modal */}
-      {showScan && <ScanModal onClose={() => setShowScan(false)} onSave={handleSave} />}
+      {showScan && <ScanModal
+        onClose={() => setShowScan(false)}
+        onSave={handleSave}
+        businessType={business?.business_type}
+        cities={business?.cities || []}
+      />}
 
       {/* Chatbot */}
       <ChatBot />

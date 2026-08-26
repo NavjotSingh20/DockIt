@@ -1,15 +1,61 @@
-import { useState } from 'react';
+import { useState, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { MessageCircle, X, Send, Shield, Minus } from 'lucide-react';
-import { chatWithAI } from '../../services/geminiService';
 import { useDemo } from '../../context/DemoContext';
 
 const SUGGESTED = [
-  'What licenses do I need for my restaurant?',
-  'What happens if my Fire NOC expires?',
-  'How do I renew my FSSAI license?',
+  'What licenses do I need for my business?',
+  'What happens if my permit expires?',
+  'How do I renew a license?',
   'What is my total penalty exposure today?',
 ];
+
+/**
+ * Stream from /api/ai/chat via SSE fetch.
+ * The server sends: `data: <escaped_chunk>\n\n` per token, `data: [DONE]\n\n` at end.
+ * Newlines inside chunks are escaped as \\n by the server — we unescape them here.
+ */
+async function streamChat(message, businessContext, chatHistory, onChunk) {
+  const res = await fetch('/api/ai/chat', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      message,
+      businessContext,
+      // Server expects { role: 'user'|'model', text: string }
+      chatHistory: chatHistory.map(m => ({ role: m.role, text: m.content })),
+    }),
+  });
+
+  if (!res.ok) {
+    onChunk('Sorry, the AI assistant is temporarily unavailable. Please try again.');
+    return;
+  }
+
+  const reader = res.body.getReader();
+  const decoder = new TextDecoder();
+  let buffer = '';
+
+  while (true) {
+    const { done, value } = await reader.read();
+    if (done) break;
+
+    buffer += decoder.decode(value, { stream: true });
+
+    // Process complete SSE lines from the buffer
+    const lines = buffer.split('\n');
+    buffer = lines.pop(); // keep incomplete last line
+
+    for (const line of lines) {
+      if (!line.startsWith('data: ')) continue;
+      const payload = line.slice(6); // strip "data: "
+      if (payload === '[DONE]') return;
+      // Server escapes newlines as \\n — restore them
+      const text = payload.replace(/\\n/g, '\n');
+      if (text) onChunk(text);
+    }
+  }
+}
 
 export default function ChatBot() {
   return null; // Temporarily disabled
@@ -20,7 +66,7 @@ export default function ChatBot() {
   const [unread, setUnread] = useState(true);
   const { demoBusiness, isDemo } = useDemo();
 
-  const sendMessage = async (text) => {
+  const sendMessage = useCallback(async (text) => {
     if (!text.trim() || streaming) return;
     setUnread(false);
     const userMsg = { role: 'user', content: text };
@@ -30,16 +76,24 @@ export default function ChatBot() {
     setStreaming(true);
 
     let aiText = '';
-    await chatWithAI(text, isDemo ? demoBusiness : null, messages, (chunk) => {
-      aiText += chunk;
+    try {
+      await streamChat(text, isDemo ? demoBusiness : null, messages, (chunk) => {
+        aiText += chunk;
+        setMessages(prev => {
+          const next = [...prev];
+          next[next.length - 1] = { role: 'model', content: aiText };
+          return next;
+        });
+      });
+    } catch (err) {
       setMessages(prev => {
         const next = [...prev];
-        next[next.length - 1] = { role: 'model', content: aiText };
+        next[next.length - 1] = { role: 'model', content: 'Sorry, something went wrong. Please try again.' };
         return next;
       });
-    });
+    }
     setStreaming(false);
-  };
+  }, [streaming, messages, isDemo, demoBusiness]);
 
   return (
     <>

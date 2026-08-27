@@ -1,7 +1,6 @@
 import { useState, useEffect } from 'react';
 import { Outlet, useNavigate } from 'react-router-dom';
-import Sidebar from './Sidebar';
-import BottomNav from './BottomNav';
+import NavBar from './NavBar';
 import { useDemo } from '../../context/DemoContext';
 import { X } from 'lucide-react';
 import { useAuth } from '../../hooks/useAuth';
@@ -41,16 +40,16 @@ export default function AppLayout() {
   }, [user, isDemo, navigate, demoBusiness]);
 
   return (
-    <div className="flex min-h-screen bg-base">
-      <Sidebar business={business} />
-      <div className="flex-1 lg:ml-64 flex flex-col">
-        {/* Demo Banner with Profile Switcher */}
+    <div className="min-h-screen bg-base">
+      <NavBar business={business} />
+      <div className="pt-16 flex flex-col min-h-screen">
+        {/* Demo Banner */}
         {isDemo && (
           <div className="bg-accent text-white text-xs sm:text-sm font-display font-medium px-4 py-2 flex flex-col sm:flex-row items-center justify-between gap-2 shadow-xs">
             <div className="flex items-center gap-2 flex-wrap">
               <span><strong>Demo Mode Active</strong> —</span>
-              <div className="flex items-center gap-1.5 bg-black/20 px-2.5 py-1 rounded-xl">
-                <span className="text-[11px] text-white/80">Active Profile:</span>
+              <div className="flex items-center gap-1.5 bg-black/20 px-2.5 py-1 rounded-xl sm:hidden">
+                <span className="text-[11px] text-white/80">Profile:</span>
                 <select
                   value={activeProfileId}
                   onChange={(e) => switchDemoProfile(e.target.value)}
@@ -70,11 +69,10 @@ export default function AppLayout() {
             </button>
           </div>
         )}
-        <main className="flex-1 px-4 py-6 lg:px-8 pb-24 lg:pb-8">
+        <main className="flex-1 px-4 py-6 lg:px-8 max-w-7xl mx-auto w-full">
           <Outlet context={{ business }} />
         </main>
       </div>
-      <BottomNav />
       <ChatBot />
     </div>
   );

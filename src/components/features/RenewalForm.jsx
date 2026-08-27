@@ -35,7 +35,7 @@ export default function RenewalForm({ license, business }) {
       if (data.error) throw new Error(data.error);
       setFormData(data);
     } catch (err) {
-      toast.error('AI unavailable â€” using standard checklist');
+      toast.error('AI unavailable — using standard checklist');
       setFormData({
         formFields: [],
         documentChecklist: def?.documents_required || [],
@@ -106,7 +106,7 @@ export default function RenewalForm({ license, business }) {
       <div className="flex flex-col gap-3 pt-2">
         {!formData ? (
           <button onClick={handlePrefill} disabled={loading} className="btn-primary w-full">
-            {loading ? <><Loader2 size={16} className="animate-spin" /> Generating with AIâ€¦</> : 'Pre-fill Renewal Form with AI'}
+            {loading ? <><Loader2 size={16} className="animate-spin" /> Generating with AI...</> : 'Pre-fill Renewal Form with AI'}
           </button>
         ) : (
           <button onClick={handleDownloadPDF} className="btn-secondary w-full">

@@ -1,6 +1,6 @@
-﻿/**
+/**
  * /api/ai/prefill.js
- * Vercel Serverless Function â€” Generate pre-filled renewal form via Gemini.
+ * Vercel Serverless Function — Generate pre-filled renewal form via Gemini.
  * POST body: { businessProfile: object, licenseType: string }
  * Response:  { formFields[], documentChecklist[], renewalInstructions[], estimatedTime, estimatedCost }
  */
@@ -32,11 +32,11 @@ export default async function handler(req, res) {
   }
 
   const country = businessProfile.country || 'USA';
-  const currencySymbol = country === 'India' ? 'INR (â‚¹)' : 'USD ($)';
+  const currencySymbol = country === 'India' ? 'INR (₹)' : 'USD ($)';
   const cities = Array.isArray(businessProfile.cities) ? businessProfile.cities.join(', ') : businessProfile.city || country;
   const prompt = `You are a compliance expert specializing in business licensing for ${country}.
 Given the business profile and license type, generate a pre-filled renewal form as JSON.
-Return ONLY valid JSON â€” no markdown, no explanation.
+Return ONLY valid JSON — no markdown, no explanation.
 
 Business Profile:
 ${JSON.stringify(businessProfile, null, 2)}
@@ -81,6 +81,6 @@ Amounts must be in ${currencySymbol}. Instructions must be specific to the relev
     return res.status(200).json(parsed)
   } catch (err) {
     console.error('[/api/ai/prefill]', err)
-    return res.status(500).json({ error: 'AI service unavailable â€” please fill form manually' })
+    return res.status(500).json({ error: 'AI service unavailable — please fill form manually' })
   }
 }

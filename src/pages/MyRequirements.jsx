@@ -327,7 +327,7 @@ export default function MyRequirements() {
               <ClipboardList size={22} />
             </div>
             <div>
-              <h1 className="text-2xl font-bold font-display text-ink">My Requirements</h1>
+              <h1 className="text-2xl font-bold font-display text-ink">Requirements</h1>
               <p className="text-sm text-ink-muted">Master legal discovery catalog & multi-jurisdiction smart-diff engine</p>
             </div>
           </div>

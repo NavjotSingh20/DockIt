@@ -1,4 +1,6 @@
 /** @type {import('tailwindcss').Config} */
+import animate from 'tailwindcss-animate';
+
 export default {
   content: [
     "./index.html",
@@ -35,6 +37,16 @@ export default {
         bg: '#F5F2EB',
         card: '#FEFDFB',
         border: '#E7E0D5',
+
+        // shadcn semantic color tokens (mapped to DockIt palette)
+        background: '#F5F2EB',
+        foreground: '#1C1917',
+        popover: { DEFAULT: '#FEFDFB', foreground: '#1C1917' },
+        muted: { DEFAULT: '#EDE9E0', foreground: '#57534E' },
+        'accent-shadcn': { DEFAULT: '#FEF3C7', foreground: '#B45309' },
+        destructive: { DEFAULT: '#C2410C', foreground: '#FFFFFF' },
+        input: '#E7E0D5',
+        ring: '#D97706',
       },
       fontFamily: {
         display: ['"Space Grotesk"', 'system-ui', 'sans-serif'],
@@ -71,5 +83,5 @@ export default {
       },
     },
   },
-  plugins: [],
+  plugins: [animate],
 }

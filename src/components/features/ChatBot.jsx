@@ -4,7 +4,7 @@ import { MessageCircle, X, Send, Shield, Minus } from 'lucide-react';
 import { useDemo } from '../../context/DemoContext';
 import { streamChatResponse } from '../../services/geminiService';
 
-/** Lightweight markdown renderer â€” no external lib needed */
+/** Lightweight markdown renderer — no external lib needed */
 function renderMarkdown(text) {
   if (!text) return null;
   const lines = text.split('\n');
@@ -27,13 +27,13 @@ function renderMarkdown(text) {
       return parts.length ? parts : str;
     };
 
-    // Bullet point lines (â€¢, -, *)
-    const bulletMatch = line.match(/^[â€¢\-\*]\s+(.+)/);
+    // Bullet point lines (•, -, *)
+    const bulletMatch = line.match(/^([•\-\*])\s+(.+)/);
     if (bulletMatch) {
       return (
         <div key={i} className="flex items-start gap-2 my-0.5">
-          <span className="text-accent font-bold mt-0.5 flex-shrink-0">â€¢</span>
-          <span>{parseInline(bulletMatch[1])}</span>
+          <span className="text-accent font-bold mt-0.5 flex-shrink-0">•</span>
+          <span>{parseInline(bulletMatch[2])}</span>
         </div>
       );
     }
@@ -72,9 +72,9 @@ async function streamChatLocalFallback(message, businessContext, onChunk) {
   if (msg.includes('penalty') || msg.includes('expire') || msg.includes('fine') || msg.includes('lapsed') || msg.includes('what happens')) {
     reply = `Operating with expired licenses in **${city}** carries serious penalty risks:
 
-â€¢ **Health Code Violations**: Fines range from **$250 to $1,000 per day**, and potential temporary closure order.
-â€¢ **Unregistered Sales Tax**: Statutory fines up to **$5,000** plus interest on uncollected tax revenue.
-â€¢ **Fire Code Failure**: Immediate order to cease cooking operations until compliant.
+• **Health Code Violations**: Fines range from **$250 to $1,000 per day**, and potential temporary closure order.
+• **Unregistered Sales Tax**: Statutory fines up to **$5,000** plus interest on uncollected tax revenue.
+• **Fire Code Failure**: Immediate order to cease cooking operations until compliant.
 
 Check the **Analytics** page for your estimated penalty exposure breakdown!`;
   } else if (msg.includes('renew') || msg.includes('how do i') || msg.includes('how to')) {
@@ -87,18 +87,16 @@ Check the **Analytics** page for your estimated penalty exposure breakdown!`;
   } else if (msg.includes('license') || msg.includes('need') || msg.includes('permit') || msg.includes('what') || msg.includes('require')) {
     reply = `Based on DockIt's regulatory database for **${city}**, here are the key requirements for **${biz}**:
 
-â€¢ **Health Department Permit**: Mandated for food preparation, storage, and handling. Requires on-site inspection.
-â€¢ **Sales Tax Certificate**: Required by state tax authorities before conducting commercial sales.
-â€¢ **Fire Safety Clearance**: Mandatory for commercial cooking equipment, gas lines, and emergency exits.
-â€¢ **General Business License / BTRC**: Required by municipal authority for operation.
+• **Health Department Permit**: Mandated for food preparation, storage, and handling. Requires on-site inspection.
+• **Sales Tax Certificate**: Required by state tax authorities before conducting commercial sales.
+• **Fire Safety Clearance**: Mandatory for commercial cooking equipment, gas lines, and emergency exits.
+• **General Business License / BTRC**: Required by municipal authority for operation.
 
-You can track all these requirements in the **My Requirements** tab!`;
+You can track all these requirements in the **Requirements** tab!`;
   } else {
     reply = `Hello! I am DockIt's Compliance Assistant. I monitor government rules, renewal deadlines, and penalty risks for **${biz}** in **${city}**.
 
 How can I help you today?
-â€¢ Ask: *"What licenses do I need?"*
-â€¢ Ask: *"What are the penalty risks for expired permits?"*
 • Ask: *"What licenses do I need?"*
 • Ask: *"What are the penalty risks for expired permits?"*
 • Ask: *"How do I renew my food health permit?"*`;

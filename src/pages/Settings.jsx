@@ -1,10 +1,10 @@
 import { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import toast from 'react-hot-toast';
-import { Bell, LogOut, Zap, Save, Pencil, Check } from 'lucide-react';
+import { Bell, Zap, Save, Pencil, Check } from 'lucide-react';
 import { useDemo } from '../context/DemoContext';
 import { useAuth } from '../hooks/useAuth';
-import { getBusiness, updateBusiness, signOut } from '../services/supabase';
+import { getBusiness, updateBusiness } from '../services/supabase';
 import { useNavigate } from 'react-router-dom';
 
 const CITIES_DATA = {
@@ -199,22 +199,6 @@ export default function Settings() {
     setIsEditing(false);
   };
 
-  const handleSignOut = async () => {
-    if (isDemo) { exitDemo(); navigate('/'); return; }
-    signOut().catch(console.error);
-    const emailRem = localStorage.getItem('emailReminders');
-    const remDays = localStorage.getItem('reminderDays');
-    const country = localStorage.getItem('country');
-    const cities = localStorage.getItem('cities');
-    localStorage.clear();
-    sessionStorage.clear();
-    if (emailRem !== null) localStorage.setItem('emailReminders', emailRem);
-    if (remDays !== null) localStorage.setItem('reminderDays', remDays);
-    if (country !== null) localStorage.setItem('country', country);
-    if (cities !== null) localStorage.setItem('cities', cities);
-    window.location.href = '/';
-  };
-
   const ProfileField = ({ label, keyName, type = 'text', readOnly = false }) => (
     <div>
       <label className="block text-xs font-bold font-display text-ink-faint uppercase tracking-wide mb-1.5">{label}</label>
@@ -391,16 +375,6 @@ export default function Settings() {
             </div>
           </div>
         )}
-      </Section>
-
-      {/* Account */}
-      <Section title="Account">
-        <div className="text-sm text-ink-muted">
-          Signed in as <strong>{isDemo ? demoBusiness?.email : user?.email || 'Demo User'}</strong>
-        </div>
-        <button onClick={handleSignOut} className="btn-danger w-full">
-          <LogOut size={16} /> {isDemo ? 'Exit Demo Mode' : 'Sign Out'}
-        </button>
       </Section>
 
       {/* Demo mode */}

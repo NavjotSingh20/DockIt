@@ -34,6 +34,7 @@ export const DEMO_REQUIREMENTS = [
     processing_time: '7-14 business days',
     description: 'Mandatory food safety license for any food business in India.',
     source_url: 'https://foscos.fssai.gov.in',
+    last_verified_date: format(today, 'yyyy-MM-dd'),
   },
   {
     id: 'demo-req-002',
@@ -49,6 +50,7 @@ export const DEMO_REQUIREMENTS = [
     processing_time: '14-30 business days',
     description: 'No Objection Certificate from fire department for fire safety compliance.',
     source_url: 'https://mumbaimunicipal.gov.in',
+    last_verified_date: format(today, 'yyyy-MM-dd'),
   },
   {
     id: 'demo-req-003',
@@ -64,6 +66,7 @@ export const DEMO_REQUIREMENTS = [
     processing_time: '7-21 business days',
     description: 'Municipal trade license permitting commercial business operations.',
     source_url: 'https://portal.mcgm.gov.in',
+    last_verified_date: format(today, 'yyyy-MM-dd'),
   },
   {
     id: 'demo-req-004',
@@ -79,11 +82,12 @@ export const DEMO_REQUIREMENTS = [
     processing_time: '7-14 business days',
     description: 'Registration under the Shops and Establishments Act.',
     source_url: 'https://mahashramm.gov.in',
+    last_verified_date: format(today, 'yyyy-MM-dd'),
   },
   {
     id: 'demo-req-005',
-    business_type: 'restaurant',
-    city: 'Mumbai, Maharashtra',
+    business_type: 'all',
+    city: 'Federal / All Cities',
     jurisdiction_level: 'federal',
     requirement_name: 'GST Registration',
     legacy_type_id: 'GST',
@@ -92,8 +96,9 @@ export const DEMO_REQUIREMENTS = [
     fee_max: 0,
     renewal_cycle_months: null,
     processing_time: '3-7 business days',
-    description: 'Goods and Services Tax registration.',
+    description: 'Goods and Services Tax registration. Mandatory for businesses with annual turnover exceeding statutory threshold.',
     source_url: 'https://www.gst.gov.in',
+    last_verified_date: format(today, 'yyyy-MM-dd'),
   },
   {
     id: 'demo-req-006',
@@ -109,11 +114,66 @@ export const DEMO_REQUIREMENTS = [
     processing_time: '21-45 business days',
     description: 'Police license required for any establishment serving food and beverages.',
     source_url: 'https://mumbaipolice.gov.in',
+    last_verified_date: format(today, 'yyyy-MM-dd'),
   },
-  // Federal — Reusable across all cities for Food Truck
+  // ── Federal Indian Requirements (All Business Types & Cities) ──
+  {
+    id: 'demo-req-pan',
+    business_type: 'all',
+    city: 'Federal / All Cities',
+    jurisdiction_level: 'federal',
+    requirement_name: 'Permanent Account Number (PAN)',
+    legacy_type_id: 'BUSINESS_LICENSE',
+    issuing_agency: 'Income Tax Department (India)',
+    fee_min: 107,
+    fee_max: 107,
+    fee_note: 'estimate — ₹107 NSDL physical card fee; verify against current official NSDL/UTIITSL fee schedule before demo',
+    renewal_cycle_months: null,
+    processing_time: '10-15 business days',
+    description: 'Ten-digit alphanumeric identifier issued by the Income Tax Department of India for all legal and tax reporting entities.',
+    source_url: 'https://www.incometax.gov.in',
+    last_verified_date: format(today, 'yyyy-MM-dd'),
+  },
+  // ── New Delhi, Delhi Requirements ──
+  {
+    id: 'demo-req-delhi-1',
+    business_type: 'restaurant',
+    city: 'New Delhi, Delhi',
+    jurisdiction_level: 'city',
+    requirement_name: 'MCD Health Trade License',
+    legacy_type_id: 'TRADE_LICENSE',
+    issuing_agency: 'Municipal Corporation of Delhi (MCD)',
+    fee_min: 1000,
+    fee_max: 1000,
+    fee_note: '₹1,000 new application fee (₹500 renewal)',
+    renewal_cycle_months: 36,
+    processing_time: '15-30 business days',
+    description: 'Mandatory health trade license issued by Municipal Corporation of Delhi for eating and food establishments.',
+    source_url: 'https://mcdonline.nic.in/portal/citizenCharter',
+    last_verified_date: format(today, 'yyyy-MM-dd'),
+  },
+  // ── Chandigarh Requirements ──
+  {
+    id: 'demo-req-chd-1',
+    business_type: 'restaurant',
+    city: 'Chandigarh',
+    jurisdiction_level: 'city',
+    requirement_name: 'Shop & Establishment Registration',
+    legacy_type_id: 'SHOP_ESTABLISHMENT',
+    issuing_agency: 'Chandigarh Labour Department',
+    fee_min: null,
+    fee_max: null,
+    fee_note: 'unverified — verify against official Chandigarh Labour Department fee schedule before demo',
+    renewal_cycle_months: 12,
+    processing_time: '7-14 business days',
+    description: 'Statutory registration for commercial establishments under the Punjab Shops and Commercial Establishments Act, 1958 as applicable to the Union Territory of Chandigarh.',
+    source_url: 'https://chandigarh.gov.in',
+    last_verified_date: format(today, 'yyyy-MM-dd'),
+  },
+  // Federal USA — Reusable across all business types and cities
   {
     id: 'demo-req-ein',
-    business_type: 'food_truck',
+    business_type: 'all',
     city: 'Federal / All Cities',
     jurisdiction_level: 'federal',
     requirement_name: 'Employer Identification Number (EIN)',
@@ -125,6 +185,21 @@ export const DEMO_REQUIREMENTS = [
     processing_time: 'Instant online',
     description: 'Federal Tax Identification Number issued by the Internal Revenue Service for business tax reporting and hiring employees.',
     source_url: 'https://www.irs.gov/businesses/small-businesses-self-employed/apply-for-an-employer-identification-number-ein-online',
+    template_url: 'https://www.irs.gov/pub/irs-pdf/fss4.pdf',
+    form_field_map: {
+      mode: 'acroform',
+      fields: {
+        'topmostSubform[0].Page1[0].f1_2[0]': 'business_name',
+        'topmostSubform[0].Page1[0].f1_3[0]': 'business_name',
+        'topmostSubform[0].Page1[0].f1_4[0]': 'owner_name',
+        'topmostSubform[0].Page1[0].Line4ReadOrder[0].f1_5[0]': 'address',
+        'topmostSubform[0].Page1[0].Line4ReadOrder[0].f1_6[0]': 'city_state_zip',
+        'topmostSubform[0].Page1[0].f1_9[0]': 'county_state',
+        'topmostSubform[0].Page1[0].f1_10[0]': 'owner_name',
+        'topmostSubform[0].Page1[0].f1_18[0]': 'business_type',
+      }
+    },
+    last_verified_date: format(today, 'yyyy-MM-dd'),
   },
   // New York, NY — Food Truck
   {
@@ -155,7 +230,8 @@ export const DEMO_REQUIREMENTS = [
         business_type: { page: 0, x: 140, y: 555, fontSize: 10 },
         date: { page: 0, x: 450, y: 710, fontSize: 10 }
       }
-    }
+    },
+    last_verified_date: format(today, 'yyyy-MM-dd'),
   },
   {
     id: 'demo-req-nyc-2',
@@ -185,7 +261,8 @@ export const DEMO_REQUIREMENTS = [
         business_type: { page: 0, x: 140, y: 555, fontSize: 10 },
         date: { page: 0, x: 450, y: 710, fontSize: 10 }
       }
-    }
+    },
+    last_verified_date: format(today, 'yyyy-MM-dd'),
   },
   {
     id: 'demo-req-nyc-3',
@@ -215,7 +292,8 @@ export const DEMO_REQUIREMENTS = [
         business_type: { page: 0, x: 140, y: 555, fontSize: 10 },
         date: { page: 0, x: 450, y: 710, fontSize: 10 }
       }
-    }
+    },
+    last_verified_date: format(today, 'yyyy-MM-dd'),
   },
   {
     id: 'demo-req-nyc-4',
@@ -232,6 +310,7 @@ export const DEMO_REQUIREMENTS = [
     processing_time: '5-10 business days',
     description: 'State certificate authorizing collection of sales tax on retail food and beverage sales in New York.',
     source_url: 'https://www.tax.ny.gov',
+    last_verified_date: format(today, 'yyyy-MM-dd'),
   },
   {
     id: 'demo-req-nyc-5',
@@ -248,6 +327,7 @@ export const DEMO_REQUIREMENTS = [
     processing_time: '1-5 business days',
     description: 'Clearance certificate confirming all outstanding NYC ECB vendor notices and violations are cleared.',
     source_url: 'https://nyc-business.nyc.gov/nycbusiness/description/mobile-food-vending-license',
+    last_verified_date: format(today, 'yyyy-MM-dd'),
   },
   {
     id: 'demo-req-nyc-6',
@@ -277,7 +357,8 @@ export const DEMO_REQUIREMENTS = [
         business_type: { page: 0, x: 140, y: 555, fontSize: 10 },
         date: { page: 0, x: 450, y: 710, fontSize: 10 }
       }
-    }
+    },
+    last_verified_date: format(today, 'yyyy-MM-dd'),
   },
   // Los Angeles, CA — Food Truck
   {
@@ -312,7 +393,8 @@ export const DEMO_REQUIREMENTS = [
         'Mobile Food Facility': 'checkbox_true',
         'New Business': 'checkbox_true'
       }
-    }
+    },
+    last_verified_date: format(today, 'yyyy-MM-dd'),
   },
   {
     id: 'demo-req-la-2',
@@ -329,6 +411,7 @@ export const DEMO_REQUIREMENTS = [
     processing_time: '3-7 business days',
     description: 'Mandatory municipal tax registration for doing business within the City of Los Angeles limits.',
     source_url: 'https://streetlegal.io/blog/california/los-angeles-food-truck-permit-guide',
+    last_verified_date: format(today, 'yyyy-MM-dd'),
   },
   {
     id: 'demo-req-la-3',
@@ -345,6 +428,7 @@ export const DEMO_REQUIREMENTS = [
     processing_time: '1-5 business days',
     description: 'State sales tax permit required for retail sales of food and goods within California.',
     source_url: 'https://streetlegal.io/blog/california/los-angeles-food-truck-permit-guide',
+    last_verified_date: format(today, 'yyyy-MM-dd'),
   },
   {
     id: 'demo-req-la-4',
@@ -378,7 +462,8 @@ export const DEMO_REQUIREMENTS = [
         'Mobile Food Facility': 'checkbox_true',
         'New Business': 'checkbox_true'
       }
-    }
+    },
+    last_verified_date: format(today, 'yyyy-MM-dd'),
   },
   {
     id: 'demo-req-la-5',
@@ -395,6 +480,7 @@ export const DEMO_REQUIREMENTS = [
     processing_time: '1-2 business days',
     description: 'State-mandated food handler training certificate for food service workers in food facility operations.',
     source_url: 'https://getvendorloop.com/guides/how-to-start-a-food-truck-in-los-angeles',
+    last_verified_date: format(today, 'yyyy-MM-dd'),
   },
   {
     id: 'demo-req-la-6',
@@ -428,7 +514,8 @@ export const DEMO_REQUIREMENTS = [
         'Mobile Food Facility': 'checkbox_true',
         'New Business': 'checkbox_true'
       }
-    }
+    },
+    last_verified_date: format(today, 'yyyy-MM-dd'),
   },
   {
     id: 'demo-req-la-7',
@@ -445,6 +532,7 @@ export const DEMO_REQUIREMENTS = [
     processing_time: '14-30 business days',
     description: 'State safety certification insignia for commercial mobile food trucks and trailers with electrical or gas systems.',
     source_url: 'https://runpitstop.com/blog/food-truck-permits-california',
+    last_verified_date: format(today, 'yyyy-MM-dd'),
   },
 ];
 

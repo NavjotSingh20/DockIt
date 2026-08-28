@@ -11,14 +11,31 @@ INSERT INTO requirements (business_type, city, jurisdiction_level, requirement_n
 ('restaurant', 'Mumbai, Maharashtra', 'city',    'Trade License', 'BMC (Brihatmumbai Municipal Corporation)', 5000, 25000, 12, '7-21 business days', 'Municipal trade license permitting commercial business operations within city jurisdiction.', 'https://portal.mcgm.gov.in', CURRENT_DATE),
 ('restaurant', 'Mumbai, Maharashtra', 'state',   'Shop & Establishment Registration', 'Maharashtra Labour Department', 500, 2000, 12, '7-14 business days', 'Registration under the Shops and Establishments Act for regulating working conditions and employee welfare.', 'https://mahashramm.gov.in', CURRENT_DATE),
 ('restaurant', 'Mumbai, Maharashtra', 'city',    'Eating House License', 'Mumbai City Police', 2000, 5000, 12, '21-45 business days', 'Police license required for any establishment serving food and beverages. Ensures public safety compliance.', 'https://mumbaipolice.gov.in', CURRENT_DATE),
-('restaurant', 'Mumbai, Maharashtra', 'federal', 'GST Registration', 'GST Council of India', 0, 0, NULL, '3-7 business days', 'Goods and Services Tax registration. Mandatory for businesses with annual turnover exceeding threshold.', 'https://www.gst.gov.in', CURRENT_DATE),
 ('restaurant', 'Mumbai, Maharashtra', 'city',    'Signage / Hoarding License', 'BMC Advertisement Department', 1000, 15000, 12, '14-30 business days', 'License for displaying business signage, hoardings, or advertisements on or near the premises.', 'https://portal.mcgm.gov.in', CURRENT_DATE)
 ON CONFLICT (business_type, city, requirement_name) DO NOTHING;
 
--- ── Federal / All Cities (Food Truck) ─────────────────────
+-- ── Federal / All Cities (India) ──────────────────────────
 INSERT INTO requirements (business_type, city, jurisdiction_level, requirement_name, issuing_agency, fee_min, fee_max, renewal_cycle_months, processing_time, description, source_url, last_verified_date) VALUES
-('food_truck', 'Federal / All Cities', 'federal', 'Employer Identification Number (EIN)', 'IRS (Internal Revenue Service)', 0, 0, NULL, 'Instant online', 'Federal Tax Identification Number issued by the Internal Revenue Service for business tax reporting and hiring employees.', 'https://www.irs.gov/businesses/small-businesses-self-employed/apply-for-an-employer-identification-number-ein-online', CURRENT_DATE)
+('all', 'Federal / All Cities', 'federal', 'GST Registration', 'GST Council of India', 0, 0, NULL, '3-7 business days', 'Goods and Services Tax registration. Mandatory for businesses with annual turnover exceeding statutory threshold.', 'https://www.gst.gov.in', CURRENT_DATE),
+('all', 'Federal / All Cities', 'federal', 'Permanent Account Number (PAN)', 'Income Tax Department (India)', 107, 107, NULL, '10-15 business days', 'Ten-digit alphanumeric identifier issued by the Income Tax Department of India for all legal and tax reporting entities. (Fee note: estimate — ₹107 NSDL physical card fee; verify against current official NSDL/UTIITSL fee schedule before demo)', 'https://www.incometax.gov.in', CURRENT_DATE)
 ON CONFLICT (business_type, city, requirement_name) DO NOTHING;
+
+-- ── New Delhi, Delhi (Restaurant) ──────────────────────────
+INSERT INTO requirements (business_type, city, jurisdiction_level, requirement_name, issuing_agency, fee_min, fee_max, renewal_cycle_months, processing_time, description, source_url, last_verified_date) VALUES
+('restaurant', 'New Delhi, Delhi', 'city', 'MCD Health Trade License', 'Municipal Corporation of Delhi (MCD)', 1000, 1000, 36, '15-30 business days', 'Mandatory health trade license issued by Municipal Corporation of Delhi for eating and food establishments. (Fee note: ₹1,000 new application fee, ₹500 renewal)', 'https://mcdonline.nic.in/portal/citizenCharter', CURRENT_DATE)
+ON CONFLICT (business_type, city, requirement_name) DO NOTHING;
+
+-- ── Chandigarh (Restaurant) ────────────────────────────────
+INSERT INTO requirements (business_type, city, jurisdiction_level, requirement_name, issuing_agency, fee_min, fee_max, renewal_cycle_months, processing_time, description, source_url, last_verified_date) VALUES
+('restaurant', 'Chandigarh', 'city', 'Shop & Establishment Registration', 'Chandigarh Labour Department', NULL, NULL, 12, '7-14 business days', 'Statutory registration for commercial establishments under the Punjab Shops and Commercial Establishments Act, 1958 as applicable to the Union Territory of Chandigarh. (Fee note: unverified — verify against official Chandigarh Labour Department fee schedule before demo)', 'https://chandigarh.gov.in', CURRENT_DATE)
+ON CONFLICT (business_type, city, requirement_name) DO NOTHING;
+
+-- ── Federal / All Cities (USA) ─────────────────────────────
+INSERT INTO requirements (business_type, city, jurisdiction_level, requirement_name, issuing_agency, fee_min, fee_max, renewal_cycle_months, processing_time, description, source_url, template_url, form_field_map, last_verified_date) VALUES
+('all', 'Federal / All Cities', 'federal', 'Employer Identification Number (EIN)', 'IRS (Internal Revenue Service)', 0, 0, NULL, 'Instant online', 'Federal Tax Identification Number issued by the Internal Revenue Service for business tax reporting and hiring employees.', 'https://www.irs.gov/businesses/small-businesses-self-employed/apply-for-an-employer-identification-number-ein-online', 'https://www.irs.gov/pub/irs-pdf/fss4.pdf', '{"mode":"acroform","fields":{"topmostSubform[0].Page1[0].f1_2[0]":"business_name","topmostSubform[0].Page1[0].f1_3[0]":"business_name","topmostSubform[0].Page1[0].f1_4[0]":"owner_name","topmostSubform[0].Page1[0].Line4ReadOrder[0].f1_5[0]":"address","topmostSubform[0].Page1[0].Line4ReadOrder[0].f1_6[0]":"city_state_zip","topmostSubform[0].Page1[0].f1_9[0]":"county_state","topmostSubform[0].Page1[0].f1_10[0]":"owner_name","topmostSubform[0].Page1[0].f1_18[0]":"business_type"}}', CURRENT_DATE)
+ON CONFLICT (business_type, city, requirement_name) DO UPDATE SET
+  template_url = EXCLUDED.template_url,
+  form_field_map = EXCLUDED.form_field_map;
 
 -- ── New York, NY (Food Truck) ──────────────────────────────
 INSERT INTO requirements (business_type, city, jurisdiction_level, requirement_name, issuing_agency, fee_min, fee_max, renewal_cycle_months, processing_time, description, source_url, template_url, form_field_map, last_verified_date) VALUES

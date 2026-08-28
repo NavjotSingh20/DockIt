@@ -2,6 +2,140 @@ import { PDFDocument, rgb, StandardFonts } from 'pdf-lib';
 import { jsPDF } from 'jspdf';
 import { format } from 'date-fns';
 
+// Human-readable labels for profile data fields
+export const FIELD_LABELS = {
+  business_name: 'Business Name',
+  owner_name: 'Owner / Applicant Name',
+  phone: 'Phone Number',
+  email: 'Contact Email',
+  address: 'Business Street Address',
+  city: 'Operating City',
+  state: 'State / Province',
+  zip: 'ZIP / Postal Code',
+  business_type: 'Business Type',
+  city_state_zip: 'City, State & ZIP',
+  county_state: 'County / State',
+  date: 'Application Date',
+  requirement_name: 'Requirement Name',
+  issuing_agency: 'Issuing Agency',
+  fee: 'Application Fee',
+};
+
+// Value lookup helper based on key name
+export const getProfileFieldValue = (keyName, business, requirement) => {
+  const todayFormatted = format(new Date(), 'MM/dd/yyyy');
+  const rawCity = business?.city || (business?.cities?.[0]?.split(',')[0]?.trim()) || '';
+  const rawState = business?.state || (business?.cities?.[0]?.split(',')[1]?.trim()) || '';
+  const rawZip = business?.zip || '';
+
+  switch (keyName) {
+    case 'business_name':
+      return business?.business_name || '';
+    case 'owner_name':
+      return business?.owner_name || '';
+    case 'phone':
+      return business?.phone || '';
+    case 'email':
+      return business?.email || '';
+    case 'address':
+      return business?.address || '';
+    case 'city':
+      return rawCity;
+    case 'state':
+      return rawState;
+    case 'zip':
+      return rawZip;
+    case 'city_state_zip':
+      return [rawCity, rawState, rawZip].filter(Boolean).join(', ') || rawCity;
+    case 'county_state':
+      return [rawCity ? `${rawCity} County` : '', rawState].filter(Boolean).join(', ') || rawState;
+    case 'business_type':
+      return (business?.business_type || '').replace('_', ' ').toUpperCase();
+    case 'date':
+      return todayFormatted;
+    case 'requirement_name':
+      return requirement?.requirement_name || '';
+    case 'issuing_agency':
+      return requirement?.issuing_agency || '';
+    case 'fee':
+      return requirement?.fee_min !== null && requirement?.fee_min !== undefined ? `$${requirement.fee_min}` : 'Verification Pending';
+    default:
+      return '';
+  }
+};
+
+/**
+ * Check if the business profile has all required fields to fill the official government form.
+ * Directly inspects the requirement's own form_field_map.
+ *
+ * @param {Object} requirement - Master or joined requirement object
+ * @param {Object} business - Business profile object
+ * @returns {Object} { hasOfficialForm, isReady, totalFields, readyFields, missingFields, readyList }
+ */
+export function checkApplicationReadiness(requirement, business) {
+  const templateUrl = requirement?.template_url;
+  const fieldMap = requirement?.form_field_map;
+
+  // Case A: No real government form mapped yet
+  if (!templateUrl || !fieldMap) {
+    return {
+      hasOfficialForm: false,
+      isReady: true,
+      totalFields: 0,
+      readyFields: 0,
+      missingFields: [],
+      readyList: [],
+    };
+  }
+
+  // Case B: Real government form is mapped via AcroForm or Coordinate Overlay
+  const fieldsConfig = fieldMap.fields || {};
+  const dataKeys = new Set();
+
+  if (fieldMap.mode === 'acroform') {
+    Object.values(fieldsConfig).forEach(k => {
+      if (k && k !== 'checkbox_true') dataKeys.add(k);
+    });
+  } else if (fieldMap.mode === 'overlay') {
+    Object.keys(fieldsConfig).forEach(k => {
+      if (k) dataKeys.add(k);
+    });
+  }
+
+  const missingFields = [];
+  const readyList = [];
+
+  dataKeys.forEach(dataKey => {
+    // Skip auto-generated system fields like 'date', 'requirement_name', 'issuing_agency', 'fee'
+    if (['date', 'requirement_name', 'issuing_agency', 'fee'].includes(dataKey)) {
+      readyList.push({ key: dataKey, label: FIELD_LABELS[dataKey] || dataKey, value: getProfileFieldValue(dataKey, business, requirement) });
+      return;
+    }
+
+    const val = getProfileFieldValue(dataKey, business, requirement);
+    const label = FIELD_LABELS[dataKey] || dataKey.replace(/_/g, ' ');
+
+    if (!val || String(val).trim().length === 0) {
+      missingFields.push({ key: dataKey, label });
+    } else {
+      readyList.push({ key: dataKey, label, value: val });
+    }
+  });
+
+  const totalFields = readyList.length + missingFields.length;
+  const readyFields = readyList.length;
+  const isReady = missingFields.length === 0;
+
+  return {
+    hasOfficialForm: true,
+    isReady,
+    totalFields,
+    readyFields,
+    missingFields,
+    readyList,
+  };
+}
+
 /**
  * Generic Form Fill Engine
  * Loads a requirement's official PDF template (if mapped) and fills it either via:
@@ -26,42 +160,6 @@ export async function fillOfficialForm(requirement, business) {
       const buffer = await response.arrayBuffer();
       const pdfDoc = await PDFDocument.load(buffer, { ignoreEncryption: true });
 
-      const todayFormatted = format(new Date(), 'MM/dd/yyyy');
-
-      // Value lookup helper based on key name
-      const getValue = (keyName) => {
-        switch (keyName) {
-          case 'business_name':
-            return business?.business_name || '';
-          case 'owner_name':
-            return business?.owner_name || '';
-          case 'phone':
-            return business?.phone || '';
-          case 'email':
-            return business?.email || '';
-          case 'address':
-            return business?.address || '';
-          case 'city':
-            return business?.city || (business?.cities?.[0]?.split(',')[0]?.trim()) || '';
-          case 'state':
-            return business?.state || (business?.cities?.[0]?.split(',')[1]?.trim()) || '';
-          case 'zip':
-            return business?.zip || '';
-          case 'business_type':
-            return (business?.business_type || '').replace('_', ' ').toUpperCase();
-          case 'date':
-            return todayFormatted;
-          case 'requirement_name':
-            return requirement?.requirement_name || '';
-          case 'issuing_agency':
-            return requirement?.issuing_agency || '';
-          case 'fee':
-            return requirement?.fee_min !== null ? `$${requirement.fee_min}` : 'Verification Pending';
-          default:
-            return '';
-        }
-      };
-
       if (fieldMap.mode === 'acroform') {
         // AcroForm mode
         const form = pdfDoc.getForm();
@@ -77,7 +175,7 @@ export async function fillOfficialForm(requirement, business) {
                 field.check();
               }
             } else {
-              const val = getValue(dataKey);
+              const val = getProfileFieldValue(dataKey, business, requirement);
               if (field.constructor.name === 'PDFTextField' && val) {
                 field.setText(String(val));
               }
@@ -94,7 +192,7 @@ export async function fillOfficialForm(requirement, business) {
         const overlayFields = fieldMap.fields || {};
 
         Object.entries(overlayFields).forEach(([dataKey, pos]) => {
-          const val = getValue(dataKey);
+          const val = getProfileFieldValue(dataKey, business, requirement);
           if (!val) return;
 
           const pageIndex = pos.page || 0;

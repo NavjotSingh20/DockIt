@@ -1,4 +1,4 @@
-﻿import { GoogleGenerativeAI } from '@google/generative-ai';
+import { GoogleGenerativeAI } from '@google/generative-ai';
 
 /** Centralized Model Cascade order */
 export const MODEL_CASCADE = [
@@ -71,13 +71,11 @@ export function parseOcrTextHeuristically(ocrText) {
     }
   }
 
-  // 3. EIN / Tax / License Number
+  // 3. Document / ID / Permit Number
   const einMatch = ocrText.match(/(?:ein|employer\s+identification\s+number)[\s\:\-]*([0-9]{2}\-[0-9]{7})/i) ||
                    ocrText.match(/\b([0-9]{2}\-[0-9]{7})\b/);
   if (einMatch && einMatch[1]) {
     result.license_number = einMatch[1];
-    result.license_type = 'Employer Identification Number (EIN)';
-    result.issuing_authority = 'IRS (Internal Revenue Service)';
   } else {
     const certMatch = ocrText.match(/(?:certificate|license|permit|registration|cert|lic|id)\s*(?:number|no\.?|#)?[\s\:\-]+([A-Z0-9\-]{4,25})/i);
     if (certMatch && certMatch[1]) {
@@ -88,34 +86,19 @@ export function parseOcrTextHeuristically(ocrText) {
     }
   }
 
-  // 4. Common Document Type / Authority Detection
-  if (!result.license_type) {
-    if (/servsafe|food\s*handler|food\s*safety/i.test(ocrText)) {
-      result.license_type = /california/i.test(ocrText) ? 'California Food Handler Card' : 'Food Handler Certificate';
-      result.issuing_authority = /servsafe/i.test(ocrText) ? 'ServSafe / National Restaurant Association' : 'Health Department';
-    } else if (/fssai/i.test(ocrText)) {
-      result.license_type = 'FSSAI Food License';
-      result.issuing_authority = 'Food Safety and Standards Authority of India';
-    } else if (/fire/i.test(ocrText)) {
-      result.license_type = 'Fire Safety Clearance / NOC';
-      result.issuing_authority = 'Fire Department';
-    } else if (/mobile\s*food|vending|vendor/i.test(ocrText)) {
-      result.license_type = 'Mobile Food Vending License';
-      result.issuing_authority = 'Dept. of Consumer Affairs';
-    } else if (/irs|treasury|internal\s+revenue/i.test(ocrText)) {
-      result.license_type = 'Employer Identification Number (EIN)';
-      result.issuing_authority = 'IRS (Internal Revenue Service)';
-    }
-  }
-
-  // 5. Business Name Detection
+  // 4. Business Name Detection
   const businessMatch = ocrText.match(/([A-Z0-9\s\,\.\-]{3,40}\b(?:LLC|INC|CORP|CO|LIMITED|SERVICES|STORE|KITCHEN)\b)/i);
   if (businessMatch && businessMatch[1]) {
     result.business_name = businessMatch[1].trim();
   }
 
-  if (result.expiry_date || result.license_number) {
-    result.confidence = 75;
+  // Confidence calculation based purely on extracted raw primitives
+  if (result.expiry_date && result.license_number) {
+    result.confidence = 65;
+  } else if (result.expiry_date || result.license_number) {
+    result.confidence = 50;
+  } else {
+    result.confidence = 30;
   }
 
   return result;
@@ -144,90 +127,7 @@ export async function callWithModelCascade(apiKey, apiCallFn) {
   throw lastError || new Error('All Gemini cascade models failed.');
 }
 
-/**
- * Document extraction with AI cascade & heuristic fallback
- */
-export async function extractLicenseDocument({ ocrText = '', imageFile = null, businessType = '', cities = [] }) {
-  const apiKey = import.meta.env.VITE_GEMINI_API_KEY;
-  const heuristicData = parseOcrTextHeuristically(ocrText);
 
-  if (!apiKey) {
-    return { data: heuristicData, confidence: heuristicData.confidence || 40 };
-  }
-
-  const country = cities.some(c => c.toLowerCase().includes('maharashtra') || c.toLowerCase().includes('mumbai') || c.toLowerCase().includes('india')) ? 'India' : 'USA';
-  const jurisdiction = cities.length > 0 ? cities.join(', ') : country;
-
-  const systemPrompt = `You are an expert data extractor for any government, tax, business license, or permit document in ${jurisdiction}.
-Extract fields and return ONLY a valid JSON object matching the requested schema.
-CRITICAL: Ignore any background "DEMO" or "SAMPLE" watermarks stamped across the page. Focus purely on the actual document data.
-
-Schema requirements:
-- license_type: The formal name of the document or license (e.g. "Employer Identification Number (EIN)", "California Food Handler Card"). Must be a string or null.
-- license_number: The primary identification number (e.g. EIN, License No, Permit #). Must be a string or null.
-- issuing_authority: The government body or agency issuing the document (e.g. "IRS", "Dept of Public Health"). Must be a string or null.
-- business_name: The legal name of the business receiving the document. Must be a string or null.
-- holder_name: The name of the individual holding the document (if applicable). Must be a string or null.
-- issue_date: The date the document was issued, strictly in "YYYY-MM-DD" format, or null.
-- expiry_date: The date the document expires, strictly in "YYYY-MM-DD" format, or null.
-- address: The address of the business or individual. Must be a string or null.
-- confidence: Your confidence score from 0 to 100 based on how readable the document is. Integer.
-
-Return valid JSON. Do not guess any fields you cannot clearly read.`;
-
-  let parts;
-  if (imageFile) {
-    try {
-      const dataUrl = await new Promise((resolve, reject) => {
-        const reader = new FileReader();
-        reader.onload = (e) => resolve(e.target.result);
-        reader.onerror = reject;
-        reader.readAsDataURL(imageFile);
-      });
-      const partsArr = dataUrl.split(',');
-      const mimeType = partsArr[0].match(/:(.*?);/)?.[1] || imageFile.type || 'image/jpeg';
-      const base64 = partsArr[1];
-      parts = [
-        { text: systemPrompt },
-        { inlineData: { mimeType, data: base64 } },
-      ];
-    } catch {
-      parts = [{ text: `${systemPrompt}\n\nOCR Text:\n${ocrText.slice(0, 4000)}` }];
-    }
-  } else {
-    parts = [{ text: `${systemPrompt}\n\nOCR Text:\n${ocrText.slice(0, 4000)}` }];
-  }
-
-  try {
-    const aiData = await callWithModelCascade(apiKey, async (model) => {
-      const result = await model.generateContent({
-        contents: [{ role: 'user', parts }],
-        generationConfig: { responseMimeType: 'application/json' },
-      });
-      const text = result.response.text();
-      const cleaned = text.replace(/```json\s*/gi, '').replace(/```\s*/gi, '').trim();
-      return JSON.parse(cleaned);
-    });
-
-    const merged = {
-      license_type: aiData?.license_type || heuristicData.license_type || '',
-      license_number: aiData?.license_number || heuristicData.license_number || '',
-      issuing_authority: aiData?.issuing_authority || heuristicData.issuing_authority || '',
-      issue_date: aiData?.issue_date || heuristicData.issue_date || '',
-      expiry_date: aiData?.expiry_date || heuristicData.expiry_date || '',
-      business_name: aiData?.business_name || heuristicData.business_name || '',
-      holder_name: aiData?.holder_name || heuristicData.holder_name || '',
-      address: aiData?.address || heuristicData.address || '',
-    };
-
-    const conf = Math.max(aiData?.confidence || 0, heuristicData.confidence || 0, (merged.expiry_date || merged.license_number) ? 80 : 50);
-
-    return { data: merged, confidence: conf };
-  } catch (err) {
-    console.warn('AI Extraction failed across cascade, using heuristic parser:', err);
-    return { data: heuristicData, confidence: heuristicData.confidence || 40 };
-  }
-}
 
 /**
  * AI Renewal Form Prefill with cascade

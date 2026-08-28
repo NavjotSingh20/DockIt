@@ -23,7 +23,8 @@ const US_STATE_CODES = {
 
 const INDIA_STATES = [
   'maharashtra', 'delhi', 'nct', 'karnataka', 'tamil nadu', 'west bengal', 'telangana',
-  'gujarat', 'rajasthan', 'uttar pradesh', 'kerala', 'punjab', 'haryana', 'bihar', 'odisha'
+  'gujarat', 'rajasthan', 'uttar pradesh', 'kerala', 'punjab', 'haryana', 'bihar', 'odisha',
+  'chandigarh'
 ];
 
 /**

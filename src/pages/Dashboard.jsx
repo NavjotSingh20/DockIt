@@ -1,14 +1,14 @@
 import { useState, useMemo } from 'react';
 import { useNavigate, useOutletContext, Link } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import { Camera, AlertTriangle, Plus, ShieldCheck, FileCheck2, ClipboardList, TrendingUp } from 'lucide-react';
+import { Camera, AlertTriangle, Plus, ShieldCheck, FileCheck2, ClipboardList, TrendingUp, Calendar, LayoutGrid, Clock, ChevronRight } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import toast from 'react-hot-toast';
 import { useAuth } from '../hooks/useAuth';
 import { useDemo } from '../context/DemoContext';
 import { useLicenses } from '../hooks/useLicenses';
 import { getLicenseSummary } from '../utils/complianceScore';
-import { formatCurrency } from '../utils/formatters';
+import { formatCurrency, formatDate } from '../utils/formatters';
 import { PENALTY_RULES } from '../utils/penaltyRules';
 import { getBusiness, createLicense } from '../services/supabase';
 import ComplianceRing from '../components/ui/ComplianceRing';
@@ -66,6 +66,8 @@ export default function Dashboard() {
   const [showScan, setShowScan] = useState(false);
   const [sort, setSort] = useState('urgent');
 
+  const [viewMode, setViewMode] = useState('grid'); // 'grid' | 'timeline'
+
   const { licenses, loading, addLicense } = useLicenses(
     isDemo ? null : business?.id,
     isDemo ? demoLicenses : null
@@ -93,6 +95,64 @@ export default function Dashboard() {
     });
     return { actionRequired: action, monitored: ok };
   }, [sorted]);
+
+  // Compliance Timeline: all requirements with an expiry_date, sorted chronologically & grouped by urgency
+  // Strictly reuses calculateComplianceScore() / getLicenseSummary() urgency brackets:
+  // - Critical / Expired: status === 'expired' or daysLeft < 0
+  // - High Urgency: 0 <= daysLeft <= 7
+  // - Moderate Urgency: 8 <= daysLeft <= 30
+  // - Upcoming: 31 <= daysLeft <= 60
+  // - Fully Compliant / Future: daysLeft > 60
+  const timelineGroups = useMemo(() => {
+    const withExpiry = licenses.filter(l => l.expiry_date);
+    // Sort strictly chronologically by expiry_date ascending (earliest to latest)
+    const chronological = [...withExpiry].sort((a, b) => new Date(a.expiry_date) - new Date(b.expiry_date));
+
+    const groups = [
+      {
+        id: 'expired',
+        title: 'Expired / Lapsed Requirements',
+        color: 'text-danger',
+        bg: 'bg-red-50/70 border-red-200',
+        badge: 'Critical',
+        items: chronological.filter(l => l.status === 'expired' || (l.daysLeft !== null && l.daysLeft < 0)),
+      },
+      {
+        id: 'critical_week',
+        title: 'Expiring in ≤ 7 Days',
+        color: 'text-danger',
+        bg: 'bg-red-50/40 border-red-200/80',
+        badge: 'Immediate Action',
+        items: chronological.filter(l => l.status !== 'expired' && l.daysLeft !== null && l.daysLeft >= 0 && l.daysLeft <= 7),
+      },
+      {
+        id: 'critical_month',
+        title: 'Expiring in 8 – 30 Days',
+        color: 'text-caution',
+        bg: 'bg-amber-50/40 border-amber-200/80',
+        badge: 'Attention Needed',
+        items: chronological.filter(l => l.status !== 'expired' && l.daysLeft !== null && l.daysLeft > 7 && l.daysLeft <= 30),
+      },
+      {
+        id: 'upcoming',
+        title: 'Expiring in 31 – 60 Days',
+        color: 'text-blue-600',
+        bg: 'bg-blue-50/40 border-blue-200/80',
+        badge: 'Upcoming Renewal',
+        items: chronological.filter(l => l.status !== 'expired' && l.daysLeft !== null && l.daysLeft > 30 && l.daysLeft <= 60),
+      },
+      {
+        id: 'stable',
+        title: 'Stable & Long-Term (> 60 Days)',
+        color: 'text-settled',
+        bg: 'bg-green-50/40 border-green-200/80',
+        badge: 'Compliant',
+        items: chronological.filter(l => l.status !== 'expired' && (l.daysLeft === null || l.daysLeft > 60)),
+      },
+    ];
+
+    return groups.filter(g => g.items.length > 0);
+  }, [licenses]);
 
   if (!isDemo && user && business === undefined) {
     return <div className="p-8 text-center text-ink-muted">Loading business profile...</div>;
@@ -256,16 +316,47 @@ export default function Dashboard() {
       </div>
 
       {/* Tracked requirements display */}
-      <div className="space-y-8">
-        <div className="flex items-center justify-between border-b border-rule pb-4">
-          <h2 className="text-xl font-bold font-display text-ink">Tracked Compliance Requirements</h2>
+      <div className="space-y-6">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-rule pb-4">
+          <div>
+            <h2 className="text-xl font-bold font-display text-ink">Tracked Compliance Requirements</h2>
+            <p className="text-xs text-ink-faint mt-0.5">
+              {viewMode === 'timeline'
+                ? 'Chronological timeline of upcoming and past expirations grouped by urgency'
+                : 'Monitor active and needed permits across your operating jurisdictions'}
+            </p>
+          </div>
+
           <div className="flex items-center gap-3">
-            <select value={sort} onChange={e => setSort(e.target.value)}
-              className="text-xs font-bold border border-rule rounded-xl px-3 py-2 outline-none focus:ring-2 focus:ring-accent bg-surface font-display text-ink-muted">
-              <option value="urgent">Most Urgent</option>
-              <option value="az">A–Z</option>
-              <option value="recent">Recently Added</option>
-            </select>
+            {/* View Mode Toggle */}
+            <div className="flex items-center bg-base p-1 rounded-xl border border-rule/80">
+              <button
+                onClick={() => setViewMode('grid')}
+                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold font-display transition-all ${viewMode === 'grid' ? 'bg-surface text-ink shadow-sm' : 'text-ink-muted hover:text-ink'}`}
+                title="Grid Card View"
+              >
+                <LayoutGrid size={14} />
+                <span>Grid</span>
+              </button>
+              <button
+                onClick={() => setViewMode('timeline')}
+                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold font-display transition-all ${viewMode === 'timeline' ? 'bg-surface text-ink shadow-sm' : 'text-ink-muted hover:text-ink'}`}
+                title="Chronological Timeline View"
+              >
+                <Calendar size={14} />
+                <span>Timeline</span>
+              </button>
+            </div>
+
+            {viewMode === 'grid' && (
+              <select value={sort} onChange={e => setSort(e.target.value)}
+                className="text-xs font-bold border border-rule rounded-xl px-3 py-2 outline-none focus:ring-2 focus:ring-accent bg-surface font-display text-ink-muted">
+                <option value="urgent">Most Urgent</option>
+                <option value="az">A–Z</option>
+                <option value="recent">Recently Added</option>
+              </select>
+            )}
+
             <button onClick={() => setShowScan(true)} className="btn-primary text-xs py-2 px-4">
               <Plus size={14} /> Add Document
             </button>
@@ -284,7 +375,105 @@ export default function Dashboard() {
             actionLabel="Browse My Requirements"
             icon={ClipboardList}
           />
+        ) : viewMode === 'timeline' ? (
+          /* ── Compliance Timeline View ── */
+          <div className="space-y-8">
+            {timelineGroups.length === 0 ? (
+              <div className="bg-surface rounded-2xl border border-rule p-8 text-center space-y-2">
+                <Clock size={32} className="mx-auto text-ink-faint" />
+                <h3 className="font-bold font-display text-ink text-base">No Expiration Dates Set</h3>
+                <p className="text-xs text-ink-faint max-w-md mx-auto">
+                  None of your tracked requirements currently have an expiry date recorded. Scan or edit your requirements to populate the compliance timeline.
+                </p>
+              </div>
+            ) : (
+              <div className="relative border-l-2 border-rule ml-4 md:ml-6 space-y-10 pl-6 md:pl-8">
+                {timelineGroups.map((group) => (
+                  <div key={group.id} className="relative space-y-4">
+                    {/* Urgency Milestone Pin */}
+                    <div className="absolute -left-[31px] md:-left-[39px] top-0 w-6 h-6 rounded-full bg-surface border-2 border-accent flex items-center justify-center shadow-sm">
+                      <div className="w-2 h-2 rounded-full bg-accent" />
+                    </div>
+
+                    <div className="flex flex-wrap items-center justify-between gap-2 border-b border-rule/50 pb-2">
+                      <div className="flex items-center gap-2.5">
+                        <h3 className={`text-base font-bold font-display ${group.color}`}>
+                          {group.title}
+                        </h3>
+                        <span className="text-xs font-semibold px-2.5 py-0.5 rounded-full bg-base text-ink-muted border border-rule">
+                          {group.items.length} {group.items.length === 1 ? 'item' : 'items'}
+                        </span>
+                      </div>
+                      <span className="text-xs font-bold font-display uppercase tracking-wider text-ink-faint">
+                        {group.badge}
+                      </span>
+                    </div>
+
+                    {/* Chronological List of Requirements in this bracket */}
+                    <div className="grid gap-3">
+                      {group.items.map((lic) => {
+                        const isExpired = lic.daysLeft !== null && lic.daysLeft < 0;
+                        return (
+                          <motion.div
+                            key={lic.id}
+                            initial={{ opacity: 0, y: 8 }}
+                            animate={{ opacity: 1, y: 0 }}
+                            className={`rounded-2xl border p-4 md:p-5 flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-surface hover:shadow-md transition-all ${lic.status === 'expired' || isExpired ? 'border-red-200 bg-red-50/20' : 'border-rule'}`}
+                          >
+                            <div className="space-y-1">
+                              <div className="flex items-center gap-2">
+                                <span className="font-bold font-display text-ink text-sm sm:text-base">
+                                  {lic.requirement?.requirement_name || lic.license_type}
+                                </span>
+                                {lic.requirement?.jurisdiction_level && (
+                                  <span className="text-[10px] font-semibold uppercase px-2 py-0.5 rounded bg-base text-ink-muted border border-rule/60">
+                                    {lic.requirement.jurisdiction_level}
+                                  </span>
+                                )}
+                              </div>
+                              <div className="text-xs text-ink-faint flex flex-wrap items-center gap-3">
+                                <span>Authority: <strong className="text-ink-muted font-medium">{lic.issuing_authority || lic.requirement?.issuing_agency || '—'}</strong></span>
+                                {lic.license_number && (
+                                  <>
+                                    <span>•</span>
+                                    <span>Doc #: <strong className="text-ink-muted font-medium">{lic.license_number}</strong></span>
+                                  </>
+                                )}
+                              </div>
+                            </div>
+
+                            <div className="flex items-center gap-4 self-end sm:self-center shrink-0">
+                              <div className="text-right">
+                                <div className="text-xs text-ink-faint uppercase font-bold tracking-wide">
+                                  {isExpired ? 'Expired On' : 'Expires On'}
+                                </div>
+                                <div className="text-sm font-bold font-display text-ink">
+                                  {formatDate(lic.expiry_date)}
+                                </div>
+                                <div className={`text-xs font-semibold ${isExpired ? 'text-danger' : lic.daysLeft <= 30 ? 'text-caution' : 'text-settled'}`}>
+                                  {isExpired ? `${Math.abs(lic.daysLeft)} days overdue` : `${lic.daysLeft} days remaining`}
+                                </div>
+                              </div>
+
+                              <button
+                                onClick={() => navigate(`/license/${lic.id}`)}
+                                className="btn-secondary text-xs px-3 py-2 flex items-center gap-1 font-display"
+                              >
+                                <span>Details</span>
+                                <ChevronRight size={14} />
+                              </button>
+                            </div>
+                          </motion.div>
+                        );
+                      })}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
         ) : (
+          /* ── Grid View ── */
           <div className="space-y-8">
             {/* Section 1: Urgent Action Required */}
             {actionRequired.length > 0 && (

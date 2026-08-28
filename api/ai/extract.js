@@ -1,4 +1,4 @@
-﻿import { GoogleGenerativeAI } from '@google/generative-ai'
+import { GoogleGenerativeAI } from '@google/generative-ai'
 import { createClient } from '@supabase/supabase-js'
 
 const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY)
@@ -66,18 +66,15 @@ Extract fields and return ONLY a valid JSON object matching the requested schema
 CRITICAL: Ignore any background "DEMO" or "SAMPLE" watermarks stamped across the page. Focus purely on the actual document data.
 
 Schema requirements:
-- license_type: The formal name of the document or license (e.g. "Employer Identification Number", "Health Permit"). Must be a string or null.
-- license_number: The primary identification number (e.g. EIN, License No, Permit #). Must be a string or null.
-- issuing_authority: The government body or agency issuing the document (e.g. "IRS", "Dept of Public Health"). Must be a string or null.
+- license_type: The formal name of the document or license (e.g. "Employer Identification Number (EIN)", "Health Permit", "FSSAI Food License"). Must be a string or null.
+- issuing_authority: The government body or agency issuing the document (e.g. "IRS", "Dept of Public Health", "FSSAI"). Must be a string or null.
 - business_name: The legal name of the business receiving the document. Must be a string or null.
-- holder_name: The name of the individual holding the document (if applicable). Must be a string or null.
 - issue_date: The date the document was issued, strictly in "YYYY-MM-DD" format, or null.
 - expiry_date: The date the document expires, strictly in "YYYY-MM-DD" format, or null.
 - address: The address of the business or individual. Must be a string or null.
-- confidence: Your confidence score from 0 to 100 based on how readable the document is. Integer.
+- confidence: Your confidence score from 0 to 100 based on how clearly legible and complete the document text is. Integer.
 
 Return valid JSON. Do not guess any fields you cannot clearly read.`
-
   try {
     const prompt = `${systemPrompt}\n\nOCR Text:\n${ocrText.slice(0, 4000)}`
     const result = await model.generateContent({

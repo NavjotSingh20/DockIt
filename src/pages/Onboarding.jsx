@@ -224,12 +224,16 @@ export default function Onboarding() {
             <span className="font-display font-bold text-xl text-ink">Dock<span className="text-accent">It</span></span>
           </div>
           {/* Progress */}
-          <div className="flex items-center gap-2 mt-4 mb-1">
-            {STEPS.map((s, i) => (
-              <div key={i} className={`flex-1 h-1.5 rounded-full transition-all ${i <= step ? 'bg-accent' : 'bg-rule'}`} />
-            ))}
-          </div>
-          <div className="text-xs text-ink-faint">Step {step + 1} of {STEPS.length} — {STEPS[step]}</div>
+          {(isSignUp || step > 0) && (
+            <>
+              <div className="flex items-center gap-2 mt-4 mb-1">
+                {STEPS.map((s, i) => (
+                  <div key={i} className={`flex-1 h-1.5 rounded-full transition-all ${i <= step ? 'bg-accent' : 'bg-rule'}`} />
+                ))}
+              </div>
+              <div className="text-xs text-ink-faint">Step {step + 1} of {STEPS.length} — {STEPS[step]}</div>
+            </>
+          )}
         </div>
 
         <div className="bg-surface rounded-3xl shadow-card border border-rule p-8">

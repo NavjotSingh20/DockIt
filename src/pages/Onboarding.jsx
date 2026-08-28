@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { ArrowRight, ArrowLeft, Check, Loader2,
+import { ArrowRight, ArrowLeft, Check, Loader2, Eye, EyeOff,
   UtensilsCrossed, Truck, Scissors, ShoppingBag, Stethoscope,
   HardHat, GraduationCap, Factory, Briefcase } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
@@ -57,6 +57,9 @@ export default function Onboarding() {
   const [otpSent, setOtpSent] = useState(false);
   const [isSignUp, setIsSignUp] = useState(true);
   const [password, setPassword] = useState('');
+  const [confirmPassword, setConfirmPassword] = useState('');
+  const [showPassword, setShowPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [useOtp, setUseOtp] = useState(false);
   const [businessType, setBusinessType] = useState('');
   const [profile, setProfile] = useState({ business_name: '', owner_name: '', phone: '', address: '', city: 'New York', state: 'NY', country: 'USA' });
@@ -122,7 +125,14 @@ export default function Onboarding() {
   // Step 1 — Authenticate
   const handleAuth = async () => {
     if (!email) { toast.error('Enter your email'); return; }
-    if (!useOtp && !password) { toast.error('Enter your password'); return; }
+    if (!useOtp) {
+      if (!password) { toast.error('Enter your password'); return; }
+      if (password.length < 6) { toast.error('Password must be at least 6 characters'); return; }
+      if (isSignUp) {
+        if (!confirmPassword) { toast.error('Please confirm your password'); return; }
+        if (password !== confirmPassword) { toast.error('Passwords do not match'); return; }
+      }
+    }
     setLoading(true);
     try {
       if (useOtp) {
@@ -277,8 +287,47 @@ export default function Onboarding() {
                     onChange={e => setEmail(e.target.value)} className="input" disabled={otpSent} />
                   
                   {!useOtp && !otpSent && (
-                    <input type="password" placeholder="Enter password (min 6 characters)" value={password}
-                      onChange={e => setPassword(e.target.value)} className="input" />
+                    <>
+                      <div className="relative">
+                        <input
+                          type={showPassword ? "text" : "password"}
+                          placeholder="Enter password (min 6 characters)"
+                          value={password}
+                          onChange={e => setPassword(e.target.value)}
+                          className="input pr-10"
+                        />
+                        <button
+                          type="button"
+                          onClick={() => setShowPassword(!showPassword)}
+                          className="absolute right-3 top-1/2 -translate-y-1/2 text-ink-faint hover:text-ink transition-colors p-1"
+                          tabIndex={-1}
+                          aria-label={showPassword ? "Hide password" : "Show password"}
+                        >
+                          {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+                        </button>
+                      </div>
+                      
+                      {isSignUp && (
+                        <div className="relative">
+                          <input
+                            type={showConfirmPassword ? "text" : "password"}
+                            placeholder="Confirm password"
+                            value={confirmPassword}
+                            onChange={e => setConfirmPassword(e.target.value)}
+                            className="input pr-10"
+                          />
+                          <button
+                            type="button"
+                            onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                            className="absolute right-3 top-1/2 -translate-y-1/2 text-ink-faint hover:text-ink transition-colors p-1"
+                            tabIndex={-1}
+                            aria-label={showConfirmPassword ? "Hide confirm password" : "Show confirm password"}
+                          >
+                            {showConfirmPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+                          </button>
+                        </div>
+                      )}
+                    </>
                   )}
 
                   {!otpSent

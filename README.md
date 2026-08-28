@@ -212,4 +212,4 @@ Calculates compounding financial exposure and regulatory consequences dynamicall
 ## 📝 License
 Distributed under the MIT License. Built for hackathon demonstration.
 
-*Designed and Built for Small Businesses Worldwide — DockIt 2026*
+*Designed and Built for Small Businesses Worldwide - DockIt 2026*

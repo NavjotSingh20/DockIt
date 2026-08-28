@@ -1,13 +1,13 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useNavigate } from 'react-router-dom';
-import { ArrowRight, Check, Plus } from 'lucide-react';
+import { ArrowRight, Check, Plus, Building2, AlertTriangle, MapPin, ClipboardCheck, MessageSquare, Clock, Map } from 'lucide-react';
 import { useDemo } from '../context/DemoContext';
 import toast from 'react-hot-toast';
 import ScrollFloat from '../components/ui/ScrollFloat';
 import SeamlessStrokeText from '../components/ui/SeamlessStrokeText';
 
-/* ─── Real permit data ─── */
+/* ─── Real permit data (Hero animation — NYC example) ─── */
 const NYC_CHECKLIST = [
   { id: 'nyc-1', name: 'Mobile Food Vending License', agency: 'NYC DCWP', cities: ['NYC'] },
   { id: 'nyc-2', name: 'Mobile Food Unit Permit', agency: 'DOHMH', cities: ['NYC'] },
@@ -18,41 +18,39 @@ const NYC_CHECKLIST = [
   { id: 'nyc-7', name: 'EIN (Federal)', agency: 'IRS', cities: ['NYC', 'LA'] },
 ];
 
-const LA_ONLY_ITEMS = [
-  { id: 'la-1', name: 'Health Permit', agency: 'LA County Env. Health', cities: ['LA'] },
-  { id: 'la-2', name: 'CA Seller\'s Permit', agency: 'CDTFA', cities: ['LA'] },
-  { id: 'la-3', name: 'Commissary Agreement (LA)', agency: 'LA County requirement', cities: ['LA'] },
-  { id: 'la-4', name: 'Fire Clearance', agency: 'LAFD', cities: ['LA'] },
+/* ─── Smart-Diff demo data (neutral / international) ─── */
+const DIFF_CITY_A_ITEMS = [
+  { id: 'a-1', name: 'Health Permit', agency: 'City health authority', cities: ['City 1'] },
+  { id: 'a-2', name: 'Fire Safety Certificate', agency: 'Fire department', cities: ['City 1'] },
+  { id: 'a-3', name: 'Commissary Agreement', agency: 'Health dept. requirement', cities: ['City 1'] },
+  { id: 'a-4', name: 'Mobile Vendor License', agency: 'Municipal licensing', cities: ['City 1'] },
+  { id: 'a-5', name: 'Food Safety Certification', agency: 'Health authority', cities: ['City 1', 'City 2'] },
+  { id: 'a-6', name: 'Sales Tax Registration', agency: 'Tax authority', cities: ['City 1', 'City 2'] },
+  { id: 'a-7', name: 'Business Registration', agency: 'Government registry', cities: ['City 1', 'City 2'] },
 ];
 
-// Items shared between cities (already covered when adding LA)
-const SHARED_IDS = ['nyc-5', 'nyc-6', 'nyc-7'];
-
-/* ─── Comparison data ─── */
-const COMPARISON = [
-  {
-    them: 'Assume you already know what permits you need',
-    us: 'Tells you what you need in the first place',
-  },
-  {
-    them: 'Track one jurisdiction at a time',
-    us: 'Merges requirements across cities',
-  },
-  {
-    them: 'Built for office-bound compliance teams',
-    us: 'Built for a food truck owner on their phone',
-  },
+const DIFF_CITY_B_ITEMS = [
+  { id: 'b-1', name: 'County Health Permit', agency: 'County environmental health', cities: ['City 2'] },
+  { id: 'b-2', name: 'Local Trade License', agency: 'Municipal corporation', cities: ['City 2'] },
+  { id: 'b-3', name: 'Zoning Clearance', agency: 'City planning dept.', cities: ['City 2'] },
+  { id: 'b-4', name: 'Fire Clearance (Local)', agency: 'Local fire authority', cities: ['City 2'] },
 ];
+
+const DIFF_SHARED_IDS = ['a-5', 'a-6', 'a-7'];
+
+
 
 /* ─── City tag pill ─── */
 function CityTag({ city }) {
   const colors = {
     NYC: 'bg-ink/8 text-ink-muted',
     LA: 'bg-accent/10 text-accent-dark',
+    'City 1': 'bg-ink/8 text-ink-muted',
+    'City 2': 'bg-accent/10 text-accent-dark',
     Both: 'bg-settled/15 text-settled',
   };
   return (
-    <span className={`text-[11px] font-display font-semibold px-2 py-0.5 rounded-full ${colors[city] || colors.NYC}`}>
+    <span className={`text-[11px] font-display font-semibold px-2 py-0.5 rounded-full ${colors[city] || colors['City 1']}`}>
       {city}
     </span>
   );
@@ -263,7 +261,7 @@ function HeroChecklist() {
 
 /* ─── Smart-diff demo (the hero feature) ─── */
 function SmartDiffDemo() {
-  const [showLA, setShowLA] = useState(false);
+  const [showCityB, setShowCityB] = useState(false);
   const diffRef = useRef(null);
 
   // Auto-trigger the diff after a delay when section scrolls into view
@@ -271,7 +269,7 @@ function SmartDiffDemo() {
     const observer = new IntersectionObserver(
       ([entry]) => {
         if (entry.isIntersecting) {
-          const timer = setTimeout(() => setShowLA(true), 1200);
+          const timer = setTimeout(() => setShowCityB(true), 1200);
           return () => clearTimeout(timer);
         }
       },
@@ -281,8 +279,8 @@ function SmartDiffDemo() {
     return () => observer.disconnect();
   }, []);
 
-  const coveredItems = NYC_CHECKLIST.filter((item) => SHARED_IDS.includes(item.id));
-  const nycOnlyItems = NYC_CHECKLIST.filter((item) => !SHARED_IDS.includes(item.id));
+  const coveredItems = DIFF_CITY_A_ITEMS.filter((item) => DIFF_SHARED_IDS.includes(item.id));
+  const cityAOnlyItems = DIFF_CITY_A_ITEMS.filter((item) => !DIFF_SHARED_IDS.includes(item.id));
 
   return (
     <div ref={diffRef} className="space-y-6">
@@ -292,64 +290,64 @@ function SmartDiffDemo() {
           <div className="w-7 h-7 rounded-lg bg-ink flex items-center justify-center">
             <span className="text-xs font-display font-bold text-base">1</span>
           </div>
-          <span className="text-sm font-display font-semibold text-ink">NYC</span>
+          <span className="text-sm font-display font-semibold text-ink">Your city</span>
         </div>
         <div className="h-px flex-1 bg-rule" />
         <button
-          onClick={() => setShowLA(!showLA)}
+          onClick={() => setShowCityB(!showCityB)}
           className={`flex items-center gap-2 transition-all duration-300 ${
-            showLA ? '' : 'animate-pulse'
+            showCityB ? '' : 'animate-pulse'
           }`}
         >
           <div className={`w-7 h-7 rounded-lg flex items-center justify-center transition-colors duration-300 ${
-            showLA ? 'bg-accent' : 'bg-rule-dark'
+            showCityB ? 'bg-accent' : 'bg-rule-dark'
           }`}>
-            <span className={`text-xs font-display font-bold ${showLA ? 'text-white' : 'text-ink-muted'}`}>2</span>
+            <span className={`text-xs font-display font-bold ${showCityB ? 'text-white' : 'text-ink-muted'}`}>2</span>
           </div>
           <span className={`text-sm font-display font-semibold transition-colors duration-300 ${
-            showLA ? 'text-accent' : 'text-ink-faint'
+            showCityB ? 'text-accent' : 'text-ink-faint'
           }`}>
-            {showLA ? 'LA added' : '+ Add LA'}
+            {showCityB ? 'City added' : '+ Add a city'}
           </span>
         </button>
       </div>
 
       {/* Checklist card */}
-      <div className="bg-surface rounded-2xl border border-rule overflow-hidden shadow-card">
+      <div className="bg-surface rounded-2xl border border-rule overflow-hidden shadow-card transition-all duration-500">
         {/* Header */}
         <div className="px-4 py-3 border-b border-rule flex items-center justify-between">
           <div className="flex items-center gap-2">
             <span className="text-sm font-display font-bold text-ink">Your checklist</span>
-            <CityTag city="NYC" />
+            <CityTag city="City 1" />
             <AnimatePresence>
-              {showLA && (
+              {showCityB && (
                 <motion.span
                   initial={{ opacity: 0, scale: 0.8 }}
                   animate={{ opacity: 1, scale: 1 }}
                   exit={{ opacity: 0, scale: 0.8 }}
                 >
-                  <CityTag city="LA" />
+                  <CityTag city="City 2" />
                 </motion.span>
               )}
             </AnimatePresence>
           </div>
           <span className="text-xs text-ink-faint font-display">
-            {showLA ? `${NYC_CHECKLIST.length + LA_ONLY_ITEMS.length - coveredItems.length} items` : `${NYC_CHECKLIST.length} items`}
+            {showCityB ? `${DIFF_CITY_A_ITEMS.length + DIFF_CITY_B_ITEMS.length - coveredItems.length} items` : `${DIFF_CITY_A_ITEMS.length} items`}
           </span>
         </div>
 
         {/* Items */}
         <div className="divide-y divide-rule/50">
-          {!showLA ? (
-            // Pre-diff: just NYC items
-            NYC_CHECKLIST.map((item) => (
+          {!showCityB ? (
+            // Pre-diff: just City A items
+            DIFF_CITY_A_ITEMS.map((item) => (
               <ChecklistItem key={item.id} item={item} />
             ))
           ) : (
             // Post-diff: split into groups
             <>
-              {/* NYC-only items stay */}
-              {nycOnlyItems.map((item) => (
+              {/* City A-only items stay */}
+              {cityAOnlyItems.map((item) => (
                 <motion.div
                   key={item.id}
                   layout
@@ -361,10 +359,10 @@ function SmartDiffDemo() {
 
               {/* Already covered group */}
               <motion.div
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-                transition={{ delay: 0.2, duration: 0.4 }}
-                className="bg-settled-light/30"
+                initial={{ opacity: 0, height: 0 }}
+                animate={{ opacity: 1, height: 'auto' }}
+                transition={{ delay: 0.2, duration: 0.5, ease: 'easeOut' }}
+                className="bg-settled-light/30 overflow-hidden"
               >
                 <div className="px-4 py-2 flex items-center gap-2">
                   <Check size={14} className="text-settled" strokeWidth={3} />
@@ -384,19 +382,20 @@ function SmartDiffDemo() {
                 ))}
               </motion.div>
 
-              {/* New for LA group */}
+              {/* New for City B group */}
               <motion.div
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-                transition={{ delay: 0.5, duration: 0.4 }}
+                initial={{ opacity: 0, height: 0 }}
+                animate={{ opacity: 1, height: 'auto' }}
+                transition={{ delay: 0.5, duration: 0.5, ease: 'easeOut' }}
+                className="overflow-hidden"
               >
                 <div className="px-4 py-2 flex items-center gap-2">
                   <Plus size={14} className="text-accent" strokeWidth={3} />
                   <span className="text-xs font-display font-bold text-accent uppercase tracking-wide">
-                    New for LA
+                    New for this city
                   </span>
                 </div>
-                {LA_ONLY_ITEMS.map((item, i) => (
+                {DIFF_CITY_B_ITEMS.map((item, i) => (
                   <motion.div
                     key={item.id}
                     initial={{ opacity: 0, x: -12 }}
@@ -557,6 +556,55 @@ function ComplianceRiskCalculator() {
   );
 }
 
+/* ─── Pain point cards data ─── */
+const PAIN_POINTS = [
+  {
+    icon: Building2,
+    iconBg: 'bg-ink/8',
+    iconColor: 'text-ink-muted',
+    headline: '4–7 agencies. Zero coordination.',
+    body: 'A single food truck in NYC needs clearances from DCWP, DOHMH, FDNY, and NY Dept of Taxation. None of them share your file — you track it all yourself.',
+  },
+  {
+    icon: AlertTriangle,
+    iconBg: 'bg-accent/10',
+    iconColor: 'text-accent',
+    headline: '$1,000/day fines. No warning.',
+    body: 'Missing a single permit — even one you didn\'t know existed — can mean daily fines, forced closure, or equipment confiscation on the spot.',
+  },
+  {
+    icon: MapPin,
+    iconBg: 'bg-caution/10',
+    iconColor: 'text-caution',
+    headline: 'New city = start from scratch?',
+    body: 'Expanding to LA or catering a festival across county lines means re-researching every requirement from zero. There\'s no carry-over between jurisdictions.',
+  },
+];
+
+/* ─── Feature grid data ─── */
+const FEATURES = [
+  {
+    icon: ClipboardCheck,
+    title: 'Unified Checklist',
+    description: 'City, county, and state requirements merged into one prioritized list. No cross-referencing across 5 PDFs.',
+  },
+  {
+    icon: MessageSquare,
+    title: 'AI Compliance Assistant',
+    description: 'Ask about generator decibel limits, commissary distance rules, or weekend parking restrictions. Get answers with statute references.',
+  },
+  {
+    icon: Clock,
+    title: 'Renewal Alerts',
+    description: 'Get notified before permits expire. Upload documents and track expiration dates in one vault.',
+  },
+  {
+    icon: Map,
+    title: 'Zone & Location Map',
+    description: 'See where you can legally operate, commissary proximity, and restricted zones — visually.',
+  },
+];
+
 export default function Landing() {
   const navigate = useNavigate();
   const { enterDemo } = useDemo();
@@ -596,8 +644,10 @@ export default function Landing() {
         </div>
       </nav>
 
-      {/* ─── Section 1: Hero ─── */}
-      <section className="pt-24 pb-16 md:pb-20 px-4">
+      {/* ════════════════════════════════════════════════════════════
+         SECTION 1 — HERO: "Know What You Need. Before You Open."
+         ════════════════════════════════════════════════════════════ */}
+      <section className="pt-24 pb-12 md:pb-16 px-4">
         <div className="max-w-5xl mx-auto">
           <div className="md:grid md:grid-cols-[1fr_auto] md:gap-12 md:items-start">
             {/* Left: copy */}
@@ -614,25 +664,110 @@ export default function Landing() {
                 />
               </h1>
               <p className="text-ink-muted text-base md:text-lg leading-relaxed mb-8 max-w-lg">
-                DockIt tells small businesses exactly which licenses, permits, and inspections they need city by city.
+                DockIt tells food truck owners exactly which licenses, permits, and inspections they need — city by city, agency by agency.
               </p>
               <div className="flex flex-col sm:flex-row gap-3">
                 <button onClick={handleGetStarted} className="btn-primary text-base px-7 py-3.5">
                   Build your checklist <ArrowRight size={18} />
                 </button>
+                <button onClick={handleDemo} className="text-sm text-ink-muted hover:text-accent font-display font-semibold transition-colors px-5 py-3.5 rounded-xl border border-rule hover:border-rule-dark">
+                  Try the demo
+                </button>
               </div>
             </motion.div>
 
-            {/* Right: enhanced checklist module */}
+            {/* Right: interactive checklist preview */}
             <HeroChecklist />
           </div>
+
+          {/* Trust strip */}
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            transition={{ delay: 0.8, duration: 0.5 }}
+            className="flex items-center justify-center gap-6 mt-12 md:mt-16 pt-6 border-t border-rule/50"
+          >
+            {['NYC', 'Los Angeles', 'Mumbai'].map((city) => (
+              <div key={city} className="flex items-center gap-2">
+                <div className="w-1.5 h-1.5 rounded-full bg-settled" />
+                <span className="text-xs font-display font-semibold text-ink-faint uppercase tracking-wide">{city}</span>
+              </div>
+            ))}
+          </motion.div>
         </div>
       </section>
 
-      {/* ─── Section 2: How it works — Smart Diff ─── */}
+      {/* ════════════════════════════════════════════════════════════
+         SECTION 2 — THE PROBLEM: "What happens without a system."
+         ════════════════════════════════════════════════════════════ */}
       <section className="py-16 md:py-24 px-4 bg-base-dark/50">
         <div className="max-w-5xl mx-auto">
-          <div className="md:grid md:grid-cols-[1fr_1.3fr] md:gap-16 md:items-start">
+          {/* Section header */}
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true }}
+            transition={{ duration: 0.5 }}
+            className="mb-10 md:mb-14"
+          >
+            <ScrollFloat
+              animationDuration={1}
+              ease="back.inOut(2)"
+              scrollStart="center bottom+=50%"
+              scrollEnd="bottom bottom-=40%"
+              stagger={0.03}
+              textClassName="font-display font-bold text-ink text-2xl md:text-3xl tracking-tight inline"
+            >
+              What happens without a system.
+            </ScrollFloat>
+            <p className="text-ink-muted text-[15px] leading-relaxed mt-4 max-w-xl">
+              Food truck licensing isn't hard because the rules are complex — it's hard because the rules are scattered across agencies that don't talk to each other.
+            </p>
+          </motion.div>
+
+          {/* Pain point cards */}
+          <div className="grid md:grid-cols-3 gap-4 md:gap-5 mb-14 md:mb-20">
+            {PAIN_POINTS.map((point, i) => (
+              <motion.div
+                key={i}
+                initial={{ opacity: 0, y: 16 }}
+                whileInView={{ opacity: 1, y: 0 }}
+                viewport={{ once: true }}
+                transition={{ delay: i * 0.1, duration: 0.4 }}
+                className="bg-surface rounded-2xl border border-rule p-5 md:p-6 hover:shadow-card-hover transition-shadow duration-300"
+              >
+                <div className={`w-10 h-10 rounded-xl ${point.iconBg} flex items-center justify-center mb-4`}>
+                  <point.icon size={20} className={point.iconColor} />
+                </div>
+                <h3 className="font-display font-bold text-ink text-base mb-2">{point.headline}</h3>
+                <p className="text-sm text-ink-muted leading-relaxed">{point.body}</p>
+              </motion.div>
+            ))}
+          </div>
+
+          {/* Risk calculator — proof of the problem */}
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true }}
+            transition={{ duration: 0.5 }}
+          >
+            <p className="text-center text-sm font-display font-semibold text-ink-faint uppercase tracking-wider mb-6">
+              See it for yourself — pick your city and business type
+            </p>
+            <ComplianceRiskCalculator />
+          </motion.div>
+        </div>
+      </section>
+
+      {/* ════════════════════════════════════════════════════════════
+         SECTION 3 — WHAT WE OFFER: "One system. Every city."
+         ════════════════════════════════════════════════════════════ */}
+      <section className="py-16 md:py-24 px-4">
+        <div className="max-w-5xl mx-auto">
+
+          {/* 3a: Smart-Diff Engine — the hero feature */}
+          <div className="md:grid md:grid-cols-[1fr_1.3fr] md:gap-16 md:items-start mb-20 md:mb-28">
             {/* Left: explanation */}
             <div className="mb-10 md:mb-0 md:sticky md:top-24">
               <ScrollFloat
@@ -643,22 +778,17 @@ export default function Landing() {
                 stagger={0.03}
                 textClassName="font-display font-bold text-ink text-2xl md:text-3xl tracking-tight inline"
               >
-                Add a second city. Watch the diff.
+                Add a city. See what's new.
               </ScrollFloat>
 
               <div className="space-y-4 text-ink-muted text-[15px] leading-relaxed mt-6">
                 <p>
-                  Tell DockIt your business type and the cities you operate in.
-                  You get a single, merged checklist — not separate lists to cross-reference yourself.
-                </p>
-                <p>
-                  When you add a new city, DockIt flags what's <strong className="text-settled font-semibold">already
-                  covered</strong> (your EIN, food handler cert, sales tax registration) and
-                  surfaces only what's <strong className="text-accent font-semibold">genuinely new</strong> for
-                  that jurisdiction.
+                  When you expand to a new city, DockIt doesn't start over.
+                  It shows you what's already covered from your existing permits and
+                  surfaces only the genuinely new requirements for that jurisdiction.
                 </p>
                 <p className="text-sm text-ink-faint">
-                  No blank-page reload. No re-entering information you've already provided.
+                  No blank-page reload. No re-entering information.
                   Just the delta.
                 </p>
               </div>
@@ -668,7 +798,7 @@ export default function Landing() {
                 {[
                   { n: '1', label: 'Pick your business type + city' },
                   { n: '2', label: 'Get your city-specific checklist' },
-                  { n: '3', label: 'Add another city → see the smart diff' },
+                  { n: '3', label: 'Add another city — see the smart diff' },
                 ].map((step) => (
                   <div key={step.n} className="flex items-center gap-3">
                     <div className="w-6 h-6 rounded-md bg-ink/8 flex items-center justify-center flex-shrink-0">
@@ -690,88 +820,51 @@ export default function Landing() {
               <SmartDiffDemo />
             </motion.div>
           </div>
-        </div>
-      </section>
 
-      {/* ─── Interactive Calculator Section ─── */}
-      <section className="py-16 md:py-24 px-4 bg-base border-t border-b border-rule/30">
-        <div className="max-w-5xl mx-auto">
-          <ComplianceRiskCalculator />
-        </div>
-      </section>
-
-      {/* ─── Section 3: Why it's different ─── */}
-      <section className="py-16 md:py-24 px-4">
-        <div className="max-w-5xl mx-auto">
+          {/* 3b: Feature Grid — 2x2 */}
           <motion.div
             initial={{ opacity: 0, y: 20 }}
             whileInView={{ opacity: 1, y: 0 }}
             viewport={{ once: true }}
             transition={{ duration: 0.5 }}
           >
-            <ScrollFloat
-              animationDuration={1}
-              ease="back.inOut(2)"
-              scrollStart="center bottom+=50%"
-              scrollEnd="bottom bottom-=40%"
-              stagger={0.03}
-              textClassName="font-display font-bold text-ink text-2xl md:text-3xl tracking-tight inline"
-            >
-              Not another renewal reminder.
-            </ScrollFloat>
-            <p className="text-ink-muted text-[15px] mb-10 max-w-xl mt-4">
-              Tools like Middesk, Mosey, and CSC are great — if you already know what licenses you
-              hold. DockIt solves the step before that.
-            </p>
+            <div className="text-center mb-10">
+              <h2 className="font-display font-bold text-ink text-2xl md:text-3xl tracking-tight">
+                Everything you need to launch and stay compliant.
+              </h2>
+              <p className="text-ink-muted text-[15px] mt-3 max-w-lg mx-auto">
+                From your first permit application to ongoing renewals — one platform, every jurisdiction.
+              </p>
+            </div>
 
-            {/* Comparison */}
-            <div className="grid md:grid-cols-2 gap-4 md:gap-6">
-              {/* Them */}
-              <div className="bg-surface rounded-2xl border border-rule p-5 md:p-6">
-                <div className="text-xs font-display font-bold text-ink-faint uppercase tracking-wider mb-4">
-                  Renewal reminder tools
-                </div>
-                <div className="space-y-4">
-                  {COMPARISON.map((c, i) => (
-                    <div key={i} className="flex items-start gap-3">
-                      <div className="w-5 h-5 rounded-full bg-ink/5 flex items-center justify-center flex-shrink-0 mt-0.5">
-                        <span className="text-ink-faint text-xs">—</span>
-                      </div>
-                      <span className="text-sm text-ink-muted">{c.them}</span>
-                    </div>
-                  ))}
-                </div>
-                <div className="mt-5 flex items-center gap-2 text-xs text-ink-faint">
-                  <span>Middesk</span><span>·</span><span>Mosey</span><span>·</span><span>CSC</span><span>·</span><span>Avalara</span>
-                </div>
-              </div>
-
-              {/* Us */}
-              <div className="bg-surface rounded-2xl border-2 border-accent/30 p-5 md:p-6 relative overflow-hidden">
-                <div className="absolute top-0 right-0 bg-accent text-white text-[10px] font-display font-bold px-3 py-1 rounded-bl-xl">
-                  DockIt
-                </div>
-                <div className="text-xs font-display font-bold text-accent uppercase tracking-wider mb-4">
-                  What DockIt does
-                </div>
-                <div className="space-y-4">
-                  {COMPARISON.map((c, i) => (
-                    <div key={i} className="flex items-start gap-3">
-                      <div className="w-5 h-5 rounded-full bg-accent/10 flex items-center justify-center flex-shrink-0 mt-0.5">
-                        <Check size={12} className="text-accent" strokeWidth={3} />
-                      </div>
-                      <span className="text-sm text-ink font-medium">{c.us}</span>
-                    </div>
-                  ))}
-                </div>
-              </div>
+            <div className="grid sm:grid-cols-2 gap-4 md:gap-5">
+              {FEATURES.map((feature, i) => (
+                <motion.div
+                  key={i}
+                  initial={{ opacity: 0, y: 12 }}
+                  whileInView={{ opacity: 1, y: 0 }}
+                  viewport={{ once: true }}
+                  transition={{ delay: i * 0.08, duration: 0.35 }}
+                  className="group bg-surface rounded-2xl border border-rule p-5 md:p-6 hover:border-accent/30 hover:shadow-card-hover transition-all duration-300"
+                >
+                  <div className="w-10 h-10 rounded-xl bg-accent/8 flex items-center justify-center mb-4 group-hover:bg-accent/15 transition-colors duration-300">
+                    <feature.icon size={20} className="text-accent" />
+                  </div>
+                  <h3 className="font-display font-bold text-ink text-[15px] mb-1.5">{feature.title}</h3>
+                  <p className="text-sm text-ink-muted leading-relaxed">{feature.description}</p>
+                </motion.div>
+              ))}
             </div>
           </motion.div>
         </div>
       </section>
 
-      {/* ─── Section 5: CTA + Footer ─── */}
-      <section className="py-16 md:py-20 px-4 mt-8">
+      {/* ════════════════════════════════════════════════════════════
+         SECTION 4 — CLOSING CTA + PROFESSIONAL FOOTER
+         ════════════════════════════════════════════════════════════ */}
+
+      {/* Final conversion block */}
+      <section className="py-16 md:py-20 px-4 border-t border-rule/30">
         <div className="max-w-5xl mx-auto text-center">
           <motion.div
             initial={{ opacity: 0, y: 20 }}
@@ -791,7 +884,7 @@ export default function Landing() {
               Find out what you actually need.
             </ScrollFloat>
             <p className="text-ink-muted text-[15px] mb-8 max-w-md mx-auto">
-              Build your permit checklist in under a minute — free, no sign-up required to browse.
+              Build your permit checklist in under a minute. Free to start.
             </p>
             <button onClick={handleGetStarted} className="btn-primary text-base px-8 py-4">
               Build your checklist <ArrowRight size={18} />
@@ -801,16 +894,34 @@ export default function Landing() {
       </section>
 
       {/* ─── Footer ─── */}
-      <footer className="bg-ink text-ink-faint py-10 px-4">
-        <div className="max-w-5xl mx-auto flex flex-col md:flex-row items-center justify-between gap-4">
-          <div className="flex items-center gap-2">
-            <span className="font-display font-bold text-base text-lg">
-              Dock<span className="text-accent">It</span>
-            </span>
+      <footer className="bg-ink py-10 px-4">
+        <div className="max-w-5xl mx-auto space-y-6">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-6 border-b border-white/10">
+            <div>
+              <span className="font-display font-bold text-base-dark text-lg">
+                Dock<span className="text-accent">It</span>
+              </span>
+              <p className="text-sm text-white/40 mt-1">
+                Compliance discovery for small businesses.
+              </p>
+            </div>
+            
+            <div className="flex items-center gap-4">
+              {['NYC', 'Los Angeles', 'Mumbai'].map((city) => (
+                <div key={city} className="flex items-center gap-1.5">
+                  <div className="w-1.5 h-1.5 rounded-full bg-settled" />
+                  <span className="text-xs text-white/40 font-display font-semibold uppercase tracking-wider">{city}</span>
+                </div>
+              ))}
+            </div>
           </div>
-          <p className="text-sm text-center md:text-right">
-            Compliance discovery for food trucks — NYC &amp; LA.
-          </p>
+
+          <div className="flex flex-col sm:flex-row items-center justify-between gap-3 text-xs text-white/30">
+            <p>&copy; {new Date().getFullYear()} DockIt. All rights reserved.</p>
+            <p className="text-center sm:text-right">
+              DockIt provides regulatory discovery tools. It is not a law firm and does not constitute legal advice.
+            </p>
+          </div>
         </div>
       </footer>
     </div>

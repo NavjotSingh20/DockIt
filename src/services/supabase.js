@@ -70,9 +70,38 @@ function mapBusiness(biz) {
 
 // ── Businesses ───────────────────────────────────────────────────────
 export async function createBusiness(data) {
-  const { data: biz, error } = await supabase.from('businesses').insert([data]).select().single();
-  if (error) throw error;
-  return mapBusiness(biz);
+  const payload = { ...data };
+  if (!payload.cities && payload.city) {
+    payload.cities = [`${payload.city}${payload.state ? `, ${payload.state}` : ''}`];
+  }
+
+  try {
+    const { data: biz, error } = await supabase.from('businesses').insert([payload]).select().single();
+    if (!error) return mapBusiness(biz);
+
+    // If PostgREST schema cache complains about city/state/country, fallback to cities array only
+    if (error.message && (error.message.includes('city') || error.message.includes('column') || error.message.includes('schema cache'))) {
+      const cleanPayload = { ...payload };
+      delete cleanPayload.city;
+      delete cleanPayload.state;
+      delete cleanPayload.country;
+      const { data: fallbackBiz, error: fallbackErr } = await supabase.from('businesses').insert([cleanPayload]).select().single();
+      if (fallbackErr) throw fallbackErr;
+      return mapBusiness(fallbackBiz);
+    }
+    throw error;
+  } catch (err) {
+    if (err.message && (err.message.includes('city') || err.message.includes('column') || err.message.includes('schema cache'))) {
+      const cleanPayload = { ...payload };
+      delete cleanPayload.city;
+      delete cleanPayload.state;
+      delete cleanPayload.country;
+      const { data: fallbackBiz, error: fallbackErr } = await supabase.from('businesses').insert([cleanPayload]).select().single();
+      if (fallbackErr) throw fallbackErr;
+      return mapBusiness(fallbackBiz);
+    }
+    throw err;
+  }
 }
 
 export async function getBusiness(userId) {
@@ -89,9 +118,33 @@ export async function getBusiness(userId) {
 }
 
 export async function updateBusiness(id, updates) {
-  const { data, error } = await supabase.from('businesses').update(updates).eq('id', id).select().single();
-  if (error) throw error;
-  return mapBusiness(data);
+  const payload = { ...updates };
+  try {
+    const { data, error } = await supabase.from('businesses').update(payload).eq('id', id).select().single();
+    if (!error) return mapBusiness(data);
+
+    if (error.message && (error.message.includes('city') || error.message.includes('column') || error.message.includes('schema cache'))) {
+      const cleanPayload = { ...payload };
+      delete cleanPayload.city;
+      delete cleanPayload.state;
+      delete cleanPayload.country;
+      const { data: fallbackData, error: fallbackErr } = await supabase.from('businesses').update(cleanPayload).eq('id', id).select().single();
+      if (fallbackErr) throw fallbackErr;
+      return mapBusiness(fallbackData);
+    }
+    throw error;
+  } catch (err) {
+    if (err.message && (err.message.includes('city') || err.message.includes('column') || err.message.includes('schema cache'))) {
+      const cleanPayload = { ...payload };
+      delete cleanPayload.city;
+      delete cleanPayload.state;
+      delete cleanPayload.country;
+      const { data: fallbackData, error: fallbackErr } = await supabase.from('businesses').update(cleanPayload).eq('id', id).select().single();
+      if (fallbackErr) throw fallbackErr;
+      return mapBusiness(fallbackData);
+    }
+    throw err;
+  }
 }
 
 export async function getRequirements(businessType, cities = []) {

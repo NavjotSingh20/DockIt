@@ -50,6 +50,9 @@ CREATE TABLE IF NOT EXISTS businesses (
   phone           TEXT,
   email           TEXT,
   address         TEXT,
+  city            TEXT,
+  state           TEXT,
+  country         TEXT          DEFAULT 'USA',
   cities          TEXT[]        DEFAULT '{}',   -- e.g. '{"Mumbai, Maharashtra", "New York, NY"}'
   email_reminders_enabled BOOLEAN DEFAULT true,
   reminder_days   INTEGER[]     DEFAULT '{60,30,7}',  -- which day-milestones to send alerts

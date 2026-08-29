@@ -1,11 +1,10 @@
 import { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import toast from 'react-hot-toast';
-import { Bell, Zap, Save, Pencil, Check, Send, Loader2, Sun, Moon, Monitor } from 'lucide-react';
+import { Bell, Zap, Save, Pencil, Check, Send, Loader2 } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { useDemo } from '../context/DemoContext';
 import { useAuth } from '../hooks/useAuth';
-import { useTheme } from '../context/ThemeContext';
 import { getBusiness, updateBusiness } from '../services/supabase';
 import { useNavigate } from 'react-router-dom';
 import PaymentHistory from '../components/features/PaymentHistory';
@@ -41,7 +40,6 @@ export default function Settings() {
   const { t, i18n } = useTranslation();
   const { isDemo, demoBusiness, demoRequirements, enterDemo, exitDemo, updateDemoBusiness } = useDemo();
   const { user } = useAuth();
-  const { isDark, setTheme } = useTheme();
   const navigate = useNavigate();
 
   const [emailReminders, setEmailReminders] = useState(() => {
@@ -453,46 +451,6 @@ export default function Settings() {
             >
               {sendingTestEmail ? <Loader2 size={14} className="animate-spin" /> : <Send size={14} />}
               {sendingTestEmail ? 'Sending…' : 'Send Test'}
-            </button>
-          </div>
-        </div>
-      </Section>
-
-      {/* Appearance & Theme Mode */}
-      <Section title="Appearance & Theme">
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-          <div>
-            <div className="text-sm font-semibold text-ink">Interface Theme</div>
-            <div className="text-xs text-ink-faint mt-0.5">Choose your visual theme or match your operating system settings</div>
-          </div>
-          <div className="flex items-center gap-2">
-            <button
-              onClick={() => {
-                setTheme('light');
-                toast.success('Switched to Light Mode');
-              }}
-              className={`px-3.5 py-2 rounded-xl text-xs font-bold font-display border transition-all flex items-center gap-1.5 ${
-                !isDark
-                  ? 'bg-accent text-white border-accent shadow-sm'
-                  : 'bg-surface text-ink-muted border-rule hover:text-ink'
-              }`}
-            >
-              <Sun size={14} />
-              <span>Light</span>
-            </button>
-            <button
-              onClick={() => {
-                setTheme('dark');
-                toast.success('Switched to Dark Mode');
-              }}
-              className={`px-3.5 py-2 rounded-xl text-xs font-bold font-display border transition-all flex items-center gap-1.5 ${
-                isDark
-                  ? 'bg-accent text-white border-accent shadow-sm'
-                  : 'bg-surface text-ink-muted border-rule hover:text-ink'
-              }`}
-            >
-              <Moon size={14} />
-              <span>Dark</span>
             </button>
           </div>
         </div>

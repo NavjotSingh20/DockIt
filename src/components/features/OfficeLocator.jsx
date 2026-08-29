@@ -58,19 +58,19 @@ export default function OfficeLocator({ licenseType }) {
   }, [licenseType, office]);
 
   return (
-    <div className="bg-surface rounded-2xl border border-rule overflow-hidden shadow-card">
-      <div ref={mapRef} style={{ height: 280, width: '100%' }} className="bg-base" />
+    <div className="bg-white rounded-2xl border border-gray-100 overflow-hidden">
+      <div ref={mapRef} style={{ height: 280, width: '100%' }} className="bg-gray-100" />
       {!mapReady && (
-        <div className="flex items-center justify-center bg-base" style={{ height: 280 }}>
-          <div className="text-ink-faint text-sm font-display">Loading map…</div>
+        <div className="flex items-center justify-center" style={{ height: 280 }}>
+          <div className="text-gray-400 text-sm">Loading map…</div>
         </div>
       )}
       <div className="p-5 space-y-3">
-        <h4 className="font-bold text-ink font-display">{office.name}</h4>
-        <div className="space-y-2 text-sm text-ink-muted">
-          <div className="flex items-start gap-2"><MapPin size={15} className="text-accent mt-0.5 flex-shrink-0" />{office.address}</div>
-          {office.phone && <div className="flex items-center gap-2"><Phone size={15} className="text-accent flex-shrink-0" />{office.phone}</div>}
-          {office.hours && <div className="flex items-center gap-2"><Clock size={15} className="text-accent flex-shrink-0" />{office.hours}</div>}
+        <h4 className="font-bold text-gray-900">{office.name}</h4>
+        <div className="space-y-2 text-sm text-gray-600">
+          <div className="flex items-start gap-2"><MapPin size={15} className="text-blue-500 mt-0.5 flex-shrink-0" />{office.address}</div>
+          {office.phone && <div className="flex items-center gap-2"><Phone size={15} className="text-blue-500 flex-shrink-0" />{office.phone}</div>}
+          {office.hours && <div className="flex items-center gap-2"><Clock size={15} className="text-blue-500 flex-shrink-0" />{office.hours}</div>}
         </div>
         <div className="flex gap-2 pt-2">
           <a href={`https://maps.google.com/?q=${office.lat},${office.lng}`} target="_blank" rel="noopener noreferrer"

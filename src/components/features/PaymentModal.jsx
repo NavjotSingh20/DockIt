@@ -7,22 +7,21 @@ import toast from 'react-hot-toast';
 import { formatCurrency } from '../../utils/formatters';
 import { calculatePenalty } from '../../utils/penaltyRules';
 import { generatePaymentReceiptPDF } from '../../utils/formFillEngine';
-import { useTheme } from '../../context/ThemeContext';
 
 // Publishable Key loaded from environment variable (client-safe)
 const PUBLISHABLE_KEY = import.meta.env.VITE_STRIPE_PUBLISHABLE_KEY || 'pk_test_51U9h7DKewz4G6VvcRzuNWos00DRe9f7smnM8SevxDsjfYsuu1w5E9IyR03hLfaj5Z4cALTwq72jngrueEUKNQCVW00cc7m3090';
 
 const stripePromise = loadStripe(PUBLISHABLE_KEY);
 
-const getCardElementOptions = (isDark) => ({
+const CARD_ELEMENT_OPTIONS = {
   style: {
     base: {
-      color: isDark ? '#f3f4f6' : '#1f2937',
+      color: '#1f2937',
       fontFamily: 'Inter, system-ui, sans-serif',
       fontSmoothing: 'antialiased',
       fontSize: '15px',
       '::placeholder': {
-        color: isDark ? '#6b7280' : '#9ca3af',
+        color: '#9ca3af',
       },
     },
     invalid: {
@@ -30,7 +29,7 @@ const getCardElementOptions = (isDark) => ({
       iconColor: '#ef4444',
     },
   },
-});
+};
 
 function CheckoutForm({
   requirement,
@@ -48,7 +47,6 @@ function CheckoutForm({
 }) {
   const stripe = useStripe();
   const elements = useElements();
-  const { isDark } = useTheme();
   const [processing, setProcessing] = useState(false);
   const [cardholderName, setCardholderName] = useState(business?.owner_name || '');
   const [errorMessage, setErrorMessage] = useState('');
@@ -180,10 +178,10 @@ function CheckoutForm({
   return (
     <form onSubmit={handleSubmit} className="space-y-4">
       {/* Sandbox Test Mode Banner */}
-      <div className="bg-amber-500/10 border border-amber-500/30 rounded-2xl p-3.5 flex items-start gap-2.5 text-xs text-amber-900 dark:text-amber-300">
-        <Info size={16} className="text-amber-600 dark:text-amber-400 flex-shrink-0 mt-0.5" />
+      <div className="bg-amber-50/90 border border-amber-200/90 rounded-2xl p-3.5 flex items-start gap-2.5 text-xs text-amber-900">
+        <Info size={16} className="text-amber-600 flex-shrink-0 mt-0.5" />
         <div className="leading-relaxed">
-          <strong className="font-bold">Sandbox Test Mode Active:</strong> Real Stripe gateway test environment. Use test card <code className="bg-amber-500/20 font-mono px-1 py-0.5 rounded font-bold">4242 4242 4242 4242</code>.
+          <strong className="font-bold">Sandbox Test Mode Active:</strong> Real Stripe gateway test environment. Use test card <code className="bg-amber-100 font-mono px-1 py-0.5 rounded font-bold">4242 4242 4242 4242</code>.
         </div>
       </div>
 
@@ -201,7 +199,7 @@ function CheckoutForm({
 
         {/* Line 2: Accrued Penalty (if overdue) */}
         {penaltyAmount > 0 ? (
-          <div className="flex justify-between items-center text-xs bg-danger/10 border border-danger/30 rounded-lg px-2.5 py-1.5 text-danger">
+          <div className="flex justify-between items-center text-xs bg-red-50/70 border border-red-200/60 rounded-lg px-2.5 py-1.5 text-red-900">
             <div className="flex items-center gap-1.5 font-semibold">
               <AlertTriangle size={13} className="text-danger flex-shrink-0" />
               <span>2. Accrued Late Penalty ({daysOverdue}d overdue)</span>
@@ -209,7 +207,7 @@ function CheckoutForm({
             <span className="font-mono font-bold text-danger">+{formatCurrency(penaltyAmount)}</span>
           </div>
         ) : (
-          <div className="flex justify-between items-center text-xs text-settled bg-settled/10 rounded-lg px-2 py-1">
+          <div className="flex justify-between items-center text-xs text-green-700 bg-green-50/50 rounded-lg px-2 py-1">
             <span>2. Accrued Late Penalty</span>
             <span className="font-mono font-semibold">None ($0)</span>
           </div>
@@ -234,28 +232,28 @@ function CheckoutForm({
 
       {/* Overdue 7-Day Comparison Callout */}
       {penaltyAmount > 0 && penaltyData && (
-        <div className="bg-amber-500/10 border-2 border-amber-500/30 rounded-2xl p-3.5 space-y-2 text-xs">
-          <div className="flex items-center gap-2 font-bold text-amber-900 dark:text-amber-300 font-display">
-            <TrendingUp size={15} className="text-amber-600 dark:text-amber-400" />
+        <div className="bg-amber-50/90 border-2 border-amber-300/80 rounded-2xl p-3.5 space-y-2 text-xs">
+          <div className="flex items-center gap-2 font-bold text-amber-900 font-display">
+            <TrendingUp size={15} className="text-amber-700" />
             <span>Late Penalty Projection: Pay Now vs. Wait 7 Days</span>
           </div>
 
           <div className="grid grid-cols-2 gap-2 text-center pt-1">
-            <div className="bg-surface border border-rule rounded-xl p-2.5 shadow-xs">
+            <div className="bg-white/80 border border-amber-200 rounded-xl p-2.5 shadow-xs">
               <div className="text-[10px] uppercase font-bold text-ink-faint">Pay Today</div>
-              <div className="text-base font-black font-mono text-settled mt-0.5">{formatCurrency(totalAmount)}</div>
-              <div className="text-[10px] text-settled font-semibold mt-0.5">Saves accrued fines</div>
+              <div className="text-base font-black font-mono text-green-700 mt-0.5">{formatCurrency(totalAmount)}</div>
+              <div className="text-[10px] text-green-600 font-semibold mt-0.5">Saves accrued fines</div>
             </div>
 
-            <div className="bg-danger/10 border border-danger/30 rounded-xl p-2.5 shadow-xs">
-              <div className="text-[10px] uppercase font-bold text-danger">Wait 7 More Days</div>
-              <div className="text-base font-black font-mono text-danger mt-0.5">{formatCurrency(wait7DaysTotal)}</div>
-              <div className="text-[10px] text-danger font-bold mt-0.5">+{formatCurrency(diff7Days)} increase (+{formatCurrency(penaltyData.dailyCost)}/day)</div>
+            <div className="bg-red-50/80 border border-red-200 rounded-xl p-2.5 shadow-xs">
+              <div className="text-[10px] uppercase font-bold text-red-600">Wait 7 More Days</div>
+              <div className="text-base font-black font-mono text-red-700 mt-0.5">{formatCurrency(wait7DaysTotal)}</div>
+              <div className="text-[10px] text-red-600 font-bold mt-0.5">+{formatCurrency(diff7Days)} increase (+{formatCurrency(penaltyData.dailyCost)}/day)</div>
             </div>
           </div>
 
           {penaltyData.legalReference && (
-            <div className="text-[10px] text-amber-800 dark:text-amber-300/80 font-mono italic pt-1">
+            <div className="text-[10px] text-amber-800/80 font-mono italic pt-1">
               Authority Reference: {penaltyData.legalReference}
             </div>
           )}
@@ -283,7 +281,7 @@ function CheckoutForm({
             Card Information (Enter 4242...)
           </label>
           <div className="p-3.5 rounded-xl border border-rule bg-surface focus-within:ring-2 focus-within:ring-accent/40">
-            <CardElement options={getCardElementOptions(isDark)} />
+            <CardElement options={CARD_ELEMENT_OPTIONS} />
           </div>
         </div>
       </div>

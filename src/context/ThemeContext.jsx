@@ -1,74 +1,66 @@
-import { createContext, useContext, useState, useEffect, useCallback } from 'react';
+import { createContext, useContext, useState, useEffect } from 'react';
 
-const ThemeContext = createContext(null);
-
-export function getInitialTheme() {
-  if (typeof window === 'undefined') return false;
-  try {
-    const saved = localStorage.getItem('dockit_theme');
-    if (saved === 'dark') return true;
-    if (saved === 'light') return false;
-    if (localStorage.getItem('darkMode') === 'true') return true;
-    if (localStorage.getItem('darkMode') === 'false') return false;
-    if (document.documentElement.classList.contains('dark')) return true;
-    return window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches;
-  } catch (e) {
-    return false;
-  }
-}
-
-export function applyTheme(isDark) {
-  if (typeof document === 'undefined') return;
-  const root = document.documentElement;
-  const body = document.body;
-  if (isDark) {
-    root.classList.add('dark');
-    root.setAttribute('data-theme', 'dark');
-    if (body) body.classList.add('dark');
-    localStorage.setItem('dockit_theme', 'dark');
-    localStorage.setItem('darkMode', 'true');
-  } else {
-    root.classList.remove('dark');
-    root.setAttribute('data-theme', 'light');
-    if (body) body.classList.remove('dark');
-    localStorage.setItem('dockit_theme', 'light');
-    localStorage.setItem('darkMode', 'false');
-  }
-  if (typeof window !== 'undefined') {
-    window.dispatchEvent(new CustomEvent('dockit:theme-changed', { detail: { isDark } }));
-  }
-}
+const ThemeContext = createContext();
 
 export function ThemeProvider({ children }) {
-  const [isDark, setIsDark] = useState(getInitialTheme);
+  const [isDark, setIsDark] = useState(() => {
+    // 1. Check explicit local storage choice
+    const savedTheme = localStorage.getItem('dockit_theme');
+    if (savedTheme === 'dark') return true;
+    if (savedTheme === 'light') return false;
+
+    const savedLegacy = localStorage.getItem('darkMode');
+    if (savedLegacy !== null) {
+      try {
+        return JSON.parse(savedLegacy);
+      } catch (e) {}
+    }
+
+    // 2. Default to OS level prefers-color-scheme
+    if (typeof window !== 'undefined' && window.matchMedia) {
+      return window.matchMedia('(prefers-color-scheme: dark)').matches;
+    }
+    return false;
+  });
 
   useEffect(() => {
-    applyTheme(isDark);
+    const root = document.documentElement;
+    if (isDark) {
+      root.classList.add('dark');
+      localStorage.setItem('dockit_theme', 'dark');
+      localStorage.setItem('darkMode', 'true');
+    } else {
+      root.classList.remove('dark');
+      localStorage.setItem('dockit_theme', 'light');
+      localStorage.setItem('darkMode', 'false');
+    }
   }, [isDark]);
 
+  // Listen to OS system changes if no explicit user lock
   useEffect(() => {
-    const handleThemeEvent = (e) => {
-      if (typeof e.detail?.isDark === 'boolean') {
-        setIsDark(e.detail.isDark);
+    if (typeof window === 'undefined' || !window.matchMedia) return;
+    const mediaQuery = window.matchMedia('(prefers-color-scheme: dark)');
+    
+    const handleChange = (e) => {
+      const savedTheme = localStorage.getItem('dockit_theme_explicit');
+      if (!savedTheme) {
+        setIsDark(e.matches);
       }
     };
-    window.addEventListener('dockit:theme-changed', handleThemeEvent);
-    return () => window.removeEventListener('dockit:theme-changed', handleThemeEvent);
+
+    mediaQuery.addEventListener('change', handleChange);
+    return () => mediaQuery.removeEventListener('change', handleChange);
   }, []);
 
-  const toggleTheme = useCallback(() => {
-    setIsDark((prev) => {
-      const next = !prev;
-      applyTheme(next);
-      return next;
-    });
-  }, []);
+  const toggleTheme = () => {
+    localStorage.setItem('dockit_theme_explicit', 'true');
+    setIsDark((prev) => !prev);
+  };
 
-  const setTheme = useCallback((mode) => {
-    const dark = mode === 'dark';
-    setIsDark(dark);
-    applyTheme(dark);
-  }, []);
+  const setTheme = (themeName) => {
+    localStorage.setItem('dockit_theme_explicit', 'true');
+    setIsDark(themeName === 'dark');
+  };
 
   return (
     <ThemeContext.Provider value={{ isDark, toggleTheme, setTheme, theme: isDark ? 'dark' : 'light' }}>
@@ -79,33 +71,19 @@ export function ThemeProvider({ children }) {
 
 export function useTheme() {
   const context = useContext(ThemeContext);
-  const [localDark, setLocalDark] = useState(getInitialTheme);
-
-  useEffect(() => {
-    const handleThemeEvent = (e) => {
-      if (typeof e.detail?.isDark === 'boolean') {
-        setLocalDark(e.detail.isDark);
-      }
+  if (!context) {
+    // Fallback if rendered outside provider
+    const isDark = typeof document !== 'undefined' && document.documentElement.classList.contains('dark');
+    return {
+      isDark,
+      toggleTheme: () => {
+        if (typeof document !== 'undefined') {
+          document.documentElement.classList.toggle('dark');
+        }
+      },
+      setTheme: () => {},
+      theme: isDark ? 'dark' : 'light',
     };
-    window.addEventListener('dockit:theme-changed', handleThemeEvent);
-    return () => window.removeEventListener('dockit:theme-changed', handleThemeEvent);
-  }, []);
-
-  if (context) return context;
-
-  // Bulletproof fallback that works identically even outside ThemeProvider
-  return {
-    isDark: localDark,
-    toggleTheme: () => {
-      const next = !localDark;
-      setLocalDark(next);
-      applyTheme(next);
-    },
-    setTheme: (mode) => {
-      const dark = mode === 'dark';
-      setLocalDark(dark);
-      applyTheme(dark);
-    },
-    theme: localDark ? 'dark' : 'light',
-  };
+  }
+  return context;
 }

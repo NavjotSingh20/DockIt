@@ -2,55 +2,11 @@
 @tailwind components;
 @tailwind utilities;
 
-:root,
-html[data-theme='light'] {
-  --color-base: 245 242 235; /* #F5F2EB */
-  --color-base-dark: 237 233 224; /* #EDE9E0 */
-  --color-surface: 254 253 251; /* #FEFDFB */
-  --color-ink: 28 25 23; /* #1C1917 */
-  --color-ink-muted: 87 83 78; /* #57534E */
-  --color-ink-faint: 168 162 158; /* #A8A29E */
-  --color-accent: 217 119 6; /* #D97706 */
-  --color-accent-dark: 180 83 9; /* #B45309 */
-  --color-accent-light: 254 243 199; /* #FEF3C7 */
-  --color-caution: 202 138 4; /* #CA8A04 */
-  --color-settled: 107 143 113; /* #6B8F71 */
-  --color-settled-light: 232 240 234; /* #E8F0EA */
-  --color-rule: 231 224 213; /* #E7E0D5 */
-  --color-rule-dark: 214 207 196; /* #D6CFC4 */
-  --color-danger: 194 65 12; /* #C2410C */
-  --color-danger-light: 254 242 242; /* #FEF2F2 */
-  color-scheme: light;
-}
-
-.dark,
-html.dark,
-html[data-theme='dark'],
-:root.dark {
-  --color-base: 18 20 24; /* Deep rich charcoal canvas #121418 */
-  --color-base-dark: 13 15 18; /* Darker underlay #0D0F12 */
-  --color-surface: 26 30 36; /* Elevated crisp card surface #1A1E24 */
-  --color-ink: 243 244 246; /* Crisp white-gray #F3F4F6 (WCAG AAA: 15:1) */
-  --color-ink-muted: 160 167 178; /* Readable muted text #A0A7B2 (WCAG AA: 6.8:1) */
-  --color-ink-faint: 115 125 140; /* Subtle metadata #737D8C */
-  --color-accent: 245 158 11; /* Vibrant amber #F59E0B (WCAG AA: 7.2:1) */
-  --color-accent-dark: 217 119 6; /* #D97706 */
-  --color-accent-light: 45 35 15; /* Dark amber glow #2D230F */
-  --color-caution: 251 191 36; /* High contrast amber #FBBF24 (WCAG AAA: 10.2:1) */
-  --color-settled: 74 222 128; /* Emerald green #4ADE80 (WCAG AAA: 10.5:1) */
-  --color-settled-light: 20 45 30; /* Dark emerald tint #142D1E */
-  --color-rule: 43 50 62; /* Slate rule border #2B323E */
-  --color-rule-dark: 58 66 82; /* #3A4252 */
-  --color-danger: 248 113 113; /* High contrast red #F87171 (WCAG AA: 6.4:1) */
-  --color-danger-light: 45 20 20; /* Dark red tint #2D1414 */
-  color-scheme: dark;
-}
-
 @layer base {
   * { box-sizing: border-box; }
   html { scroll-behavior: smooth; }
   body {
-    @apply bg-base text-ink font-sans transition-colors duration-150;
+    @apply bg-base text-ink font-sans;
     /* Subtle grain texture — lightweight SVG noise, no image dependency */
     background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.03'/%3E%3C/svg%3E");
     background-repeat: repeat;
@@ -80,10 +36,10 @@ html[data-theme='dark'],
     @apply bg-accent hover:bg-accent-dark active:scale-[0.97] text-white rounded-xl px-6 py-3 font-semibold font-display transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed inline-flex items-center justify-center gap-2 cursor-pointer leading-none select-none;
   }
   .btn-secondary {
-    @apply border-2 border-accent text-accent hover:bg-accent/10 rounded-xl px-6 py-3 font-semibold font-display transition-all duration-200 inline-flex items-center justify-center gap-2 cursor-pointer leading-none select-none;
+    @apply border-2 border-accent text-accent hover:bg-accent-light rounded-xl px-6 py-3 font-semibold font-display transition-all duration-200 inline-flex items-center justify-center gap-2 cursor-pointer leading-none select-none;
   }
   .btn-danger {
-    @apply border-2 border-danger text-danger hover:bg-danger/10 rounded-xl px-6 py-3 font-semibold transition-all duration-200 inline-flex items-center justify-center gap-2 cursor-pointer leading-none select-none;
+    @apply border-2 border-danger text-danger hover:bg-red-50 rounded-xl px-6 py-3 font-semibold transition-all duration-200 inline-flex items-center justify-center gap-2 cursor-pointer leading-none select-none;
   }
   .input {
     @apply border border-rule rounded-xl px-4 py-3 focus:ring-2 focus:ring-accent focus:border-transparent outline-none w-full transition-all duration-200 bg-surface text-ink;
@@ -125,23 +81,10 @@ html[data-theme='dark'],
 }
 
 /* Chat scroll */
-.chat-scroll { scrollbar-width: thin; scrollbar-color: rgb(var(--color-rule)) transparent; }
+.chat-scroll { scrollbar-width: thin; scrollbar-color: #E7E0D5 transparent; }
 .chat-scroll::-webkit-scrollbar { width: 4px; }
-.chat-scroll::-webkit-scrollbar-thumb { background: rgb(var(--color-rule)); border-radius: 999px; }
+.chat-scroll::-webkit-scrollbar-thumb { background: #E7E0D5; border-radius: 999px; }
 
-/* Leaflet dark mode overrides */
+/* Leaflet overrides */
 .leaflet-container { z-index: 1; border-radius: 16px; }
 .leaflet-control-attribution { font-size: 10px !important; }
-
-.dark .leaflet-tile-pane {
-  filter: brightness(0.65) invert(1) contrast(2.8) hue-rotate(200deg) saturate(0.3);
-}
-.dark .leaflet-container {
-  background: #121418 !important;
-}
-.dark .leaflet-popup-content-wrapper,
-.dark .leaflet-popup-tip {
-  background: #1A1E24 !important;
-  color: #F3F4F6 !important;
-  border: 1px solid #2B323E !important;
-}

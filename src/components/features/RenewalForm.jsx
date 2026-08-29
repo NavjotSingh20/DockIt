@@ -57,25 +57,25 @@ export default function RenewalForm({ license, business }) {
   const docs = formData?.documentChecklist || def?.documents_required || [];
 
   return (
-    <div className="bg-surface rounded-2xl border border-rule p-6 space-y-5 shadow-card">
+    <div className="bg-white rounded-2xl border border-gray-100 p-6 space-y-5">
       <h3 className="section-title">Ready to Renew?</h3>
 
       {/* Document checklist */}
       <div>
-        <div className="text-sm font-semibold text-ink mb-3 font-display">Documents Required</div>
+        <div className="text-sm font-semibold text-gray-700 mb-3">Documents Required</div>
         <div className="space-y-2">
           {docs.map((doc, i) => (
             <button key={i} onClick={() => setChecked(c => ({ ...c, [i]: !c[i] }))}
-              className="flex items-center gap-3 w-full text-left p-3 rounded-xl hover:bg-base transition-colors">
+              className="flex items-center gap-3 w-full text-left p-3 rounded-xl hover:bg-gray-50 transition-colors">
               {checked[i]
-                ? <CheckSquare size={18} className="text-settled flex-shrink-0" />
-                : <Square size={18} className="text-ink-faint flex-shrink-0" />}
-              <span className={`text-sm ${checked[i] ? 'line-through text-ink-faint' : 'text-ink'}`}>{doc}</span>
+                ? <CheckSquare size={18} className="text-green-500 flex-shrink-0" />
+                : <Square size={18} className="text-gray-300 flex-shrink-0" />}
+              <span className={`text-sm ${checked[i] ? 'line-through text-gray-400' : 'text-gray-700'}`}>{doc}</span>
             </button>
           ))}
         </div>
         {docs.length > 0 && (
-          <div className="mt-2 text-xs text-ink-faint font-mono">
+          <div className="mt-2 text-xs text-gray-400">
             {Object.values(checked).filter(Boolean).length}/{docs.length} documents ready
           </div>
         )}
@@ -84,17 +84,17 @@ export default function RenewalForm({ license, business }) {
       {/* Instructions */}
       {formData?.renewalInstructions && (
         <div>
-          <div className="text-sm font-semibold text-ink mb-3 font-display">Steps to Renew</div>
+          <div className="text-sm font-semibold text-gray-700 mb-3">Steps to Renew</div>
           <div className="space-y-2">
             {formData.renewalInstructions.map((step, i) => (
-              <div key={i} className="flex items-start gap-3 text-sm text-ink-muted">
-                <span className="w-5 h-5 bg-accent/10 text-accent rounded-full flex items-center justify-center flex-shrink-0 font-bold text-xs mt-0.5">{i + 1}</span>
+              <div key={i} className="flex items-start gap-3 text-sm text-gray-600">
+                <span className="w-5 h-5 bg-blue-100 text-blue-600 rounded-full flex items-center justify-center flex-shrink-0 font-bold text-xs mt-0.5">{i + 1}</span>
                 {step}
               </div>
             ))}
           </div>
           {(formData.estimatedTime || formData.estimatedCost) && (
-            <div className="mt-3 flex gap-4 text-xs text-ink-muted font-mono">
+            <div className="mt-3 flex gap-4 text-xs text-gray-500">
               {formData.estimatedTime && <span>Est. Time: {formData.estimatedTime}</span>}
               {formData.estimatedCost && <span>Est. Cost: {formData.estimatedCost}</span>}
             </div>

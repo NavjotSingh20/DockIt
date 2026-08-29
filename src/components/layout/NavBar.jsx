@@ -1,12 +1,11 @@
 import { useState, useRef, useEffect, useCallback } from 'react';
 import { NavLink, useNavigate, useLocation } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import { LayoutDashboard, ClipboardList, BarChart2, Settings, Map, LogOut, Bell, Zap, Sparkles, Globe, Mail, Send, Check, Loader2, Sun, Moon } from 'lucide-react';
+import { LayoutDashboard, ClipboardList, BarChart2, Settings, Map, LogOut, Bell, Zap, Sparkles, Globe, Mail, Send, Check, Loader2 } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import toast from 'react-hot-toast';
 import { useAuth } from '../../hooks/useAuth';
 import { useDemo } from '../../context/DemoContext';
-import { useTheme } from '../../context/ThemeContext';
 import { signOut, updateBusiness } from '../../services/supabase';
 import { Button } from '../ui/button';
 import {
@@ -567,7 +566,6 @@ export default function NavBar({ business }) {
             </div>
           )}
 
-          <ThemeToggle />
           <NotificationBell />
           <UserMenu
             business={business}
@@ -578,40 +576,5 @@ export default function NavBar({ business }) {
         </div>
       </div>
     </header>
-  );
-}
-
-function ThemeToggle() {
-  const { isDark, toggleTheme } = useTheme();
-
-  const handleToggle = (e) => {
-    e.preventDefault();
-    e.stopPropagation();
-    toggleTheme();
-  };
-
-  return (
-    <button
-      onClick={handleToggle}
-      type="button"
-      className="p-2 rounded-xl text-ink-muted hover:text-ink hover:bg-base border border-rule/60 transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-accent/40 relative flex items-center justify-center shrink-0 cursor-pointer pointer-events-auto select-none"
-      title={isDark ? 'Switch to Light Mode' : 'Switch to Dark Mode'}
-      aria-label="Toggle theme"
-    >
-      <motion.div
-        key={isDark ? 'dark' : 'light'}
-        initial={{ rotate: -90, scale: 0.6, opacity: 0 }}
-        animate={{ rotate: 0, scale: 1, opacity: 1 }}
-        exit={{ rotate: 90, scale: 0.6, opacity: 0 }}
-        transition={{ duration: 0.2 }}
-        className="flex items-center justify-center pointer-events-none"
-      >
-        {isDark ? (
-          <Sun size={17} className="text-amber-400 hover:text-amber-300" />
-        ) : (
-          <Moon size={17} className="text-ink-muted hover:text-ink" />
-        )}
-      </motion.div>
-    </button>
   );
 }

@@ -62,7 +62,9 @@ function mapBusiness(biz) {
     ...biz,
     city: parts[0] || '',
     state: parts[1] || '',
-    country: localStorage.getItem('country') || 'USA'
+    country: localStorage.getItem('country') || 'USA',
+    email_reminders_enabled: biz.email_reminders_enabled ?? true,
+    reminder_days: biz.reminder_days ?? [60, 30, 7],
   };
 }
 

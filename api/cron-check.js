@@ -1,7 +1,9 @@
 /**
  * /api/cron-check.js
  * Vercel Cron Job — runs daily at 9 AM IST (3:30 AM UTC).
- * Checks ALL users' checklists and sends reminder emails at 60/30/7/1 day milestones.
+ * Checks ALL users' checklists and sends reminder emails
+ * at each user's chosen day-milestones (stored in businesses.reminder_days).
+ * Skips users who have disabled email reminders.
  * Protected by CRON_SECRET header to prevent unauthorized calls.
  *
  * Schedule defined in vercel.json: "0 3 * * *"
@@ -15,7 +17,7 @@ const supabaseAdmin = createClient(
   { auth: { autoRefreshToken: false, persistSession: false } }
 )
 
-const REMINDER_STAGES = [60, 30, 7, 1] // days before expiry
+const DEFAULT_REMINDER_DAYS = [60, 30, 7] // fallback if user has no preference
 
 async function sendEmail({ to, ownerName, licenseName, daysLeft, expiryDate, penalty, renewalUrl, country }) {
   const response = await fetch(`${process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : 'http://localhost:3000'}/api/send-reminder`, {
@@ -44,6 +46,7 @@ export default async function handler(req, res) {
     today.setHours(0, 0, 0, 0)
 
     // 1. Fetch all business requirements expiring within 65 days
+    //    Also fetch the parent business's reminder preferences
     const { data: businessRequirements, error: licErr } = await supabaseAdmin
       .from('business_requirements')
       .select(`
@@ -60,7 +63,9 @@ export default async function handler(req, res) {
         businesses (
           owner_name,
           email,
-          business_name
+          business_name,
+          email_reminders_enabled,
+          reminder_days
         )
       `)
       .lte('expiry_date', new Date(today.getTime() + 65 * 86400000).toISOString().split('T')[0])
@@ -77,13 +82,26 @@ export default async function handler(req, res) {
       if (!biz?.email) { results.skipped++; continue }
       if (!br.expiry_date) { results.skipped++; continue }
 
+      // ── Respect user preferences ──────────────────────────
+      // Skip if the user has explicitly disabled email reminders
+      if (biz.email_reminders_enabled === false) {
+        results.skipped++
+        continue
+      }
+
+      // Use the user's chosen reminder day intervals, or fall back to defaults
+      const userReminderDays = (Array.isArray(biz.reminder_days) && biz.reminder_days.length > 0)
+        ? biz.reminder_days.sort((a, b) => b - a) // descending: 60, 30, 7, 1
+        : DEFAULT_REMINDER_DAYS
+
       const expiry = new Date(br.expiry_date)
       expiry.setHours(0, 0, 0, 0)
       const daysLeft = Math.ceil((expiry - today) / 86400000)
 
-      // Only process if within reminder window
-      const shouldRemind = REMINDER_STAGES.some((stage) => daysLeft <= stage && daysLeft >= 0)
-      const isOverdue = daysLeft < 0 && daysLeft >= -3 // only send 1x at expiry
+      // Only process if within the user's reminder window
+      const maxStage = Math.max(...userReminderDays)
+      const shouldRemind = userReminderDays.some((stage) => daysLeft <= stage && daysLeft >= 0)
+      const isOverdue = daysLeft < 0 && daysLeft >= -3 // send at expiry for 3 days
       if (!shouldRemind && !isOverdue) { results.skipped++; continue }
 
       // 3. Check which stages already sent
@@ -95,9 +113,9 @@ export default async function handler(req, res) {
 
       const sentStages = sentRows?.map((r) => r.reminder_stage) ?? []
 
-      // Find the highest-priority unsent stage
+      // Find the highest-priority unsent stage from the USER's chosen intervals
       let stageToSend = null
-      for (const stage of REMINDER_STAGES) {
+      for (const stage of userReminderDays) {
         if (daysLeft <= stage && !sentStages.includes(stage)) {
           stageToSend = stage
           break
@@ -107,7 +125,7 @@ export default async function handler(req, res) {
       if (!stageToSend) { results.skipped++; continue }
 
       const reqName = br.requirement?.requirement_name || 'License'
-      const country = biz.email.endsWith('.in') ? 'India' : 'USA'
+      const country = biz.email?.endsWith('.in') ? 'India' : 'USA'
 
       // 4. Send the email
       try {

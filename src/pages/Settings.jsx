@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import toast from 'react-hot-toast';
-import { Bell, Zap, Save, Pencil, Check } from 'lucide-react';
+import { Bell, Zap, Save, Pencil, Check, Send, Loader2 } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { useDemo } from '../context/DemoContext';
 import { useAuth } from '../hooks/useAuth';
@@ -65,20 +65,84 @@ export default function Settings() {
     const saved = localStorage.getItem('reminderDays');
     return saved !== null ? JSON.parse(saved) : [60, 30, 7];
   });
+  const [sendingTestEmail, setSendingTestEmail] = useState(false);
+
+  // Persist reminder preferences to both localStorage (instant UI) and Supabase (for cron job)
+  const syncReminderPrefs = async (enabled, days) => {
+    localStorage.setItem('emailReminders', JSON.stringify(enabled));
+    localStorage.setItem('reminderDays', JSON.stringify(days));
+    if (!isDemo && bizId) {
+      try {
+        await updateBusiness(bizId, {
+          email_reminders_enabled: enabled,
+          reminder_days: days,
+        });
+      } catch (err) {
+        console.warn('Failed to sync reminder prefs to DB:', err);
+      }
+    }
+  };
 
   const handleToggleEmailReminders = () => {
     const newVal = !emailReminders;
     setEmailReminders(newVal);
-    localStorage.setItem('emailReminders', JSON.stringify(newVal));
+    syncReminderPrefs(newVal, reminderDays);
     toast.success(newVal ? 'Email reminders enabled!' : 'Email reminders disabled!');
   };
 
   const handleToggleReminderDay = (day) => {
     setReminderDays(prev => {
       const next = prev.includes(day) ? prev.filter(d => d !== day) : [...prev, day];
-      localStorage.setItem('reminderDays', JSON.stringify(next));
+      syncReminderPrefs(emailReminders, next);
       return next;
     });
+  };
+
+  const handleSendTestEmail = async () => {
+    if (isDemo) {
+      toast.success('Test email sent! (demo mode — no real email)');
+      return;
+    }
+    const email = user?.email || profile.email;
+    if (!email) {
+      toast.error('No email address found. Please set your email first.');
+      return;
+    }
+    setSendingTestEmail(true);
+    try {
+      const res = await fetch('/api/send-reminder', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          to: email,
+          ownerName: profile.owner_name || 'Business Owner',
+          licenseName: 'Test License Reminder',
+          daysLeft: 7,
+          expiryDate: new Date(Date.now() + 7 * 86400000).toISOString().split('T')[0],
+          penalty: 500,
+          renewalUrl: 'https://dockit.app/dashboard',
+          country: profile.country || 'USA',
+        }),
+      });
+
+      // Handle non-JSON responses (e.g. running locally without Vercel)
+      const contentType = res.headers.get('content-type') || '';
+      if (!contentType.includes('application/json')) {
+        toast.error('Email API not available locally. Deploy to Vercel or run "vercel dev" to test.');
+        return;
+      }
+
+      const data = await res.json();
+      if (data.success) {
+        toast.success(`Test email sent to ${email}! Check your inbox.`);
+      } else {
+        toast.error(data.error || 'Failed to send test email');
+      }
+    } catch (err) {
+      toast.error('Email API unavailable. Deploy to Vercel or run "vercel dev" to test.');
+    } finally {
+      setSendingTestEmail(false);
+    }
   };
 
   const [isEditing, setIsEditing] = useState(false);
@@ -144,6 +208,16 @@ export default function Settings() {
           setOriginalCityInput(c);
           setBizId(biz.id);
           localStorage.setItem('country', country);
+
+          // Hydrate reminder preferences from DB (source of truth)
+          if (biz.email_reminders_enabled !== undefined) {
+            setEmailReminders(biz.email_reminders_enabled);
+            localStorage.setItem('emailReminders', JSON.stringify(biz.email_reminders_enabled));
+          }
+          if (Array.isArray(biz.reminder_days) && biz.reminder_days.length > 0) {
+            setReminderDays(biz.reminder_days);
+            localStorage.setItem('reminderDays', JSON.stringify(biz.reminder_days));
+          }
         }
       }).catch(() => {});
     }
@@ -377,6 +451,24 @@ export default function Settings() {
             </div>
           </div>
         )}
+
+        {/* Send Test Email */}
+        <div className="border-t border-rule/50 pt-4 mt-4">
+          <div className="flex items-center justify-between">
+            <div>
+              <div className="text-sm font-semibold text-ink">Send Test Email</div>
+              <div className="text-xs text-ink-faint mt-0.5">Verify your reminder emails are working by sending a test to your inbox</div>
+            </div>
+            <button
+              onClick={handleSendTestEmail}
+              disabled={sendingTestEmail}
+              className="btn-secondary text-xs px-4 py-2 flex items-center gap-2 shrink-0"
+            >
+              {sendingTestEmail ? <Loader2 size={14} className="animate-spin" /> : <Send size={14} />}
+              {sendingTestEmail ? 'Sending…' : 'Send Test'}
+            </button>
+          </div>
+        </div>
       </Section>
 
       {/* Language & Regional Preferences */}

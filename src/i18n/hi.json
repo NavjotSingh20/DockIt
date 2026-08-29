@@ -152,7 +152,9 @@
     "scan_btn": "स्कैन",
     "browse_catalog": "कैटलॉग देखें",
     "view_items": "आइटम देखें",
-    "app_pending": "आवेदन लंबित"
+    "app_pending": "आवेदन लंबित",
+    "apply_now": "आवेदन करें",
+    "renew_now": "नवीनीकरण करें"
   },
   "requirements": {
     "title": "आवश्यकताएं",

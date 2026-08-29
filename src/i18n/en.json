@@ -74,7 +74,9 @@
     "scan_btn": "SCAN",
     "browse_catalog": "Browse Catalog",
     "view_items": "View Items",
-    "app_pending": "Application pending"
+    "app_pending": "Application pending",
+    "apply_now": "Apply",
+    "renew_now": "Renew"
   },
   "requirements": {
     "title": "Requirements",

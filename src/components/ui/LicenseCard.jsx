@@ -161,7 +161,7 @@ export default function LicenseCard({ license, onRenew }) {
           className={`flex-1 py-1.5 px-2.5 rounded-md text-xs font-semibold font-display transition-colors flex items-center justify-center gap-1.5 shadow-subtle ${isExpired ? 'bg-danger hover:bg-danger/90 text-white' : isExpiring ? 'bg-caution hover:bg-caution/90 text-white' : 'bg-accent hover:bg-accent-dark text-white'}`}
         >
           <RefreshCw size={12} />
-          <span>{isNeeded ? 'Apply' : t('dashboard.renew_now', 'Renew')}</span>
+          <span>{isNeeded ? t('dashboard.apply_now', 'Apply') : t('dashboard.renew_now', 'Renew')}</span>
         </button>
       </div>
     </motion.div>

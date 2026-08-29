@@ -319,18 +319,6 @@ export default function NavBar({ business }) {
             </div>
           )}
 
-          {/* Language Switcher (EN / HI) */}
-          <button
-            onClick={() => {
-              const newLang = i18n.language === 'hi' ? 'en' : 'hi';
-              i18n.changeLanguage(newLang);
-            }}
-            className="inline-flex items-center justify-center h-8 px-2.5 rounded-xl text-xs font-bold font-display border border-rule bg-surface hover:bg-base text-ink transition-colors cursor-pointer leading-none select-none"
-            title="Switch Language / भाषा बदलें"
-          >
-            <span className="text-[11px] uppercase tracking-wider leading-none">{i18n.language === 'hi' ? 'हिन्दी' : 'EN'}</span>
-          </button>
-
           <NotificationBell />
           <UserMenu
             business={business}

@@ -1,6 +1,6 @@
 import { motion } from 'framer-motion';
 import { useNavigate } from 'react-router-dom';
-import { UtensilsCrossed, Flame, Store, Building2, Coffee, Receipt, SignpostBig, Pill, FileText, RefreshCw } from 'lucide-react';
+import { UtensilsCrossed, Flame, Store, Building2, Coffee, Receipt, SignpostBig, Pill, FileText, RefreshCw, ClipboardCheck, ArrowRight } from 'lucide-react';
 import StatusBadge from '../ui/StatusBadge';
 import { formatDate, formatCurrency } from '../../utils/formatters';
 import { getLicenseById } from '../../utils/licenseTypes';
@@ -10,25 +10,23 @@ import { useTranslation } from 'react-i18next';
 const ICON_MAP = { UtensilsCrossed, Flame, Store, Building2, Coffee, Receipt, SignpostBig, Pill, FileText };
 
 function MiniRing({ daysLeft, totalDays = 365 }) {
-  const size = 72, sw = 6, radius = (size - sw) / 2;
+  const size = 56, sw = 4.5, radius = (size - sw) / 2;
   const circ = 2 * Math.PI * radius;
   const pct = (daysLeft === null || daysLeft === undefined || daysLeft < 0) ? 0 : Math.min(1, daysLeft / totalDays);
   const offset = circ - pct * circ;
   const color = daysLeft < 0 ? '#C2410C' : daysLeft <= 7 ? '#C2410C' : daysLeft <= 30 ? '#CA8A04' : '#6B8F71';
   return (
-    <div className="relative inline-flex items-center justify-center">
+    <div className="relative inline-flex items-center justify-center shrink-0">
       <svg width={size} height={size} style={{ transform: 'rotate(-90deg)' }}>
-        <circle cx={size/2} cy={size/2} r={radius} fill="none" stroke="#E7E0D5" strokeWidth={sw} />
+        <circle cx={size/2} cy={size/2} r={radius} fill="none" stroke="#D6CFC4" strokeWidth={sw} />
         <circle cx={size/2} cy={size/2} r={radius} fill="none" stroke={color} strokeWidth={sw}
           strokeDasharray={circ} strokeDashoffset={offset} strokeLinecap="round" />
       </svg>
-      <div className="absolute text-center">
-        {daysLeft === null || daysLeft === undefined ? (
-          <span className="font-bold text-ink-faint" style={{fontSize:16}}>—</span>
-        ) : daysLeft < 0 ? (
-          <span className="text-danger font-black font-display" style={{fontSize:9}}>EXP</span>
+      <div className="absolute text-center flex items-center justify-center">
+        {daysLeft < 0 ? (
+          <span className="text-danger font-bold font-mono text-[10px]">EXP</span>
         ) : (
-          <span className="font-black font-display text-ink" style={{fontSize:11}}>{daysLeft}d</span>
+          <span className="font-bold font-mono text-ink text-xs">{daysLeft}d</span>
         )}
       </div>
     </div>
@@ -41,71 +39,107 @@ export default function LicenseCard({ license, onRenew }) {
   const def = getLicenseById(license.license_type);
   const Icon = ICON_MAP[def?.icon] || FileText;
   const { daysLeft, computedStatus } = license;
-  const isExpired = daysLeft < 0;
-  const isExpiring = !isExpired && daysLeft <= 30;
+  const isExpired = daysLeft < 0 || computedStatus === 'expired';
+  const isExpiring = !isExpired && daysLeft !== null && daysLeft <= 30;
+  const isNeeded = computedStatus === 'needed' || license.status === 'needed';
 
   const rule = PENALTY_RULES[license.license_type];
   const currentPenalty = rule?.slabs?.find(s => Math.abs(daysLeft) >= s.days_overdue)?.fine;
 
-  const borderColor = isExpired ? 'border-danger/30' : isExpiring ? 'border-caution/30' : 'border-rule';
-  const bgColor = isExpired ? 'bg-red-50/40' : '';
+  // Left status bar color
+  const leftBorderColor = isExpired ? 'border-l-danger' : isExpiring ? 'border-l-caution' : isNeeded ? 'border-l-rule-dark' : 'border-l-settled';
 
   return (
     <motion.div
-      initial={{ opacity: 0, y: 16 }}
+      initial={{ opacity: 0, y: 8 }}
       animate={{ opacity: 1, y: 0 }}
-      whileHover={{ y: -4, boxShadow: '0 8px 30px rgba(28,25,23,0.08)' }}
-      transition={{ duration: 0.2 }}
-      className={`h-full bg-surface rounded-2xl border-2 ${borderColor} ${bgColor} p-5 flex flex-col gap-3 ${isExpiring && !isExpired ? 'expiring-pulse' : ''}`}
+      whileHover={{ y: -2 }}
+      transition={{ duration: 0.15 }}
+      className={`h-full bg-surface rounded-lg border border-rule-dark border-l-[3px] ${leftBorderColor} shadow-card hover:shadow-card-hover p-4 flex flex-col justify-between gap-3 transition-shadow duration-150`}
     >
       {/* Header */}
       <div className="flex items-start justify-between gap-2">
-        <div className="flex items-center gap-3">
-          <div className={`w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0 ${isExpired ? 'bg-red-100' : isExpiring ? 'bg-accent-light' : 'bg-settled-light'}`}>
-            <Icon size={20} className={isExpired ? 'text-danger' : isExpiring ? 'text-accent' : 'text-settled'} />
+        <div className="flex items-center gap-2.5 min-w-0">
+          <div className={`w-8 h-8 rounded-md flex items-center justify-center flex-shrink-0 border ${isExpired ? 'bg-red-50 border-red-200 text-danger' : isExpiring ? 'bg-amber-50 border-amber-200 text-accent-dark' : isNeeded ? 'bg-base border-rule-dark text-ink-muted' : 'bg-settled/10 border-settled/20 text-settled'}`}>
+            <Icon size={16} />
           </div>
-          <div>
-            <div className="font-semibold text-ink text-sm leading-tight">{def?.name || license.license_type}</div>
-            <div className="text-xs text-ink-faint mt-0.5 truncate max-w-[130px]">{license.issuing_authority || def?.issuing_authority}</div>
+          <div className="min-w-0">
+            <div className="font-semibold font-display text-ink text-sm leading-snug truncate">
+              {t(`license_names.${def?.id || license.license_type}`, def?.name || license.license_type)}
+            </div>
+            <div className="text-[11px] text-ink-muted mt-0.5 truncate max-w-[140px]">
+              {t(`authorities.${license.issuing_authority || def?.issuing_authority}`, license.issuing_authority || def?.issuing_authority)}
+            </div>
           </div>
         </div>
         <StatusBadge status={computedStatus} />
       </div>
 
-      {/* Ring + days */}
-      <div className="flex items-center justify-between">
-        <MiniRing daysLeft={daysLeft} />
-        <div className="text-right">
-          <div className={`text-2xl font-black font-display ${daysLeft === null || daysLeft === undefined ? 'text-ink-faint' : isExpired ? 'text-danger' : isExpiring ? 'text-caution' : 'text-settled'}`}>
-            {daysLeft === null || daysLeft === undefined ? '—' : isExpired ? `${Math.abs(daysLeft)}d` : `${daysLeft}d`}
+      {/* Metric Middle Section */}
+      <div className="flex items-center justify-between py-1 bg-base/50 px-3 rounded-md border border-rule-dark/50">
+        {isNeeded ? (
+          <div className="flex items-center gap-2 py-1 text-ink-muted">
+            <ClipboardCheck size={20} className="text-ink-faint" />
+            <div className="text-xs font-display">
+              <span className="font-semibold text-ink">Action Required</span>
+              <div className="text-[10px] text-ink-faint">Application pending</div>
+            </div>
           </div>
-          <div className="text-xs text-ink-faint">
-            {daysLeft === null || daysLeft === undefined 
-              ? (license.status === 'needed' ? 'action required' : license.status === 'in_progress' ? 'in progress' : 'pending')
-              : (isExpired ? 'overdue' : t('dashboard.days_left'))}
+        ) : daysLeft !== null && daysLeft !== undefined ? (
+          <div className="flex items-center justify-between w-full">
+            <div className="flex items-center gap-3">
+              <MiniRing daysLeft={daysLeft} />
+              <div>
+                <div className="text-[10px] uppercase tracking-wider font-semibold font-display text-ink-muted">
+                  {isExpired ? t('dashboard.overdue', 'Overdue') : t('dashboard.days_left', 'Days Remaining')}
+                </div>
+                <div className={`text-xl font-bold font-mono ${isExpired ? 'text-danger' : isExpiring ? 'text-caution' : 'text-settled'}`}>
+                  {isExpired ? `${Math.abs(daysLeft)}d` : `${daysLeft}d`}
+                </div>
+              </div>
+            </div>
+            {isExpired && currentPenalty && (
+              <div className="text-right">
+                <div className="text-[10px] uppercase tracking-wider font-semibold font-display text-danger">{t('dashboard.fine', 'Fine')}</div>
+                <div className="text-xs font-bold font-mono text-danger">{formatCurrency(currentPenalty)}</div>
+              </div>
+            )}
           </div>
-          {isExpired && currentPenalty && (
-            <div className="text-xs font-bold text-danger mt-1">{formatCurrency(currentPenalty)} fine</div>
-          )}
-        </div>
+        ) : (
+          <div className="flex items-center gap-2 py-1 text-ink-muted">
+            <FileText size={18} className="text-ink-faint" />
+            <div className="text-xs font-display font-medium text-ink-muted">
+              {license.status === 'in_progress' ? t('status.in_progress', 'In Progress') : t('status.pending', 'Pending Verification')}
+            </div>
+          </div>
+        )}
       </div>
 
-      <div className="text-xs text-ink-faint border-t border-rule/50 pt-2">
-        Expires: <span className="font-medium text-ink-muted">{formatDate(license.expiry_date)}</span>
-        {license.license_number && <span className="ml-2 text-rule-dark">·</span>}
-        {license.license_number && <span className="ml-2 truncate">{license.license_number}</span>}
+      {/* Metadata strip */}
+      <div className="text-[11px] text-ink-muted border-t border-rule-dark/40 pt-2 flex items-center justify-between font-mono">
+        <span className="truncate">
+          <span className="text-ink-faint">{t('dashboard.expires_label', 'Expires')}:</span>{' '}
+          <strong className="font-semibold text-ink">{formatDate(license.expiry_date) || '—'}</strong>
+        </span>
+        {license.license_number && (
+          <span className="text-[10px] font-medium text-ink-faint truncate max-w-[100px]" title={license.license_number}>
+            #{license.license_number}
+          </span>
+        )}
       </div>
 
       {/* Actions */}
-      <div className="flex gap-2 mt-auto pt-1">
-        <button onClick={() => navigate(`/license/${license.id}`)} className="flex-1 py-2 rounded-xl border-2 border-rule text-ink-muted text-xs font-semibold hover:border-accent hover:text-accent transition-all">
-          {t('dashboard.view_details')}
+      <div className="flex gap-2 pt-0.5">
+        <button onClick={() => navigate(`/license/${license.id}`)} className="flex-1 py-1.5 px-2.5 rounded-md border border-rule-dark bg-surface hover:bg-base-dark text-ink text-xs font-medium font-display transition-colors flex items-center justify-center gap-1">
+          <span>{t('dashboard.view_details', 'Details')}</span>
+          <ArrowRight size={12} className="text-ink-faint" />
         </button>
         <button
           onClick={() => onRenew?.(license)}
-          className={`flex-1 py-2 rounded-xl text-xs font-semibold transition-all flex items-center justify-center gap-1 ${isExpired ? 'bg-danger hover:bg-danger/90 text-white' : isExpiring ? 'bg-caution hover:bg-caution/90 text-white' : 'bg-accent hover:bg-accent-dark text-white'}`}
+          className={`flex-1 py-1.5 px-2.5 rounded-md text-xs font-semibold font-display transition-colors flex items-center justify-center gap-1.5 shadow-subtle ${isExpired ? 'bg-danger hover:bg-danger/90 text-white' : isExpiring ? 'bg-caution hover:bg-caution/90 text-white' : 'bg-accent hover:bg-accent-dark text-white'}`}
         >
-          <RefreshCw size={12} /> {t('dashboard.renew_now')}
+          <RefreshCw size={12} />
+          <span>{isNeeded ? 'Apply' : t('dashboard.renew_now', 'Renew')}</span>
         </button>
       </div>
     </motion.div>

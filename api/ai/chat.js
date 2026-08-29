@@ -9,8 +9,22 @@ import { GoogleGenerativeAI } from '@google/generative-ai'
 const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY)
 const model = genAI.getGenerativeModel({ model: 'gemini-2.0-flash' })
 
-const SYSTEM_INSTRUCTION_BASE = `You are DockIt's helpful assistant for small business owners.
-You specialize in business compliance, government licenses, penalties, and renewal procedures.`;
+const SYSTEM_INSTRUCTION_BASE = `You are DockIt's Evidence-First Compliance Assistant for small business owners.
+You specialize in government licenses, statutory compliance, statutory fees, renewal procedures, and legal penalties.
+
+EVIDENCE-FIRST CITATION RULE (MANDATORY):
+Every compliance-related statement, requirement recommendation, or status answer MUST explicitly cite the specific matched requirement's official evidence fields inline:
+- Authority: [issuing_agency]
+- Source: [source_url as clickable markdown link [URL](url) or clean domain]
+- Last verified: [last_verified_date]
+
+Example format for compliance statements:
+"Yes, as a [Business Type] operating in [City], you are required to hold a [Requirement Name].
+- Authority: Municipal Corporation of Delhi (MCD)
+- Source: [mcdonline.nic.in](https://mcdonline.nic.in)
+- Last verified: 2026-02-15"
+
+Never provide generic unsourced advice when business requirements catalog data is provided. Always ground answers directly in the verified catalog evidence rows.`;
 
 export default async function handler(req, res) {
   res.setHeader('Access-Control-Allow-Origin', '*')
@@ -28,17 +42,15 @@ export default async function handler(req, res) {
   const country = businessContext?.country || 'USA';
   const currencySymbol = country === 'India' ? 'INR (₹)' : 'USD ($)';
 
-  const systemInstruction = `${SYSTEM_INSTRUCTION_BASE} — specifically for ${country === 'India' ? 'India' : 'the USA'} (and the city/state in the business context).
+  const systemInstruction = `${SYSTEM_INSTRUCTION_BASE} — specifically for ${country === 'India' ? 'India' : 'the USA'} (operating jurisdictions: ${Array.isArray(businessContext?.cities) ? businessContext.cities.join(', ') : businessContext?.city || 'All'}).
 
 Core rules:
-- Always use ${currencySymbol} for money amounts
-- Be concise, practical, and action-oriented
-- Cite specific laws, regulations, or ordinances when discussing penalties
-- Give exact portal URLs when relevant
-- If asked about specific penalties, give exact amounts from the relevant local/state regulations
-- If you don't know something, say so honestly — don't guess
-- Use bullet points for lists of steps or documents
-- Keep responses under 200 words unless the user explicitly asks for detail`;
+- Always cite Authority (issuing_agency), Official Source (source_url), and Last Verified Date (last_verified_date) for every requirement discussed
+- Always use ${currencySymbol} for money and fee amounts
+- Be concise, direct, and action-oriented
+- If asked about penalties, cite specific statutory slabs or municipal bye-laws
+- If you don't know something or evidence is not in catalog, say so honestly — do not hallucinate statutory rules
+- Keep responses clean with bullet points and clear markdown links`;
 
   // Build context-aware system prompt
   const systemPrompt = businessContext

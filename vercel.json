@@ -20,6 +20,18 @@
     },
     "api/cron-check.js": {
       "maxDuration": 60
+    },
+    "api/requirements/fetch.js": {
+      "maxDuration": 15
+    },
+    "api/requirements/batch-fetch.js": {
+      "maxDuration": 30
+    },
+    "api/requirements/reverify-scheduled.js": {
+      "maxDuration": 60
+    },
+    "api/requirements/health.js": {
+      "maxDuration": 10
     }
   }
 }

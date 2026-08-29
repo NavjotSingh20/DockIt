@@ -24,12 +24,12 @@ export function calculateComplianceScore(businessRequirements = []) {
       score -= 20;
     } else if (status === 'needed') {
       score -= 15;
-    } else if (status === 'in_progress') {
-      // Also factor in urgency via days left
+    } else if (status === 'in_progress' || status === 'payment_recorded') {
+      // Payment recorded or in progress — small deduction until verified/satisfied
       const d = br.daysLeft ?? getDaysLeft(br.expiry_date);
-      if (d !== null && d <= 7) score -= 12;
-      else if (d !== null && d <= 30) score -= 8;
-      else score -= 5;
+      if (d !== null && d <= 7) score -= 8;
+      else if (d !== null && d <= 30) score -= 5;
+      else score -= 3;
     } else if (status === 'satisfied') {
       // Check if it's about to expire
       const d = br.daysLeft ?? getDaysLeft(br.expiry_date);
@@ -63,7 +63,7 @@ export function getLicenseSummary(businessRequirements = []) {
   const total = businessRequirements.length;
   const expired = businessRequirements.filter(br => br.status === 'expired').length;
   const needed = businessRequirements.filter(br => br.status === 'needed').length;
-  const inProgress = businessRequirements.filter(br => br.status === 'in_progress').length;
+  const inProgress = businessRequirements.filter(br => br.status === 'in_progress' || br.status === 'payment_recorded').length;
   const satisfied = businessRequirements.filter(br => br.status === 'satisfied').length;
   const waived = businessRequirements.filter(br => br.status === 'waived').length;
 

@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { Outlet, useNavigate } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 import NavBar from './NavBar';
 import { useDemo } from '../../context/DemoContext';
 import { X } from 'lucide-react';
@@ -8,6 +9,7 @@ import { getBusiness } from '../../services/supabase';
 import ChatBot from '../features/ChatBot';
 
 export default function AppLayout() {
+  const { t } = useTranslation();
   const { user } = useAuth();
   const { isDemo, demoBusiness, exitDemo, activeProfileId, switchDemoProfile, demoProfiles } = useDemo();
   const navigate = useNavigate();
@@ -47,7 +49,7 @@ export default function AppLayout() {
         {isDemo && (
           <div className="bg-accent text-white text-xs sm:text-sm font-display font-medium px-4 py-2 flex flex-col sm:flex-row items-center justify-between gap-2 shadow-xs">
             <div className="flex items-center gap-2 flex-wrap">
-              <span><strong>Demo Mode Active</strong> —</span>
+              <span><strong>{t('dashboard.demo_mode_active', 'Demo Mode Active')}</strong> —</span>
               <div className="flex items-center gap-1.5 bg-black/20 px-2.5 py-1 rounded-xl sm:hidden">
                 <span className="text-[11px] text-white/80">Profile:</span>
                 <select
@@ -57,7 +59,7 @@ export default function AppLayout() {
                 >
                   {(demoProfiles || []).map((p) => (
                     <option key={p.id} value={p.id} className="text-ink font-medium">
-                      {p.label}
+                      {t(`profiles.${p.id}`, p.label)}
                     </option>
                   ))}
                 </select>
@@ -65,7 +67,7 @@ export default function AppLayout() {
             </div>
 
             <button onClick={() => { exitDemo(); navigate('/'); }} className="flex items-center gap-1 text-white/80 hover:text-white text-xs bg-white/10 hover:bg-white/20 px-2.5 py-1 rounded-lg transition-all">
-              <X size={14} /> Exit Demo
+              <X size={14} /> {t('dashboard.exit_demo', 'Exit Demo')}
             </button>
           </div>
         )}

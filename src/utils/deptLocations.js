@@ -76,6 +76,20 @@ export const DEPT_LOCATIONS = {
     { name: 'GST Seva Kendra — Delhi', type: 'tax', address: 'SCOPE Minar, Laxmi Nagar, Delhi 110092', lat: 28.6344, lng: 77.2779, phone: '1800-1200-232', url: 'https://www.gst.gov.in', issues: 'GST Registration' },
     { name: 'Delhi Fire Service HQ', type: 'fire', address: '27 Vikram Nagar, Delhi 110007', lat: 28.6680, lng: 77.1948, phone: '011-23221491', url: 'https://dfs.delhi.gov.in', issues: 'Fire NOC, Fire Safety' },
   ],
+  'new delhi, delhi': [
+    { name: 'MCD — Municipal Corporation of Delhi HQ', type: 'cityHall', address: 'Dr S P Mukherjee Civic Centre, JLN Marg, New Delhi 110002', lat: 28.6346, lng: 77.2403, phone: '011-23234661', url: 'https://www.mcdonline.nic.in', issues: 'Trade License, Health Trade License' },
+    { name: 'FSSAI — Delhi Regional Office', type: 'food', address: 'FDA Bhawan, Kotla Road, New Delhi 110002', lat: 28.6396, lng: 77.2475, phone: '011-23236975', url: 'https://foscos.fssai.gov.in', issues: 'FSSAI Food License' },
+    { name: 'Dept. of Labour — Delhi', type: 'labor', address: '5 Sham Nath Marg, Delhi 110054', lat: 28.6700, lng: 77.2260, phone: '011-23810001', url: 'https://labour.delhi.gov.in', issues: 'Shop & Establishment Registration' },
+    { name: 'GST Seva Kendra — Delhi', type: 'tax', address: 'SCOPE Minar, Laxmi Nagar, Delhi 110092', lat: 28.6344, lng: 77.2779, phone: '1800-1200-232', url: 'https://www.gst.gov.in', issues: 'GST Registration' },
+    { name: 'Income Tax Department — Delhi HQ', type: 'tax', address: 'CR Building, IP Estate, New Delhi 110002', lat: 28.6294, lng: 77.2461, phone: '011-23370075', url: 'https://www.incometax.gov.in', issues: 'Permanent Account Number (PAN)' },
+  ],
+  'chandigarh': [
+    { name: 'Chandigarh Labour Dept. — UT Administration', type: 'labor', address: 'Sector 30-B, Chandigarh 160030', lat: 30.7225, lng: 76.7905, phone: '0172-2703893', url: 'https://chandigarh.gov.in', issues: 'Shop & Establishment Registration' },
+    { name: 'FSSAI — Chandigarh UT Food Safety Cell', type: 'food', address: 'Government Multi Specialty Hospital, Sector 16, Chandigarh 160015', lat: 30.7455, lng: 76.7825, phone: '0172-2752042', url: 'https://foscos.fssai.gov.in', issues: 'FSSAI Food License (Chandigarh UT)' },
+    { name: 'Municipal Corporation Chandigarh (MCC)', type: 'cityHall', address: 'New Deluxe Building, Sector 17, Chandigarh 160017', lat: 30.7410, lng: 76.7850, phone: '0172-2787200', url: 'https://mcchandigarh.gov.in', issues: 'Trade License, Sanitation NOC' },
+    { name: 'GST Bhawan — Chandigarh Commissionerate', type: 'tax', address: 'Sector 17-C, Chandigarh 160017', lat: 30.7405, lng: 76.7812, phone: '0172-2702377', url: 'https://www.gst.gov.in', issues: 'GST Registration' },
+    { name: 'Income Tax Department — Chandigarh Aayakar Bhawan', type: 'tax', address: 'Sector 17-E, Chandigarh 160017', lat: 30.7390, lng: 76.7830, phone: '0172-2544155', url: 'https://www.incometax.gov.in', issues: 'Permanent Account Number (PAN)' },
+  ],
   'hyderabad, telangana': [
     { name: 'GHMC — Greater Hyderabad Municipal Corporation', type: 'cityHall', address: 'Tank Bund Rd, Lower Tank Bund, Hyderabad 500380', lat: 17.4126, lng: 78.4737, phone: '040-21112222', url: 'https://www.ghmc.gov.in', issues: 'Trade License, Building Permissions' },
     { name: 'FSSAI — Telangana State Licensing Authority', type: 'food', address: 'Hyderabad', lat: 17.3900, lng: 78.4867, phone: '040-23450246', url: 'https://foscos.fssai.gov.in', issues: 'State FSSAI License' },

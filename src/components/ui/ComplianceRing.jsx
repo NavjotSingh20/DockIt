@@ -25,7 +25,7 @@ export default function ComplianceRing({ score, size = 140, strokeWidth = 10, co
   return (
     <div className="relative inline-flex items-center justify-center">
       <svg width={size} height={size} style={{ transform: 'rotate(-90deg)' }}>
-        <circle cx={size / 2} cy={size / 2} r={radius} fill="none" stroke="#E7E0D5" strokeWidth={strokeWidth} />
+        <circle cx={size / 2} cy={size / 2} r={radius} fill="none" stroke="#D6CFC4" strokeWidth={strokeWidth} />
         <circle
           cx={size / 2} cy={size / 2} r={radius} fill="none"
           stroke={color} strokeWidth={strokeWidth}
@@ -34,9 +34,9 @@ export default function ComplianceRing({ score, size = 140, strokeWidth = 10, co
           style={{ transition: 'stroke-dashoffset 0.1s linear' }}
         />
       </svg>
-      <div className="absolute text-center">
-        <div className="text-3xl font-black font-display" style={{ color }}>{displayed}</div>
-        <div className="text-xs font-bold font-display text-ink-faint">Grade {grade}</div>
+      <div className="absolute text-center flex flex-col items-center justify-center">
+        <div className="text-2xl md:text-3xl font-bold font-mono tracking-tight" style={{ color }}>{displayed}%</div>
+        <div className="text-[10px] font-semibold font-display uppercase tracking-wider text-ink-muted">Grade {grade}</div>
       </div>
     </div>
   );

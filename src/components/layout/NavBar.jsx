@@ -6,12 +6,6 @@ import { useDemo } from '../../context/DemoContext';
 import { signOut } from '../../services/supabase';
 import { Button } from '../ui/button';
 import {
-  NavigationMenu,
-  NavigationMenuItem,
-  NavigationMenuLink,
-  NavigationMenuList,
-} from '../ui/navigation-menu';
-import {
   Popover,
   PopoverContent,
   PopoverTrigger,
@@ -26,11 +20,11 @@ import {
 } from '../ui/dropdown-menu';
 import { Avatar, AvatarFallback } from '../ui/avatar';
 import { Badge } from '../ui/badge';
+import DockItLogo from '../ui/DockItLogo';
 
 const NAV = [
   { to: '/dashboard', icon: LayoutDashboard, key: 'nav.dashboard' },
   { to: '/requirements', icon: ClipboardList, key: 'nav.requirements' },
-  { to: '/map', icon: Map, key: 'nav.map' },
   { to: '/analytics', icon: BarChart2, key: 'nav.analytics' },
 ];
 
@@ -139,7 +133,7 @@ function NotificationBell() {
 }
 
 export default function NavBar({ business }) {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   const { user } = useAuth();
   const { isDemo, exitDemo, activeProfileId, switchDemoProfile, demoProfiles } = useDemo();
   const navigate = useNavigate();
@@ -223,40 +217,28 @@ export default function NavBar({ business }) {
           </Popover>
 
           {/* Logo */}
-          <NavLink to="/dashboard" className="flex items-center gap-2">
-            <div className="w-8 h-8 bg-accent rounded-xl flex items-center justify-center">
-              <span className="text-white font-display font-bold text-sm">D</span>
-            </div>
-            <span className="font-display font-bold text-ink text-base tracking-tight hidden sm:inline">
-              Dock<span className="text-accent">It</span>
-            </span>
+          <NavLink to="/dashboard" className="flex items-center">
+            <DockItLogo size="sm" />
           </NavLink>
         </div>
 
         {/* Center: Desktop horizontal clean text navigation links */}
-        <div className="hidden md:flex absolute left-1/2 -translate-x-1/2 items-center">
-          <NavigationMenu>
-            <NavigationMenuList className="gap-8">
-              {NAV.map(({ to, key }) => (
-                <NavigationMenuItem key={to}>
-                  <NavigationMenuLink asChild>
-                    <NavLink
-                      to={to}
-                      className={({ isActive }) =>
-                        `text-sm font-medium transition-colors py-1.5 ${
-                          isActive
-                            ? 'text-ink font-semibold'
-                            : 'text-ink-muted hover:text-ink'
-                        }`
-                      }
-                    >
-                      {t(key)}
-                    </NavLink>
-                  </NavigationMenuLink>
-                </NavigationMenuItem>
-              ))}
-            </NavigationMenuList>
-          </NavigationMenu>
+        <div className="hidden md:flex absolute left-1/2 -translate-x-1/2 items-center gap-8">
+          {NAV.map(({ to, key }) => (
+            <NavLink
+              key={to}
+              to={to}
+              className={({ isActive }) =>
+                `text-sm font-medium transition-colors py-1.5 ${
+                  isActive
+                    ? 'text-ink font-semibold'
+                    : 'text-ink-muted hover:text-ink'
+                }`
+              }
+            >
+              {t(key)}
+            </NavLink>
+          ))}
         </div>
 
         {/* Right side: Action Cluster */}
@@ -272,12 +254,24 @@ export default function NavBar({ business }) {
               >
                 {(demoProfiles || []).map((p) => (
                   <option key={p.id} value={p.id} className="text-ink font-medium bg-surface">
-                    {p.label}
+                    {t(`profiles.${p.id}`, p.label)}
                   </option>
                 ))}
               </select>
             </div>
           )}
+
+          {/* Language Switcher (EN / HI) */}
+          <button
+            onClick={() => {
+              const newLang = i18n.language === 'hi' ? 'en' : 'hi';
+              i18n.changeLanguage(newLang);
+            }}
+            className="flex items-center gap-1 px-2.5 py-1 rounded-xl text-xs font-bold font-display border border-rule bg-surface hover:bg-base text-ink transition-colors cursor-pointer"
+            title="Switch Language / भाषा बदलें"
+          >
+            <span className="text-[11px] uppercase tracking-wider">{i18n.language === 'hi' ? 'हिन्दी' : 'EN'}</span>
+          </button>
 
           <NotificationBell />
           <UserMenu

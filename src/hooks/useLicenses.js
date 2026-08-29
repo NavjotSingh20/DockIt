@@ -10,7 +10,11 @@ export function useLicenses(businessId, demoLicenses = null) {
   const enrich = (list) =>
     list.map((l) => {
       const daysLeft = getDaysLeft(l.expiry_date);
-      return { ...l, daysLeft, computedStatus: getStatusFromDays(daysLeft) };
+      let computedStatus = l.status;
+      if (!computedStatus || computedStatus === 'satisfied' || computedStatus === 'active') {
+        computedStatus = getStatusFromDays(daysLeft);
+      }
+      return { ...l, daysLeft, computedStatus };
     }).sort((a, b) => (a.daysLeft ?? 9999) - (b.daysLeft ?? 9999));
 
   const load = useCallback(async () => {

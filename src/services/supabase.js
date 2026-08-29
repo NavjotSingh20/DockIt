@@ -1,5 +1,6 @@
 import { createClient } from '@supabase/supabase-js';
 import { isRequirementApplicable, synthesizeCityRequirements } from '../utils/jurisdictionEngine';
+import { enrichRequirements } from './requirementsFetcher';
 
 const rawUrl = import.meta.env.VITE_SUPABASE_URL || '';
 const rawKey = import.meta.env.VITE_SUPABASE_ANON_KEY || '';
@@ -101,30 +102,42 @@ export async function getRequirements(businessType, cities = []) {
   if (error) throw error;
 
   const catalog = data || [];
+  let finalRequirements;
+
   if (!cities || cities.length === 0) {
-    return catalog;
-  }
+    finalRequirements = catalog;
+  } else {
+    const matched = catalog.filter(r => isRequirementApplicable(r, cities, businessType));
 
-  const matched = catalog.filter(r => isRequirementApplicable(r, cities, businessType));
+    // Deduplicate by requirement_name and city/jurisdiction
+    const seenKeys = new Set();
+    const deduplicated = [];
+    for (const r of matched) {
+      const key = `${r.requirement_name?.toLowerCase().trim()}_${(r.city || '').toLowerCase().trim()}`;
+      if (!seenKeys.has(key)) { seenKeys.add(key); deduplicated.push(r); }
+    }
 
-  // Deduplicate by requirement_name and city/jurisdiction to prevent duplicate catalog entries
-  const seenKeys = new Set();
-  const deduplicated = [];
-  for (const r of matched) {
-    const key = `${r.requirement_name?.toLowerCase().trim()}_${(r.city || '').toLowerCase().trim()}`;
-    if (!seenKeys.has(key)) {
-      seenKeys.add(key);
-      deduplicated.push(r);
+    // If specific cities have no matched catalog rows in DB, synthesize statutory defaults
+    if (deduplicated.length === 0 && cities.length > 0) {
+      finalRequirements = cities.flatMap(c => synthesizeCityRequirements(c, businessType));
+    } else {
+      finalRequirements = deduplicated;
     }
   }
 
-  // If specific cities have no matched catalog rows in DB, synthesize statutory defaults
-  if (deduplicated.length === 0 && cities.length > 0) {
-    const allSynthesized = cities.flatMap(c => synthesizeCityRequirements(c, businessType));
-    return allSynthesized;
+  // ── Live-Scrape Enrichment (with transparent Supabase fallback) ────────
+  // enrichRequirements calls /api/requirements/batch-fetch server-side.
+  // On any failure (timeout, CORS, non-2xx, parse error) it silently
+  // returns the stored Supabase data unchanged — the UI is never broken.
+  try {
+    const enriched = await enrichRequirements(finalRequirements);
+    return enriched;
+  } catch (enrichErr) {
+    // Absolute last-resort: enrichRequirements itself should never throw,
+    // but if it does, return the raw Supabase data as-is.
+    console.warn('[getRequirements] enrichRequirements threw unexpectedly:', enrichErr);
+    return finalRequirements;
   }
-
-  return deduplicated;
 }
 
 

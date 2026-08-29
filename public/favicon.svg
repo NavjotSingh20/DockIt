@@ -1,0 +1,14 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32" fill="none">
+  <!-- Clipboard body -->
+  <rect x="5" y="6" width="22" height="24" rx="2.5" stroke="#1C1917" stroke-width="2.2" fill="#F5F2EB"/>
+  <!-- Clip bar at top (amber) -->
+  <rect x="11" y="3" width="10" height="5.5" rx="2" fill="#D97706"/>
+  <!-- Clip ring -->
+  <circle cx="16" cy="4.5" r="1.5" fill="#D97706"/>
+  <!-- Checkmark (amber) -->
+  <polyline points="10,16 14,20.5 22,12" stroke="#D97706" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/>
+  <!-- Text lines (ink) -->
+  <line x1="9.5" y1="23.5" x2="22.5" y2="23.5" stroke="#1C1917" stroke-width="1.8" stroke-linecap="round"/>
+  <line x1="9.5" y1="26.5" x2="18" y2="26.5" stroke="#1C1917" stroke-width="1.8" stroke-linecap="round"/>
+</svg>
+

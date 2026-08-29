@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import toast from 'react-hot-toast';
 import { Bell, Zap, Save, Pencil, Check } from 'lucide-react';
+import { useTranslation } from 'react-i18next';
 import { useDemo } from '../context/DemoContext';
 import { useAuth } from '../hooks/useAuth';
 import { getBusiness, updateBusiness } from '../services/supabase';
@@ -51,6 +52,7 @@ function Section({ title, children }) {
 }
 
 export default function Settings() {
+  const { t, i18n } = useTranslation();
   const { isDemo, demoBusiness, enterDemo, exitDemo, updateDemoBusiness } = useDemo();
   const { user } = useAuth();
   const navigate = useNavigate();
@@ -375,6 +377,44 @@ export default function Settings() {
             </div>
           </div>
         )}
+      </Section>
+
+      {/* Language & Regional Preferences */}
+      <Section title="Language & Regional">
+        <div className="flex items-center justify-between">
+          <div>
+            <div className="text-sm font-semibold text-ink">Interface Language / इंटरफ़ेस भाषा</div>
+            <div className="text-xs text-ink-faint mt-0.5">Select your preferred display language across all pages</div>
+          </div>
+          <div className="flex items-center gap-2">
+            <button
+              onClick={() => {
+                i18n.changeLanguage('en');
+                toast.success('Language changed to English');
+              }}
+              className={`px-3 py-1.5 rounded-xl text-xs font-bold font-display border transition-all ${
+                i18n.language !== 'hi'
+                  ? 'bg-accent text-white border-accent shadow-sm'
+                  : 'bg-surface text-ink-muted border-rule hover:text-ink'
+              }`}
+            >
+              English
+            </button>
+            <button
+              onClick={() => {
+                i18n.changeLanguage('hi');
+                toast.success('भाषा बदलकर हिन्दी कर दी गई है');
+              }}
+              className={`px-3 py-1.5 rounded-xl text-xs font-bold font-display border transition-all ${
+                i18n.language === 'hi'
+                  ? 'bg-accent text-white border-accent shadow-sm'
+                  : 'bg-surface text-ink-muted border-rule hover:text-ink'
+              }`}
+            >
+              हिन्दी (Hindi)
+            </button>
+          </div>
+        </div>
       </Section>
 
       {/* Demo mode */}

@@ -6,6 +6,7 @@ import {
   Building2, AlertCircle, Sparkles, MapPin, X, ChevronRight, CheckCircle2, FileDown
 } from 'lucide-react';
 import toast from 'react-hot-toast';
+import { useTranslation } from 'react-i18next';
 import { useDemo } from '../context/DemoContext';
 import { getRequirements, getBusinessRequirements, createBusinessRequirement, updateBusiness } from '../services/supabase';
 import { formatCurrency } from '../utils/formatters';
@@ -34,12 +35,13 @@ const CITIES_DATA = {
 };
 
 const JURISDICTION_CLASSES = {
-  federal: 'bg-purple-50 text-purple-700 border-purple-200/60 dark:bg-purple-950/40 dark:text-purple-300 dark:border-purple-800/40',
-  state: 'bg-blue-50 text-blue-700 border-blue-200/60 dark:bg-blue-950/40 dark:text-blue-300 dark:border-blue-800/40',
-  city: 'bg-amber-50 text-amber-800 border-amber-200/60 dark:bg-amber-950/40 dark:text-amber-300 dark:border-amber-800/40',
+  federal: 'bg-purple-50 text-purple-700 border-purple-200',
+  state: 'bg-blue-50 text-blue-700 border-blue-200',
+  city: 'bg-amber-50 text-amber-800 border-amber-200',
 };
 
 export default function MyRequirements() {
+  const { t } = useTranslation();
   const context = useOutletContext();
   const business = context?.business;
   const navigate = useNavigate();
@@ -127,7 +129,6 @@ export default function MyRequirements() {
   }, [isDemo, activeBiz?.id, businessType, JSON.stringify(operatingCities), demoRequirements, demoBusinessRequirements]);
 
 
-  // Handle Adding a New Operating City (Smart-Diff Trigger)
   // Handle Adding a New Operating City (Smart-Diff Trigger)
   const handleAddCity = async (cityStateStr) => {
     if (!cityStateStr || operatingCities.includes(cityStateStr)) {
@@ -289,13 +290,11 @@ export default function MyRequirements() {
       const isFederal = req.jurisdiction_level === 'federal';
 
       if (isFederal && isTracked) {
-        // Federal items tracked under any city are auto-satisfied for all cities
         if (!seenReqKeys.has(`federal_${req.requirement_name.toLowerCase()}`)) {
           seenReqKeys.add(`federal_${req.requirement_name.toLowerCase()}`);
           coveredFederal.push(req);
         }
       } else {
-        // Group by city name and deduplicate
         const cityKey = req.city || 'General / Federal';
         const dedupeKey = `${cityKey}_${req.requirement_name?.toLowerCase().trim()}`;
         if (!seenReqKeys.has(dedupeKey)) {
@@ -320,29 +319,29 @@ export default function MyRequirements() {
   return (
     <div className="space-y-6 max-w-7xl mx-auto">
       {/* Top Header */}
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 bg-surface p-6 rounded-3xl border border-rule shadow-card">
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 bg-surface p-5 md:p-6 rounded-lg border border-rule-dark shadow-card">
         <div>
           <div className="flex items-center gap-3 mb-1">
-            <div className="w-10 h-10 bg-accent/10 rounded-2xl flex items-center justify-center text-accent">
-              <ClipboardList size={22} />
+            <div className="w-9 h-9 bg-accent/10 rounded-md border border-accent/20 flex items-center justify-center text-accent">
+              <ClipboardList size={18} />
             </div>
             <div>
-              <h1 className="text-2xl font-bold font-display text-ink">Requirements</h1>
-              <p className="text-sm text-ink-muted">Master legal discovery catalog & multi-jurisdiction smart-diff engine</p>
+              <h1 className="text-xl md:text-2xl font-bold font-display text-ink tracking-tight">{t('requirements.title')}</h1>
+              <p className="text-xs text-ink-muted">{t('requirements.subtitle')}</p>
             </div>
           </div>
         </div>
 
         {/* Operating Cities Badges & Add City Action */}
         <div className="flex flex-wrap items-center gap-2">
-          <span className="text-xs font-display font-semibold px-3 py-1.5 bg-base rounded-xl border border-rule text-ink-muted flex items-center gap-1.5">
-            <Building2 size={13} className="text-accent" />
+          <span className="text-xs font-display font-medium px-2.5 py-1 bg-base rounded-md border border-rule-dark text-ink-muted flex items-center gap-1.5">
+            <Building2 size={12} className="text-accent" />
             <span className="capitalize">{businessType.replace('_', ' ')}</span>
           </span>
 
           {operatingCities.map((city, idx) => (
-            <span key={idx} className="text-xs font-display font-semibold px-3 py-1.5 bg-accent/10 text-accent-dark rounded-xl border border-accent/20 flex items-center gap-1.5">
-              <MapPin size={12} className="text-accent" />
+            <span key={idx} className="text-xs font-display font-medium px-2.5 py-1 bg-accent/8 text-accent-dark rounded-md border border-accent/20 flex items-center gap-1.5">
+              <MapPin size={11} className="text-accent" />
               {city}
             </span>
           ))}
@@ -350,38 +349,38 @@ export default function MyRequirements() {
           {/* Quick Add City Button */}
           <button
             onClick={() => setShowAddCityModal(true)}
-            className="btn-secondary text-xs px-3 py-1.5 flex items-center gap-1 border-dashed border-accent/40 text-accent hover:bg-accent-light"
+            className="btn-secondary text-xs px-2.5 py-1 flex items-center gap-1 border-dashed border-rule-dark hover:border-accent text-accent"
           >
-            <Plus size={14} /> Add City
+            <Plus size={13} /> {t('requirements.add_city')}
           </button>
         </div>
       </div>
 
-      {/* Smart-Diff Jurisdiction Banner (Visible when multiple cities or federal items active) */}
+      {/* Smart-Diff Jurisdiction Banner */}
       {isMultiCity && (
         <motion.div
-          initial={{ opacity: 0, y: -10 }}
+          initial={{ opacity: 0, y: -6 }}
           animate={{ opacity: 1, y: 0 }}
-          className="bg-accent/10 border-2 border-accent/30 rounded-2xl p-4 flex flex-col md:flex-row md:items-center justify-between gap-3"
+          className="bg-accent/8 border border-accent/25 border-l-[3px] border-l-accent rounded-lg p-3.5 shadow-card flex flex-col md:flex-row md:items-center justify-between gap-3"
         >
           <div className="flex items-center gap-3">
-            <div className="w-9 h-9 bg-accent rounded-xl flex items-center justify-center text-white shrink-0">
-              <Sparkles size={20} />
+            <div className="w-8 h-8 bg-accent rounded-md flex items-center justify-center text-white shrink-0 shadow-subtle">
+              <Sparkles size={16} />
             </div>
             <div>
-              <div className="font-bold text-accent-dark font-display text-sm flex items-center gap-2">
+              <div className="font-bold text-accent-dark font-display text-xs md:text-sm flex items-center gap-2">
                 Smart-Diff Engine Active
-                <span className="text-[10px] bg-accent text-white px-2 py-0.5 rounded-full font-bold uppercase">
-                  {operatingCities.length} Jurisdictions Merged
+                <span className="text-[10px] font-mono bg-accent text-white px-2 py-0.2 rounded font-semibold uppercase">
+                  {operatingCities.length} Jurisdictions
                 </span>
               </div>
               <p className="text-xs text-ink-muted mt-0.5">
-                Cross-referencing <strong>{operatingCities.join(' & ')}</strong>. Federal requirements (EIN) auto-deduplicated across cities.
+                Cross-referencing <strong>{operatingCities.join(' & ')}</strong>. Federal requirements auto-deduplicated across cities.
               </p>
             </div>
           </div>
-          <div className="text-xs font-bold font-display px-3 py-1.5 bg-surface text-ink rounded-xl border border-rule self-start md:self-auto shadow-xs flex items-center gap-1.5">
-            <Sparkles size={14} className="text-accent" /> Reusable Federal Covered / New City Permits Merged
+          <div className="text-[11px] font-medium font-display px-2.5 py-1 bg-surface text-ink-muted rounded-md border border-rule-dark self-start md:self-auto shadow-subtle flex items-center gap-1.5">
+            <Sparkles size={12} className="text-accent" /> Reusable Federal Covered
           </div>
         </motion.div>
       )}
@@ -390,29 +389,29 @@ export default function MyRequirements() {
       <div className="flex flex-col sm:flex-row gap-3">
         {/* Search */}
         <div className="relative flex-1">
-          <Search size={18} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-ink-faint" />
+          <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-ink-faint" />
           <input
             type="text"
-            placeholder="Search license name, agency, or keywords..."
+            placeholder={t('requirements.search_placeholder')}
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            className="input pl-10 w-full"
+            className="input pl-9 w-full text-xs"
           />
         </div>
 
         {/* Jurisdiction Filters */}
-        <div className="flex items-center bg-surface p-1 rounded-2xl border border-rule gap-1">
+        <div className="flex items-center bg-surface p-1 rounded-md border border-rule-dark gap-1 shadow-subtle">
           {['all', 'federal', 'state', 'city'].map((j) => (
             <button
               key={j}
               onClick={() => setJurisdictionFilter(j)}
-              className={`px-3.5 py-1.5 text-xs font-bold font-display rounded-xl transition-all capitalize ${
+              className={`px-3 py-1 text-xs font-medium font-display rounded transition-all capitalize ${
                 jurisdictionFilter === j
-                  ? 'bg-accent text-white shadow-sm'
+                  ? 'bg-accent text-white shadow-subtle'
                   : 'text-ink-muted hover:text-ink hover:bg-base'
               }`}
             >
-              {j}
+              {t(`requirements.${j}`)}
             </button>
           ))}
         </div>
@@ -422,80 +421,77 @@ export default function MyRequirements() {
       {loading ? (
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           {[1, 2, 3, 4].map((n) => (
-            <div key={n} className="bg-surface rounded-2xl border border-rule p-6 space-y-4">
-              <div className="skeleton h-6 w-2/3 rounded-lg" />
-              <div className="skeleton h-4 w-1/3 rounded-lg" />
-              <div className="skeleton h-16 w-full rounded-xl" />
+            <div key={n} className="bg-surface rounded-lg border border-rule-dark p-5 space-y-3 shadow-card">
+              <div className="skeleton h-5 w-2/3" />
+              <div className="skeleton h-3.5 w-1/3" />
+              <div className="skeleton h-14 w-full" />
             </div>
           ))}
         </div>
       ) : filteredRequirements.length > 0 ? (
-        <div className="space-y-8">
+        <div className="space-y-6">
           {/* SECTION 1: Covered / Reusable Across Cities (Federal) */}
           {coveredFederalReqs.length > 0 && (
-            <div className="space-y-4">
-              <div className="flex items-center gap-2 border-b border-rule pb-2">
-                <CheckCircle2 size={18} className="text-settled" />
-                <h2 className="text-base font-bold font-display text-ink">
+            <div className="space-y-3">
+              <div className="flex items-center gap-2 border-b border-rule-dark pb-2">
+                <CheckCircle2 size={16} className="text-settled" />
+                <h2 className="text-sm font-bold font-display text-ink tracking-tight">
                   Covered Across Cities (Federal / Reusable Permits)
                 </h2>
-                <span className="text-xs font-display font-semibold px-2 py-0.5 bg-settled/10 text-settled rounded-full">
+                <span className="text-[11px] font-mono px-2 py-0.2 bg-settled/10 text-settled rounded-md border border-settled/20 font-semibold">
                   {coveredFederalReqs.length} Covered
                 </span>
               </div>
 
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 {coveredFederalReqs.map((req) => (
                   <motion.div
                     key={req.id}
-                    initial={{ opacity: 0, y: 10 }}
+                    initial={{ opacity: 0, y: 6 }}
                     animate={{ opacity: 1, y: 0 }}
-                    className="bg-surface rounded-3xl border-2 border-settled/30 p-6 shadow-card flex flex-col justify-between"
+                    className="bg-surface rounded-lg border border-rule-dark border-l-[3px] border-l-settled p-5 shadow-card flex flex-col justify-between"
                   >
                     <div>
-                      <div className="flex items-center justify-between gap-2 mb-3">
-                        <span className="text-[11px] font-display font-bold uppercase tracking-wider px-2.5 py-1 rounded-lg border bg-purple-50 text-purple-700 border-purple-200">
+                      <div className="flex items-center justify-between gap-2 mb-2.5">
+                        <span className="text-[10px] font-display font-semibold uppercase tracking-wider px-2 py-0.5 rounded border bg-purple-50 text-purple-700 border-purple-200">
                           {req.jurisdiction_level}
                         </span>
-                        <span className="text-xs font-bold font-display text-settled flex items-center gap-1">
-                          <CheckCircle2 size={13} /> Reusable for All Cities
+                        <span className="text-xs font-medium font-display text-settled flex items-center gap-1">
+                          <CheckCircle2 size={13} /> Satisfied
                         </span>
                       </div>
 
-                      <h3 className="text-lg font-bold font-display text-ink leading-snug mb-1">
+                      <h3 className="text-base font-bold font-display text-ink leading-snug mb-1">
                         {req.requirement_name}
                       </h3>
-                      <p className="text-xs text-ink-muted font-medium mb-3 flex items-center gap-1.5">
-                        <Building2 size={13} className="text-ink-faint" />
+                      <p className="text-xs text-ink-muted font-medium mb-2.5 flex items-center gap-1.5 font-mono">
+                        <Building2 size={12} className="text-ink-faint" />
                         {req.issuing_agency}
                       </p>
 
                       {req.description && (
-                        <p className="text-xs text-ink-muted leading-relaxed line-clamp-3 mb-4 bg-base p-3 rounded-xl border border-rule/60">
+                        <p className="text-xs text-ink-muted leading-relaxed line-clamp-3 mb-3.5 bg-base p-2.5 rounded-md border border-rule-dark/50">
                           {req.description}
                         </p>
                       )}
                     </div>
 
                     {/* Footer Action Bar */}
-                    <div className="pt-4 border-t border-rule/60">
+                    <div className="pt-3 border-t border-rule-dark/50 space-y-2">
                       <button
                         onClick={() => handleDownloadPacket(req)}
-                        className="w-full group flex items-center gap-3 px-4 py-3 rounded-2xl bg-ink hover:bg-ink/80 text-white transition-all hover:scale-[1.01] shadow-sm"
+                        className="w-full flex items-center justify-between px-3 py-2 rounded-md bg-ink hover:bg-ink/90 text-white transition-colors shadow-subtle text-xs"
                         title="Download your pre-filled official application form"
                       >
-                        <div className="w-8 h-8 rounded-xl bg-white/10 flex items-center justify-center flex-shrink-0 group-hover:bg-white/20 transition-colors">
-                          <FileDown size={15} className="text-white" />
+                        <div className="flex items-center gap-2">
+                          <FileDown size={14} className="text-white/80" />
+                          <span className="font-semibold font-display">Pre-fill &amp; Download Form</span>
                         </div>
-                        <div className="flex-1 text-left">
-                          <div className="text-xs font-bold font-display leading-none">Pre-fill &amp; Download Form</div>
-                          <div className="text-[10px] text-white/50 mt-0.5 font-display">Official form auto-filled with your business data</div>
-                        </div>
-                        <ExternalLink size={13} className="text-white/40 group-hover:text-white/70 transition-colors flex-shrink-0" />
+                        <ExternalLink size={12} className="text-white/50" />
                       </button>
-                      <div className="flex items-center justify-end mt-2.5">
-                        <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold font-display bg-settled/15 text-settled border border-settled/30">
-                          <Check size={13} strokeWidth={3} /> Satisfied across all locations
+                      <div className="flex items-center justify-end">
+                        <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-md text-[11px] font-medium font-display bg-settled/10 text-settled border border-settled/25">
+                          <Check size={12} strokeWidth={2.5} /> Active across all locations
                         </span>
                       </div>
                     </div>
@@ -507,20 +503,20 @@ export default function MyRequirements() {
 
           {/* SECTION 2: City-Specific Groups */}
           {Object.entries(citySpecificGroups).map(([cityName, items]) => (
-            <div key={cityName} className="space-y-4">
-              <div className="flex items-center justify-between border-b border-rule pb-2">
+            <div key={cityName} className="space-y-3">
+              <div className="flex items-center justify-between border-b border-rule-dark pb-2">
                 <div className="flex items-center gap-2">
-                  <MapPin size={18} className="text-accent" />
-                  <h2 className="text-base font-bold font-display text-ink">
+                  <MapPin size={16} className="text-accent" />
+                  <h2 className="text-sm font-bold font-display text-ink tracking-tight">
                     {isMultiCity ? `Permits for ${cityName}` : `Required Permits — ${cityName}`}
                   </h2>
-                  <span className="text-xs font-display font-semibold px-2 py-0.5 bg-accent/10 text-accent rounded-full">
+                  <span className="text-[11px] font-mono px-2 py-0.2 bg-accent/10 text-accent rounded-md border border-accent/20 font-semibold">
                     {items.length} Required
                   </span>
                 </div>
               </div>
 
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 {items.map((req) => {
                   const isTracked = trackedReqIds.has(req.id);
                   const isAdding = addingId === req.id;
@@ -529,57 +525,57 @@ export default function MyRequirements() {
                   return (
                     <motion.div
                       key={req.id}
-                      initial={{ opacity: 0, y: 12 }}
+                      initial={{ opacity: 0, y: 6 }}
                       animate={{ opacity: 1, y: 0 }}
-                      className="bg-surface rounded-3xl border border-rule p-6 shadow-card hover:shadow-card-hover transition-all flex flex-col justify-between"
+                      className={`bg-surface rounded-lg border border-rule-dark shadow-card hover:shadow-card-hover transition-all p-5 flex flex-col justify-between ${isTracked ? 'border-l-[3px] border-l-settled' : 'border-l-[3px] border-l-accent'}`}
                     >
                       <div>
                         {/* Header Badges */}
-                        <div className="flex items-center justify-between gap-2 mb-3">
-                          <span className={`text-[11px] font-display font-bold uppercase tracking-wider px-2.5 py-1 rounded-lg border ${jurisClass}`}>
+                        <div className="flex items-center justify-between gap-2 mb-2.5">
+                          <span className={`text-[10px] font-display font-semibold uppercase tracking-wider px-2 py-0.5 rounded border ${jurisClass}`}>
                             {req.jurisdiction_level}
                           </span>
-                          <span className="text-xs text-ink-faint font-medium flex items-center gap-1">
-                            <MapPin size={12} /> {req.city}
+                          <span className="text-xs text-ink-muted font-medium flex items-center gap-1 font-mono">
+                            <MapPin size={11} className="text-ink-faint" /> {req.city}
                           </span>
                         </div>
 
                         {/* Title & Agency */}
-                        <h3 className="text-lg font-bold font-display text-ink leading-snug mb-1">
+                        <h3 className="text-base font-bold font-display text-ink leading-snug mb-1">
                           {req.requirement_name}
                         </h3>
-                        <p className="text-xs text-ink-muted font-medium mb-3 flex items-center gap-1.5">
-                          <Building2 size={13} className="text-ink-faint" />
+                        <p className="text-xs text-ink-muted font-medium mb-2.5 flex items-center gap-1.5 font-mono">
+                          <Building2 size={12} className="text-ink-faint" />
                           {req.issuing_agency}
                         </p>
 
                         {/* Description */}
                         {req.description && (
-                          <p className="text-xs text-ink-muted leading-relaxed line-clamp-3 mb-4 bg-base p-3 rounded-xl border border-rule/60">
+                          <p className="text-xs text-ink-muted leading-relaxed line-clamp-3 mb-3.5 bg-base p-2.5 rounded-md border border-rule-dark/50">
                             {req.description}
                           </p>
                         )}
 
-                        {/* Key Details Pills */}
-                        <div className="grid grid-cols-2 gap-2 mb-5">
+                        {/* Key Details Grid */}
+                        <div className="grid grid-cols-2 gap-2 mb-4">
                           {/* Fee */}
-                          <div className="bg-base/70 p-2.5 rounded-xl border border-rule/60">
-                            <div className="text-[10px] font-display uppercase tracking-wide text-ink-faint font-semibold">Estimated Fee</div>
-                            <div className="text-xs font-bold text-ink mt-0.5">
+                          <div className="bg-base/70 p-2 rounded-md border border-rule-dark/60">
+                            <div className="text-[10px] font-display uppercase tracking-wider text-ink-muted font-semibold">Estimated Fee</div>
+                            <div className="text-xs font-bold font-mono text-ink mt-0.5">
                               {req.fee_min !== null && req.fee_max !== null
                                 ? (req.fee_min === 0 && req.fee_max === 0
                                     ? 'Free / Included'
                                     : `${formatCurrency(req.fee_min, country)} – ${formatCurrency(req.fee_max, country)}`)
-                                : <span className="text-amber-700 dark:text-amber-400 italic text-[11px]">Fee Verification Pending</span>
+                                : <span className="text-accent-dark italic text-[11px]">Fee Verification Pending</span>
                               }
                             </div>
                           </div>
 
                           {/* Processing Time */}
-                          <div className="bg-base/70 p-2.5 rounded-xl border border-rule/60">
-                            <div className="text-[10px] font-display uppercase tracking-wide text-ink-faint font-semibold">Processing Time</div>
-                            <div className="text-xs font-bold text-ink mt-0.5 flex items-center gap-1">
-                              <Clock size={12} className="text-ink-faint" />
+                          <div className="bg-base/70 p-2 rounded-md border border-rule-dark/60">
+                            <div className="text-[10px] font-display uppercase tracking-wider text-ink-muted font-semibold">Processing Time</div>
+                            <div className="text-xs font-bold font-mono text-ink mt-0.5 flex items-center gap-1">
+                              <Clock size={11} className="text-ink-faint" />
                               {req.processing_time || 'Varies by agency'}
                             </div>
                           </div>
@@ -587,34 +583,31 @@ export default function MyRequirements() {
                       </div>
 
                       {/* Footer Action Bar */}
-                      <div className="pt-4 border-t border-rule/60 space-y-2.5">
+                      <div className="pt-3 border-t border-rule-dark/50 space-y-2">
                         <button
                           onClick={() => handleDownloadPacket(req)}
-                          className="w-full group flex items-center gap-3 px-4 py-3 rounded-2xl bg-ink hover:bg-ink/80 text-white transition-all hover:scale-[1.01] shadow-sm"
+                          className="w-full flex items-center justify-between px-3 py-2 rounded-md bg-ink hover:bg-ink/90 text-white transition-colors shadow-subtle text-xs"
                           title="Download your pre-filled official application form"
                         >
-                          <div className="w-8 h-8 rounded-xl bg-white/10 flex items-center justify-center flex-shrink-0 group-hover:bg-white/20 transition-colors">
-                            <FileDown size={15} className="text-white" />
+                          <div className="flex items-center gap-2">
+                            <FileDown size={14} className="text-white/80" />
+                            <span className="font-semibold font-display">Pre-fill &amp; Download Form</span>
                           </div>
-                          <div className="flex-1 text-left">
-                            <div className="text-xs font-bold font-display leading-none">Pre-fill &amp; Download Form</div>
-                            <div className="text-[10px] text-white/50 mt-0.5 font-display">Official form auto-filled with your business data</div>
-                          </div>
-                          <ExternalLink size={13} className="text-white/40 group-hover:text-white/70 transition-colors flex-shrink-0" />
+                          <ExternalLink size={12} className="text-white/50" />
                         </button>
 
                         <div className="flex items-center justify-end">
                           {isTracked ? (
-                            <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold font-display bg-settled/10 text-settled border border-settled/20">
-                              <Check size={13} strokeWidth={3} /> Tracking in Licenses
+                            <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-md text-xs font-medium font-display bg-settled/10 text-settled border border-settled/25">
+                              <Check size={12} strokeWidth={2.5} /> Tracking in Licenses
                             </span>
                           ) : (
                             <button
                               onClick={() => handleAddRequirement(req)}
                               disabled={isAdding}
-                              className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl text-xs font-bold font-display bg-accent/10 text-accent border border-accent/30 hover:bg-accent hover:text-white transition-all"
+                              className="inline-flex items-center gap-1.5 px-3 py-1 rounded-md text-xs font-semibold font-display bg-accent text-white hover:bg-accent-dark transition-colors shadow-subtle"
                             >
-                              {isAdding ? <div className="w-3 h-3 border-2 border-accent/30 border-t-accent rounded-full animate-spin" /> : <Plus size={13} />}
+                              {isAdding ? <div className="w-3 h-3 border-2 border-white/30 border-t-white rounded-full animate-spin" /> : <Plus size={12} />}
                               Add to My Licenses
                             </button>
                           )}
@@ -629,13 +622,13 @@ export default function MyRequirements() {
         </div>
       ) : (
         /* Empty State Fallback */
-        <div className="bg-surface rounded-3xl border border-rule p-8 text-center max-w-2xl mx-auto my-8 shadow-card space-y-4">
-          <div className="w-14 h-14 bg-amber-100 dark:bg-amber-900/30 text-amber-600 dark:text-amber-400 rounded-2xl flex items-center justify-center mx-auto">
-            <AlertCircle size={28} />
+        <div className="bg-surface rounded-lg border border-rule-dark p-8 text-center max-w-2xl mx-auto my-8 shadow-card space-y-3">
+          <div className="w-10 h-10 bg-amber-50 text-caution rounded-md border border-amber-200 flex items-center justify-center mx-auto">
+            <AlertCircle size={20} />
           </div>
           <div>
-            <h3 className="text-xl font-bold font-display text-ink">No Requirements Found</h3>
-            <p className="text-sm text-ink-muted mt-2 max-w-lg mx-auto">
+            <h3 className="text-base font-bold font-display text-ink">No Requirements Found</h3>
+            <p className="text-xs text-ink-muted mt-1 max-w-lg mx-auto">
               No pre-populated catalog items match <strong>{businessType.replace('_', ' ')}</strong> in <strong>{operatingCities.join(', ')}</strong>.
             </p>
           </div>
@@ -645,20 +638,20 @@ export default function MyRequirements() {
       {/* Add City Modal */}
       <AnimatePresence>
         {showAddCityModal && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4 backdrop-blur-xs">
+          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4 backdrop-blur-xs">
             <motion.div
-              initial={{ opacity: 0, scale: 0.95 }}
+              initial={{ opacity: 0, scale: 0.96 }}
               animate={{ opacity: 1, scale: 1 }}
-              exit={{ opacity: 0, scale: 0.95 }}
-              className="bg-surface rounded-3xl border border-rule shadow-2xl p-6 w-full max-w-md space-y-4"
+              exit={{ opacity: 0, scale: 0.96 }}
+              className="bg-surface rounded-lg border border-rule-dark shadow-xl p-5 w-full max-w-md space-y-4"
             >
-              <div className="flex items-center justify-between border-b border-rule pb-3">
+              <div className="flex items-center justify-between border-b border-rule-dark pb-2.5">
                 <div className="flex items-center gap-2">
-                  <MapPin className="text-accent" size={20} />
-                  <h3 className="text-lg font-bold font-display text-ink">Add Operating City</h3>
+                  <MapPin className="text-accent" size={18} />
+                  <h3 className="text-base font-bold font-display text-ink">Add Operating City</h3>
                 </div>
                 <button onClick={() => setShowAddCityModal(false)} className="text-ink-faint hover:text-ink">
-                  <X size={20} />
+                  <X size={18} />
                 </button>
               </div>
 
@@ -667,11 +660,11 @@ export default function MyRequirements() {
               </p>
 
               <div>
-                <label className="block text-xs font-bold font-display text-ink-faint uppercase tracking-wide mb-1.5">Select City *</label>
+                <label className="block text-[11px] font-semibold font-display text-ink-muted uppercase tracking-wider mb-1">Select City *</label>
                 <select
                   value={selectedNewCity}
                   onChange={(e) => setSelectedNewCity(e.target.value)}
-                  className="input w-full"
+                  className="input w-full text-xs"
                 >
                   <option value="">-- Choose city from {country} --</option>
                   {availableCitiesToAdd.map((c, idx) => (
@@ -680,14 +673,14 @@ export default function MyRequirements() {
                 </select>
               </div>
 
-              <div className="flex gap-3 pt-2">
-                <button onClick={() => setShowAddCityModal(false)} className="btn-secondary flex-1">
+              <div className="flex gap-2.5 pt-2">
+                <button onClick={() => setShowAddCityModal(false)} className="btn-secondary flex-1 text-xs py-2">
                   Cancel
                 </button>
                 <button
                   onClick={() => handleAddCity(selectedNewCity)}
                   disabled={!selectedNewCity || addingCity}
-                  className="btn-primary flex-1"
+                  className="btn-primary flex-1 text-xs py-2"
                 >
                   {addingCity ? 'Adding…' : 'Merge Jurisdiction'}
                 </button>

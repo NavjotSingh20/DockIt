@@ -1,4 +1,4 @@
-import { useState, useMemo, useEffect } from 'react';
+import { useState, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { cn } from '../lib/utils';
 import {
@@ -22,26 +22,26 @@ function getDaysLeft(expiryDate) {
 }
 
 // =========================================
-// 1. BRUTALIST BAR CHART (License Status Breakdown)
+// 1. RESTRAINED BAR CHART (License Status Breakdown)
 // =========================================
-function BrutalistBarChart({ summary, total }) {
+function RestrainedBarChart({ summary, total }) {
   const [hovered, setHovered] = useState(null);
 
   const barData = [
-    { label: 'ACTIVE', count: summary.satisfied, color: 'bg-emerald-400', pct: total > 0 ? Math.round((summary.satisfied / total) * 100) : 0 },
-    { label: 'PROGRESS', count: summary.inProgress, color: 'bg-blue-400', pct: total > 0 ? Math.round((summary.inProgress / total) * 100) : 0 },
-    { label: 'NEEDED', count: summary.needed, color: 'bg-amber-400', pct: total > 0 ? Math.round((summary.needed / total) * 100) : 0 },
-    { label: 'EXPIRED', count: summary.expired, color: 'bg-rose-400', pct: total > 0 ? Math.round((summary.expired / total) * 100) : 0 },
-    { label: 'WAIVED', count: summary.waived, color: 'bg-purple-400', pct: total > 0 ? Math.round((summary.waived / total) * 100) : 0 },
+    { label: 'Active', count: summary.satisfied, color: 'bg-emerald-500', pct: total > 0 ? Math.round((summary.satisfied / total) * 100) : 0 },
+    { label: 'Progress', count: summary.inProgress, color: 'bg-blue-500', pct: total > 0 ? Math.round((summary.inProgress / total) * 100) : 0 },
+    { label: 'Needed', count: summary.needed, color: 'bg-amber-500', pct: total > 0 ? Math.round((summary.needed / total) * 100) : 0 },
+    { label: 'Expired', count: summary.expired, color: 'bg-rose-500', pct: total > 0 ? Math.round((summary.expired / total) * 100) : 0 },
+    { label: 'Waived', count: summary.waived, color: 'bg-purple-500', pct: total > 0 ? Math.round((summary.waived / total) * 100) : 0 },
   ];
 
   return (
-    <div className="w-full h-full bg-white dark:bg-zinc-900 border-[3px] border-black dark:border-white shadow-[8px_8px_0px_0px_rgba(0,0,0,1)] dark:shadow-[8px_8px_0px_0px_rgba(255,255,255,1)] relative flex flex-col p-6 transition-colors duration-200">
-      <div className="flex items-center justify-between border-b-[3px] border-black dark:border-white pb-2 mb-6">
-        <h3 className="font-black uppercase text-xl text-black dark:text-white">
+    <div className="w-full h-full bg-surface rounded-lg border border-rule-dark shadow-card relative flex flex-col p-5">
+      <div className="flex items-center justify-between border-b border-rule-dark pb-2.5 mb-4">
+        <h3 className="font-bold font-display text-sm text-ink tracking-tight">
           Permit Status Distribution
         </h3>
-        <span className="text-xs font-mono font-bold px-2 py-0.5 bg-black text-white dark:bg-white dark:text-black">
+        <span className="text-[11px] font-mono font-semibold px-2 py-0.5 bg-base text-ink-muted border border-rule-dark rounded">
           {total} TOTAL
         </span>
       </div>
@@ -56,34 +56,30 @@ function BrutalistBarChart({ summary, total }) {
                 type: 'spring',
                 stiffness: 200,
                 damping: 20,
-                delay: i * 0.1,
+                delay: i * 0.08,
               }}
               onHoverStart={() => setHovered(i)}
               onHoverEnd={() => setHovered(null)}
               className={cn(
-                'w-full border-[3px] border-black dark:border-white relative z-10 cursor-pointer origin-bottom flex flex-col items-center justify-between py-2 overflow-hidden',
+                'w-full rounded-t-md border border-rule-dark/40 shadow-subtle relative z-10 cursor-pointer origin-bottom flex flex-col items-center justify-between py-2 overflow-hidden',
                 item.color
               )}
-              whileHover={{ scaleY: 1.08, scaleX: 1.03 }}
-              whileTap={{ scaleY: 0.95 }}
+              whileHover={{ scaleY: 1.04 }}
             >
-              <div
-                className="absolute inset-0 opacity-20 pointer-events-none bg-[radial-gradient(#000_1px,transparent_1px)] dark:bg-[radial-gradient(#fff_1px,transparent_1px)] [background-size:4px_4px]"
-              />
-              <span className="relative z-20 font-black text-xs font-mono text-black">
+              <span className="relative z-20 font-bold text-xs font-mono text-white">
                 {item.count}
               </span>
-              <span className="relative z-20 font-black text-[10px] font-mono text-black uppercase tracking-tight">
+              <span className="relative z-20 font-medium text-[10px] font-mono text-white/90 uppercase tracking-tight">
                 {item.label}
               </span>
             </motion.div>
             <AnimatePresence>
               {hovered === i && (
                 <motion.div
-                  initial={{ opacity: 0, y: 8 }}
+                  initial={{ opacity: 0, y: 4 }}
                   animate={{ opacity: 1, y: 0 }}
-                  exit={{ opacity: 0, y: 8 }}
-                  className="absolute bottom-full -mb-2 left-1/2 -translate-x-1/2 bg-black dark:bg-white text-white dark:text-black px-3 py-1 text-xs font-black whitespace-nowrap border-[3px] border-black dark:border-white z-30 pointer-events-none shadow-[3px_3px_0px_0px_rgba(0,0,0,1)]"
+                  exit={{ opacity: 0, y: 4 }}
+                  className="absolute bottom-full -mb-1.5 left-1/2 -translate-x-1/2 bg-ink text-white px-2.5 py-1 text-[11px] font-mono whitespace-nowrap rounded border border-rule-dark z-30 pointer-events-none shadow-card"
                 >
                   {item.label}: {item.count} ({item.pct}%)
                 </motion.div>
@@ -97,7 +93,7 @@ function BrutalistBarChart({ summary, total }) {
 }
 
 // ==========================================
-// 2. BRUTALIST RADAR CHART (Compliance Health Dimensions)
+// 2. RESTRAINED RADAR CHART (Compliance Health Dimensions)
 // ==========================================
 const RADAR_SIZE = 220;
 const CENTER = RADAR_SIZE / 2;
@@ -113,7 +109,7 @@ const getCoords = (value, index, totalAxes) => {
   };
 };
 
-function BrutalistRadarChart({ radarData }) {
+function RestrainedRadarChart({ radarData }) {
   const [hoveredMetric, setHoveredMetric] = useState(null);
   const numAxes = radarData.length;
 
@@ -126,15 +122,9 @@ function BrutalistRadarChart({ radarData }) {
   const gridLevels = [100, 75, 50, 25];
 
   return (
-    <div className="w-full h-full bg-zinc-50 dark:bg-zinc-900 border-[3px] border-black dark:border-white shadow-[8px_8px_0px_0px_rgba(0,0,0,1)] dark:shadow-[8px_8px_0px_0px_rgba(255,255,255,1)] p-6 flex flex-col sm:flex-row gap-6 relative overflow-hidden transition-colors duration-200">
+    <div className="w-full h-full bg-surface rounded-lg border border-rule-dark shadow-card p-5 flex flex-col sm:flex-row gap-5 relative overflow-hidden">
       {/* LEFT: CHART AREA */}
       <div className="flex-1 flex items-center justify-center relative min-h-[220px]">
-        <div className="absolute inset-0 flex items-center justify-center pointer-events-none opacity-5 dark:opacity-10">
-          <span className="text-8xl font-black uppercase text-black dark:text-white">
-            HEALTH
-          </span>
-        </div>
-
         <svg
           viewBox={`0 0 ${RADAR_SIZE} ${RADAR_SIZE}`}
           className="w-full h-full max-w-[220px] overflow-visible"
@@ -150,9 +140,9 @@ function BrutalistRadarChart({ radarData }) {
                 }).join(' ') + ' Z'
               }
               fill="none"
-              className="stroke-black/20 dark:stroke-white/20"
-              strokeWidth="2"
-              strokeDasharray="4 4"
+              stroke="#D6CFC4"
+              strokeWidth="1"
+              strokeDasharray="3 3"
             />
           ))}
 
@@ -166,8 +156,8 @@ function BrutalistRadarChart({ radarData }) {
                 y1={CENTER}
                 x2={outer.x}
                 y2={outer.y}
-                className="stroke-black/20 dark:stroke-white/20"
-                strokeWidth="2"
+                stroke="#D6CFC4"
+                strokeWidth="1"
               />
             );
           })}
@@ -175,9 +165,9 @@ function BrutalistRadarChart({ radarData }) {
           {/* The Data Polygon */}
           <motion.path
             d={pathData}
-            fill="rgba(194, 65, 12, 0.45)"
-            className="stroke-black dark:stroke-white"
-            strokeWidth="3.5"
+            fill="rgba(217, 119, 6, 0.25)"
+            stroke="#D97706"
+            strokeWidth="2"
             strokeLinejoin="round"
             initial={{ scale: 0, opacity: 0 }}
             animate={{ scale: 1, opacity: 1 }}
@@ -185,7 +175,7 @@ function BrutalistRadarChart({ radarData }) {
               type: 'spring',
               stiffness: 200,
               damping: 20,
-              delay: 0.2,
+              delay: 0.15,
             }}
             style={{ originX: '50%', originY: '50%' }}
           />
@@ -202,17 +192,17 @@ function BrutalistRadarChart({ radarData }) {
                 onMouseLeave={() => setHoveredMetric(null)}
                 className="cursor-pointer"
               >
-                <circle cx={coords.x} cy={coords.y} r="18" fill="transparent" />
+                <circle cx={coords.x} cy={coords.y} r="16" fill="transparent" />
                 <motion.circle
                   cx={coords.x}
                   cy={coords.y}
-                  r="5"
-                  className="fill-white dark:fill-zinc-900 stroke-black dark:stroke-white"
-                  strokeWidth="2.5"
+                  r="4"
+                  className="fill-surface stroke-accent"
+                  strokeWidth="2"
                   animate={{
-                    scale: isHovered ? 2.2 : 1,
-                    strokeWidth: isHovered ? 4 : 2.5,
-                    fill: isHovered ? d.color : '#fff',
+                    scale: isHovered ? 1.8 : 1,
+                    strokeWidth: isHovered ? 3 : 2,
+                    fill: isHovered ? d.color : '#FEFDFB',
                   }}
                   transition={{ type: 'spring', stiffness: 400, damping: 15 }}
                 />
@@ -223,30 +213,27 @@ function BrutalistRadarChart({ radarData }) {
       </div>
 
       {/* RIGHT: STATS LIST */}
-      <div className="w-full sm:w-48 flex flex-col justify-center gap-2 z-10">
-        <h3 className="font-black uppercase text-lg mb-1 border-b-[3px] border-black dark:border-white pb-1.5 text-black dark:text-white">
-          Health Index
+      <div className="w-full sm:w-48 flex flex-col justify-center gap-1.5 z-10">
+        <h3 className="font-bold font-display text-sm mb-1 border-b border-rule-dark pb-1.5 text-ink tracking-tight">
+          Health Dimensions
         </h3>
         {radarData.map((item, i) => (
           <motion.div
             key={i}
             onMouseEnter={() => setHoveredMetric(item.label)}
             onMouseLeave={() => setHoveredMetric(null)}
-            className="flex items-center justify-between p-1.5 border-2 border-transparent hover:border-black dark:hover:border-white hover:bg-white dark:hover:bg-zinc-800 cursor-pointer transition-colors"
-            animate={{
-              x: hoveredMetric === item.label ? 8 : 0,
-            }}
+            className="flex items-center justify-between p-1.5 rounded-md hover:bg-base cursor-pointer transition-colors"
           >
             <div className="flex items-center gap-2">
               <div
-                className="w-3 h-3 border-2 border-black dark:border-white shrink-0"
+                className="w-2.5 h-2.5 rounded-sm shrink-0"
                 style={{ backgroundColor: item.color }}
               />
-              <span className="text-xs font-bold font-mono text-black dark:text-zinc-200">
+              <span className="text-xs font-medium font-mono text-ink-muted">
                 {item.label}
               </span>
             </div>
-            <span className="font-black text-xs text-black dark:text-white font-mono">
+            <span className="font-bold text-xs text-ink font-mono">
               {item.value}%
             </span>
           </motion.div>
@@ -257,7 +244,7 @@ function BrutalistRadarChart({ radarData }) {
 }
 
 // =========================================
-// 3. BRUTALIST DONUT CHART (Live Compliance Score & Inspection)
+// 3. RESTRAINED DONUT CHART (Live Compliance Score & Inspection)
 // =========================================
 const springConfig = { type: 'spring', stiffness: 300, damping: 20 };
 const getPieCoords = (percent) => {
@@ -266,33 +253,29 @@ const getPieCoords = (percent) => {
   return [x, y];
 };
 
-function BrutalistDonut({ complianceScore, totalFine, totalDailyFine, totalLicenses }) {
+function RestrainedDonut({ complianceScore, totalFine, totalDailyFine, totalLicenses }) {
   const [hoveredSlice, setHoveredSlice] = useState(null);
 
-  // Dynamic breakdown sectors
   const pieData = [
-    { label: 'COMPLIANT', value: Math.max(5, complianceScore), color: '#34d399' },
-    { label: 'RISK', value: Math.max(5, 100 - complianceScore), color: totalFine > 0 ? '#f87171' : '#fbbf24' },
+    { label: 'COMPLIANT', value: Math.max(5, complianceScore), color: '#10B981' },
+    { label: 'RISK', value: Math.max(5, 100 - complianceScore), color: totalFine > 0 ? '#EF4444' : '#F59E0B' },
   ];
 
   let cumulativePercent = 0;
 
   return (
-    <div className="w-full h-full bg-white dark:bg-zinc-900 border-[3px] border-black dark:border-white shadow-[8px_8px_0px_0px_rgba(0,0,0,1)] dark:shadow-[8px_8px_0px_0px_rgba(255,255,255,1)] p-6 flex flex-col items-center justify-between overflow-hidden relative transition-colors duration-200">
-      <div
-        className="absolute inset-0 opacity-[0.07] pointer-events-none z-0 bg-[radial-gradient(#000_1.5px,transparent_1.5px)] dark:bg-[radial-gradient(#fff_1.5px,transparent_1.5px)] [background-size:12px_12px]"
-      />
-      <div className="flex items-center justify-between border-b-[3px] border-black dark:border-white pb-2 mb-6 w-full z-10">
-        <h3 className="font-black uppercase tracking-tight text-xl text-black dark:text-white">
+    <div className="w-full h-full bg-surface rounded-lg border border-rule-dark shadow-card p-5 flex flex-col items-center justify-between overflow-hidden relative">
+      <div className="flex items-center justify-between border-b border-rule-dark pb-2.5 mb-4 w-full z-10">
+        <h3 className="font-bold font-display text-sm text-ink tracking-tight">
           System Compliance Score
         </h3>
-        <span className="font-mono text-xs font-black px-2 py-0.5 border-2 border-black dark:border-white bg-amber-300 text-black">
+        <span className="font-mono text-[11px] font-semibold px-2 py-0.5 border border-rule-dark rounded bg-base text-ink">
           {complianceScore >= 80 ? 'GRADE A' : complianceScore >= 60 ? 'GRADE B' : complianceScore >= 40 ? 'GRADE C' : 'CRITICAL'}
         </span>
       </div>
 
-      <div className="z-10 flex flex-col items-center w-full flex-1 justify-center my-4">
-        <div className="relative w-56 h-56 md:w-64 md:h-64">
+      <div className="z-10 flex flex-col items-center w-full flex-1 justify-center my-2">
+        <div className="relative w-48 h-48 md:w-56 md:h-56">
           <motion.svg
             viewBox="-1.2 -1.2 2.4 2.4"
             className="-rotate-90 overflow-visible w-full h-full"
@@ -302,7 +285,7 @@ function BrutalistDonut({ complianceScore, totalFine, totalDailyFine, totalLicen
               type: 'spring',
               stiffness: 100,
               damping: 20,
-              delay: 0.2,
+              delay: 0.15,
             }}
           >
             {pieData.map((slice) => {
@@ -326,15 +309,15 @@ function BrutalistDonut({ complianceScore, totalFine, totalDailyFine, totalLicen
                   key={slice.label}
                   d={pathData}
                   fill={slice.color}
-                  className="stroke-black dark:stroke-white"
+                  stroke="#FEFDFB"
                   strokeWidth="0.04"
                   strokeLinecap="round"
                   strokeLinejoin="round"
                   animate={{
-                    translateX: isHovered ? (startX + endX) * 0.1 : 0,
-                    translateY: isHovered ? (startY + endY) * 0.1 : 0,
-                    scale: isHovered ? 1.05 : 1,
-                    opacity: isDimmed ? 0.3 : 1,
+                    translateX: isHovered ? (startX + endX) * 0.08 : 0,
+                    translateY: isHovered ? (startY + endY) * 0.08 : 0,
+                    scale: isHovered ? 1.04 : 1,
+                    opacity: isDimmed ? 0.35 : 1,
                   }}
                   transition={springConfig}
                   onMouseEnter={() => setHoveredSlice(slice.label)}
@@ -345,21 +328,22 @@ function BrutalistDonut({ complianceScore, totalFine, totalDailyFine, totalLicen
             <motion.circle
               cx="0"
               cy="0"
-              r="0.6"
-              className="fill-white dark:fill-zinc-900 stroke-black dark:stroke-white"
-              strokeWidth="0.04"
+              r="0.62"
+              fill="#FEFDFB"
+              stroke="#D6CFC4"
+              strokeWidth="0.02"
               initial={{ scale: 0 }}
               animate={{ scale: 1 }}
-              transition={{ delay: 0.4, ...springConfig }}
+              transition={{ delay: 0.3, ...springConfig }}
             />
           </motion.svg>
 
           <div className="absolute inset-0 flex items-center justify-center pointer-events-none z-20">
             <div className="flex flex-col items-center">
-              <span className="text-4xl font-black font-mono leading-none text-black dark:text-white">
+              <span className="text-3xl md:text-4xl font-bold font-mono leading-none text-ink">
                 {complianceScore}%
               </span>
-              <span className="text-[10px] font-black uppercase tracking-widest bg-black dark:bg-white text-white dark:text-black px-1.5 py-0.5 mt-1 font-mono">
+              <span className="text-[10px] font-semibold uppercase tracking-wider text-ink-muted mt-1 font-display">
                 OVERALL
               </span>
             </div>
@@ -367,16 +351,16 @@ function BrutalistDonut({ complianceScore, totalFine, totalDailyFine, totalLicen
         </div>
 
         {/* Live Metrics Grid */}
-        <div className="w-full mt-6 grid grid-cols-2 gap-3">
-          <div className="p-3 border-[3px] border-black dark:border-white bg-zinc-50 dark:bg-zinc-800 flex flex-col">
-            <span className="text-[10px] font-mono font-bold uppercase text-zinc-500 dark:text-zinc-400">Current Fine Risk</span>
-            <span className="text-xl font-black font-mono text-rose-500 mt-0.5">
+        <div className="w-full mt-4 grid grid-cols-2 gap-2.5">
+          <div className="p-2.5 border border-rule-dark rounded-md bg-base/60 flex flex-col">
+            <span className="text-[10px] font-display font-semibold uppercase tracking-wider text-ink-muted">Fine Risk</span>
+            <span className="text-base font-bold font-mono text-danger mt-0.5">
               {formatCurrency(totalFine)}
             </span>
           </div>
-          <div className="p-3 border-[3px] border-black dark:border-white bg-zinc-50 dark:bg-zinc-800 flex flex-col">
-            <span className="text-[10px] font-mono font-bold uppercase text-zinc-500 dark:text-zinc-400">Daily Accrual</span>
-            <span className="text-xl font-black font-mono text-amber-500 mt-0.5">
+          <div className="p-2.5 border border-rule-dark rounded-md bg-base/60 flex flex-col">
+            <span className="text-[10px] font-display font-semibold uppercase tracking-wider text-ink-muted">Daily Accrual</span>
+            <span className="text-base font-bold font-mono text-caution mt-0.5">
               +{formatCurrency(totalDailyFine)}/d
             </span>
           </div>
@@ -477,13 +461,13 @@ export default function Analytics() {
     const nonCritical = inspectionChecklist.filter(c => !c.critical);
     const critPassed = critical.filter(c => c.ok).length;
     const nonCritPassed = nonCritical.filter(c => c.ok).length;
-    if (critPassed < critical.length) return { score: Math.round((critPassed / (critical.length || 1)) * 50), label: 'Fail Risk', color: 'text-rose-500', bg: 'bg-rose-500' };
+    if (critPassed < critical.length) return { score: Math.round((critPassed / (critical.length || 1)) * 50), label: 'Fail Risk', color: 'text-danger', bg: 'bg-danger' };
     const full = 50 + Math.round((nonCritPassed / (nonCritical.length || 1)) * 50);
     return {
       score: full,
       label: full === 100 ? 'Ready to Pass' : 'Minor Issues',
-      color: full === 100 ? 'text-emerald-500' : 'text-amber-500',
-      bg: full === 100 ? 'bg-emerald-500' : 'bg-amber-500'
+      color: full === 100 ? 'text-settled' : 'text-caution',
+      bg: full === 100 ? 'bg-settled' : 'bg-caution'
     };
   }, [inspectionChecklist]);
 
@@ -496,57 +480,52 @@ export default function Analytics() {
     const longTerm = licenses.filter(l => !l.expiry_date || getDaysLeft(l.expiry_date) > 30).length;
 
     return [
-      { label: 'SCORE', value: scoreData.score || 85, color: '#f87171' },
-      { label: 'ACTIVE', value: Math.round((satisfied / total) * 100), color: '#4ade80' },
-      { label: 'UNEXPIRED', value: Math.round((nonExpired / total) * 100), color: '#60a5fa' },
-      { label: 'VERIFIED', value: Math.round((hasDocs / total) * 100), color: '#fbbf24' },
-      { label: 'HORIZON', value: Math.round((longTerm / total) * 100), color: '#a78bfa' },
+      { label: 'Score', value: scoreData.score || 85, color: '#f87171' },
+      { label: 'Active', value: Math.round((satisfied / total) * 100), color: '#10B981' },
+      { label: 'Unexpired', value: Math.round((nonExpired / total) * 100), color: '#3B82F6' },
+      { label: 'Verified', value: Math.round((hasDocs / total) * 100), color: '#F59E0B' },
+      { label: 'Horizon', value: Math.round((longTerm / total) * 100), color: '#8B5CF6' },
     ];
   }, [licenses, scoreData]);
 
   return (
-    <div className="min-h-screen w-full bg-zinc-100 dark:bg-black p-4 md:p-10 font-sans selection:bg-black selection:text-white dark:selection:bg-white dark:selection:text-black flex flex-col transition-colors duration-200">
-      {/* Texture Background */}
-      <div
-        className="fixed inset-0 pointer-events-none opacity-5 bg-[radial-gradient(#000_1px,transparent_1px)] dark:bg-[radial-gradient(#fff_1px,transparent_1px)] [background-size:24px_24px]"
-      />
-
-      <div className="max-w-7xl w-full mx-auto relative z-10 flex flex-col flex-1 space-y-6">
+    <div className="min-h-screen w-full bg-base p-4 md:p-8 font-sans flex flex-col space-y-6">
+      <div className="max-w-7xl w-full mx-auto flex flex-col flex-1 space-y-6">
         {/* Header */}
-        <header className="flex flex-col sm:flex-row sm:items-end justify-between gap-4 border-b-[3px] border-black dark:border-white pb-6">
+        <header className="flex flex-col sm:flex-row sm:items-end justify-between gap-4 border-b border-rule-dark pb-4">
           <div>
-            <h1 className="text-4xl md:text-6xl font-black uppercase tracking-tighter text-black dark:text-white">
-              Analytics
+            <h1 className="text-2xl md:text-3xl font-bold font-display tracking-tight text-ink">
+              Analytics &amp; Telemetry
             </h1>
-            <p className="font-bold font-mono text-zinc-600 dark:text-zinc-400 uppercase tracking-widest text-xs md:text-sm mt-1">
-              Bento Telemetry · Real-Time Compliance Overview
+            <p className="text-xs text-ink-muted mt-0.5">
+              Real-time compliance performance, risk forecasting, and inspection health
             </p>
           </div>
 
           {totalDailyCost > 0 && (
-            <div className="flex items-center gap-2 border-[3px] border-black dark:border-white bg-rose-400 text-black px-4 py-2 font-mono font-black text-xs uppercase shadow-[4px_4px_0px_0px_rgba(0,0,0,1)]">
-              <Flame size={16} />
+            <div className="flex items-center gap-2 border border-red-200 bg-red-50 text-danger px-3.5 py-1.5 font-mono font-bold text-xs rounded-md shadow-subtle">
+              <Flame size={15} />
               +{formatCurrency(totalDailyCost)}/day Accruing Fines
             </div>
           )}
         </header>
 
         {/* MAIN BENTO GRID - ROW 1: PRIMARY TELEMETRY */}
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-5">
           {/* COLUMN 1 (LEFT 7 COLS): STACKED BAR + RADAR */}
-          <div className="lg:col-span-7 flex flex-col gap-6">
-            <div className="w-full min-h-[380px]">
-              <BrutalistBarChart summary={summary} total={licenses.length} />
+          <div className="lg:col-span-7 flex flex-col gap-5">
+            <div className="w-full min-h-[340px]">
+              <RestrainedBarChart summary={summary} total={licenses.length} />
             </div>
-            <div className="w-full min-h-[380px]">
-              <BrutalistRadarChart radarData={radarMetrics} />
+            <div className="w-full min-h-[340px]">
+              <RestrainedRadarChart radarData={radarMetrics} />
             </div>
           </div>
 
           {/* COLUMN 2 (RIGHT 5 COLS): FULL HEIGHT DONUT + LIVE RISK */}
           <div className="lg:col-span-5 flex">
             <div className="w-full h-full">
-              <BrutalistDonut
+              <RestrainedDonut
                 complianceScore={scoreData.score || 85}
                 totalFine={totalCurrentFine}
                 totalDailyFine={totalDailyCost}
@@ -557,66 +536,66 @@ export default function Analytics() {
         </div>
 
         {/* ── BENTO ROW 2: FINE PROJECTION & ESCALATION ── */}
-        <div className="w-full bg-white dark:bg-zinc-900 border-[3px] border-black dark:border-white shadow-[8px_8px_0px_0px_rgba(0,0,0,1)] dark:shadow-[8px_8px_0px_0px_rgba(255,255,255,1)] p-6 transition-colors duration-200">
-          <div className="flex flex-col sm:flex-row sm:items-center justify-between border-b-[3px] border-black dark:border-white pb-3 mb-6 gap-2">
+        <div className="w-full bg-surface rounded-lg border border-rule-dark shadow-card p-5">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between border-b border-rule-dark pb-3 mb-4 gap-2">
             <div>
-              <h3 className="font-black uppercase text-xl text-black dark:text-white flex items-center gap-2">
-                <TrendingUp size={20} /> Fine Escalation Projection (90-Day Forecast)
+              <h3 className="font-bold font-display text-sm md:text-base text-ink flex items-center gap-2 tracking-tight">
+                <TrendingUp size={18} className="text-accent" /> Fine Escalation Projection (90-Day Forecast)
               </h3>
-              <p className="font-mono text-xs font-bold text-zinc-500 dark:text-zinc-400 uppercase mt-0.5">
-                Cumulative penalty exposure if unaddressed
+              <p className="text-xs text-ink-muted mt-0.5">
+                Estimated cumulative penalty exposure if unresolved
               </p>
             </div>
-            <div className="flex items-center gap-2 font-mono text-xs font-black">
+            <div className="flex items-center gap-2 font-mono text-xs font-semibold">
               {[
                 { label: '+7D', val: projectionData.find(p => p.label === '+7d')?.fine || 0 },
                 { label: '+30D', val: projectionData.find(p => p.label === '+30d')?.fine || 0 },
                 { label: '+90D', val: projectionData.find(p => p.label === '+90d')?.fine || 0 },
               ].map(s => (
-                <div key={s.label} className="border-2 border-black dark:border-white px-2.5 py-1 bg-zinc-50 dark:bg-zinc-800">
-                  <span className="text-zinc-400 mr-1">{s.label}:</span>
-                  <span className="text-rose-500">{formatCurrency(s.val)}</span>
+                <div key={s.label} className="border border-rule-dark rounded px-2.5 py-1 bg-base">
+                  <span className="text-ink-muted mr-1">{s.label}:</span>
+                  <span className="text-danger font-bold">{formatCurrency(s.val)}</span>
                 </div>
               ))}
             </div>
           </div>
 
-          <div className="grid grid-cols-2 sm:grid-cols-4 md:grid-cols-7 gap-3 mb-6">
+          <div className="grid grid-cols-2 sm:grid-cols-4 md:grid-cols-7 gap-2.5 mb-4">
             {projectionData.map((pt, i) => {
               const maxFine = Math.max(...projectionData.map(p => p.fine), 1);
               const heightPct = Math.max(15, Math.round((pt.fine / maxFine) * 100));
               return (
-                <div key={i} className="flex flex-col items-center border-[2px] border-black dark:border-white p-3 bg-zinc-50 dark:bg-zinc-800">
-                  <span className="font-mono font-bold text-xs text-zinc-500">{pt.label}</span>
-                  <div className="w-full h-24 flex items-end justify-center my-2">
+                <div key={i} className="flex flex-col items-center border border-rule-dark/60 rounded-md p-2.5 bg-base/50">
+                  <span className="font-mono font-medium text-xs text-ink-muted">{pt.label}</span>
+                  <div className="w-full h-20 flex items-end justify-center my-1.5">
                     <motion.div
                       initial={{ height: 0 }}
                       animate={{ height: `${heightPct}%` }}
-                      transition={{ type: 'spring', stiffness: 200, damping: 20, delay: i * 0.05 }}
-                      className="w-full max-w-[28px] bg-rose-400 border-[2px] border-black dark:border-white"
+                      transition={{ type: 'spring', stiffness: 200, damping: 20, delay: i * 0.04 }}
+                      className="w-full max-w-[24px] bg-rose-500 rounded-t-sm shadow-subtle"
                     />
                   </div>
-                  <span className="font-mono font-black text-xs text-black dark:text-white">{formatCurrency(pt.fine)}</span>
+                  <span className="font-mono font-bold text-xs text-ink">{formatCurrency(pt.fine)}</span>
                 </div>
               );
             })}
           </div>
 
           {expiredWithPenalties.length > 0 && (
-            <div className="grid md:grid-cols-2 gap-4 pt-4 border-t-[3px] border-black dark:border-white">
+            <div className="grid md:grid-cols-2 gap-3 pt-3 border-t border-rule-dark">
               {expiredWithPenalties.map(l => (
-                <div key={l.id} className="border-2 border-black dark:border-white p-4 bg-rose-50 dark:bg-rose-950/20">
+                <div key={l.id} className="border border-red-200 border-l-[3px] border-l-danger rounded-md p-3 bg-red-50/40">
                   <div className="flex items-start justify-between">
                     <div>
-                      <div className="font-black text-sm text-black dark:text-white">{l.name}</div>
-                      <div className="font-mono text-xs text-zinc-500 mt-0.5">{l.daysOverdue} days overdue</div>
+                      <div className="font-bold text-xs font-display text-ink">{l.name}</div>
+                      <div className="font-mono text-[11px] text-ink-muted mt-0.5">{l.daysOverdue} days overdue</div>
                     </div>
                     <div className="text-right">
-                      <div className="font-black font-mono text-rose-600 text-base">{formatCurrency(l.penalty.currentFine)}</div>
-                      <div className="font-mono text-[10px] text-zinc-500">+{formatCurrency(l.penalty.dailyCost)}/day</div>
+                      <div className="font-bold font-mono text-danger text-sm">{formatCurrency(l.penalty.currentFine)}</div>
+                      <div className="font-mono text-[10px] text-ink-muted">+{formatCurrency(l.penalty.dailyCost)}/day</div>
                     </div>
                   </div>
-                  <div className="mt-2 text-xs font-mono font-bold bg-white dark:bg-zinc-900 border border-black dark:border-white px-2 py-1">
+                  <div className="mt-1.5 text-[11px] font-mono text-ink-muted bg-surface border border-rule-dark rounded px-2 py-0.5">
                     ⚠️ {l.penalty.currentConsequence}
                   </div>
                 </div>
@@ -626,34 +605,34 @@ export default function Analytics() {
         </div>
 
         {/* ── BENTO ROW 3: INSPECTION READINESS & RENEWAL COUNTDOWN ── */}
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-5">
           {/* LEFT (6 COLS): INSPECTION READINESS */}
-          <div className="lg:col-span-6 bg-white dark:bg-zinc-900 border-[3px] border-black dark:border-white shadow-[8px_8px_0px_0px_rgba(0,0,0,1)] dark:shadow-[8px_8px_0px_0px_rgba(255,255,255,1)] p-6">
-            <div className="flex items-center justify-between border-b-[3px] border-black dark:border-white pb-3 mb-6">
-              <h3 className="font-black uppercase text-xl text-black dark:text-white flex items-center gap-2">
-                <Eye size={20} /> Inspection Audit Checklist
+          <div className="lg:col-span-6 bg-surface rounded-lg border border-rule-dark shadow-card p-5">
+            <div className="flex items-center justify-between border-b border-rule-dark pb-3 mb-4">
+              <h3 className="font-bold font-display text-sm md:text-base text-ink flex items-center gap-2 tracking-tight">
+                <Eye size={18} className="text-accent" /> Inspection Audit Checklist
               </h3>
-              <span className={`font-mono font-black text-xs px-2.5 py-1 border-2 border-black dark:border-white ${inspectionScore.score >= 80 ? 'bg-emerald-300 text-black' : inspectionScore.score >= 50 ? 'bg-amber-300 text-black' : 'bg-rose-400 text-black'}`}>
+              <span className={`font-mono font-semibold text-xs px-2.5 py-0.5 border border-rule-dark rounded ${inspectionScore.score >= 80 ? 'bg-settled/15 text-settled' : inspectionScore.score >= 50 ? 'bg-amber-100 text-amber-800' : 'bg-red-100 text-danger'}`}>
                 {inspectionScore.score}/100 — {inspectionScore.label}
               </span>
             </div>
 
-            <div className="space-y-3">
+            <div className="space-y-2">
               {inspectionChecklist.map((item, i) => (
                 <div
                   key={i}
-                  className={`flex items-center justify-between p-3 border-[2px] border-black dark:border-white ${item.ok ? 'bg-emerald-50 dark:bg-emerald-950/20' : item.critical ? 'bg-rose-50 dark:bg-rose-950/20' : 'bg-amber-50 dark:bg-amber-950/20'}`}
+                  className={`flex items-center justify-between p-2.5 rounded-md border border-rule-dark/60 ${item.ok ? 'bg-settled/5' : item.critical ? 'bg-red-50/40' : 'bg-amber-50/40'}`}
                 >
-                  <div className="flex items-center gap-3">
-                    <div className={`w-6 h-6 border-2 border-black dark:border-white flex items-center justify-center font-black text-xs ${item.ok ? 'bg-emerald-400 text-black' : item.critical ? 'bg-rose-400 text-black' : 'bg-amber-400 text-black'}`}>
+                  <div className="flex items-center gap-2.5">
+                    <div className={`w-5 h-5 rounded flex items-center justify-center font-bold text-xs ${item.ok ? 'bg-settled text-white' : item.critical ? 'bg-danger text-white' : 'bg-caution text-white'}`}>
                       {item.ok ? '✓' : '✗'}
                     </div>
-                    <span className="text-xs font-bold font-mono text-black dark:text-white">
+                    <span className="text-xs font-medium font-mono text-ink">
                       {item.label}
                     </span>
                   </div>
                   {item.critical && !item.ok && (
-                    <span className="font-mono text-[10px] font-black bg-black text-white px-2 py-0.5 border border-black dark:border-white">
+                    <span className="font-mono text-[10px] font-semibold bg-red-50 text-danger px-2 py-0.5 rounded border border-red-200">
                       CRITICAL
                     </span>
                   )}
@@ -663,21 +642,21 @@ export default function Analytics() {
           </div>
 
           {/* RIGHT (6 COLS): RENEWAL COUNTDOWN */}
-          <div className="lg:col-span-6 bg-white dark:bg-zinc-900 border-[3px] border-black dark:border-white shadow-[8px_8px_0px_0px_rgba(0,0,0,1)] dark:shadow-[8px_8px_0px_0px_rgba(255,255,255,1)] p-6 flex flex-col justify-between">
+          <div className="lg:col-span-6 bg-surface rounded-lg border border-rule-dark shadow-card p-5 flex flex-col justify-between">
             <div>
-              <div className="flex items-center justify-between border-b-[3px] border-black dark:border-white pb-3 mb-6">
-                <h3 className="font-black uppercase text-xl text-black dark:text-white flex items-center gap-2">
-                  <Calendar size={20} /> Expiry Horizon
+              <div className="flex items-center justify-between border-b border-rule-dark pb-3 mb-4">
+                <h3 className="font-bold font-display text-sm md:text-base text-ink flex items-center gap-2 tracking-tight">
+                  <Calendar size={18} className="text-accent" /> Expiry Horizon
                 </h3>
-                <span className="font-mono text-xs font-bold text-zinc-500">CHRONOLOGICAL</span>
+                <span className="font-mono text-xs text-ink-muted font-medium">CHRONOLOGICAL</span>
               </div>
 
               {renewalTimeline.length === 0 ? (
-                <div className="p-8 text-center border-2 border-dashed border-black dark:border-white font-mono text-xs text-zinc-400">
+                <div className="p-8 text-center border border-dashed border-rule-dark rounded-md font-mono text-xs text-ink-muted">
                   No expiring permits tracked.
                 </div>
               ) : (
-                <div className="space-y-2.5 max-h-[340px] overflow-y-auto pr-1">
+                <div className="space-y-2 max-h-[340px] overflow-y-auto pr-1">
                   {renewalTimeline.slice(0, 6).map((lic, i) => {
                     const days = getDaysLeft(lic.expiry_date);
                     const name = lic.requirement?.requirement_name || lic.license_type || 'License';
@@ -687,18 +666,18 @@ export default function Analytics() {
                     return (
                       <div
                         key={lic.id || i}
-                        className="flex items-center justify-between p-2.5 border-[2px] border-black dark:border-white bg-zinc-50 dark:bg-zinc-800 hover:translate-x-1 transition-transform"
+                        className="flex items-center justify-between p-2.5 rounded-md border border-rule-dark/60 bg-base/50 hover:bg-base transition-colors"
                       >
                         <div className="flex-1 min-w-0 pr-2">
-                          <div className="font-bold text-xs truncate text-black dark:text-white">{name}</div>
-                          <div className="font-mono text-[10px] text-zinc-500">{lic.requirement?.issuing_agency || 'Official Authority'}</div>
+                          <div className="font-semibold text-xs truncate text-ink font-display">{name}</div>
+                          <div className="font-mono text-[10px] text-ink-muted">{lic.requirement?.issuing_agency || 'Official Authority'}</div>
                         </div>
                         <div className="text-right shrink-0">
-                          <div className={`font-mono font-black text-xs ${isOverdue ? 'text-rose-500' : isUrgent ? 'text-amber-500' : 'text-emerald-500'}`}>
+                          <div className={`font-mono font-bold text-xs ${isOverdue ? 'text-danger' : isUrgent ? 'text-caution' : 'text-settled'}`}>
                             {days === null ? '—' : isOverdue ? `${Math.abs(days)}D OVERDUE` : `${days}D LEFT`}
                           </div>
                           {lic.expiry_date && (
-                            <div className="font-mono text-[10px] text-zinc-400">
+                            <div className="font-mono text-[10px] text-ink-muted">
                               {format(new Date(lic.expiry_date), 'MMM dd, yyyy')}
                             </div>
                           )}
@@ -713,34 +692,34 @@ export default function Analytics() {
         </div>
 
         {/* ── BENTO ROW 4: CITY-BY-CITY & PRIORITY ACTION QUEUE ── */}
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-5">
           {/* LEFT (5 COLS): CITY BREAKDOWN */}
           {cityBreakdown.length > 0 && (
-            <div className="lg:col-span-5 bg-white dark:bg-zinc-900 border-[3px] border-black dark:border-white shadow-[8px_8px_0px_0px_rgba(0,0,0,1)] dark:shadow-[8px_8px_0px_0px_rgba(255,255,255,1)] p-6">
-              <div className="flex items-center justify-between border-b-[3px] border-black dark:border-white pb-3 mb-6">
-                <h3 className="font-black uppercase text-xl text-black dark:text-white flex items-center gap-2">
-                  <MapPin size={20} /> Multi-City Index
+            <div className="lg:col-span-5 bg-surface rounded-lg border border-rule-dark shadow-card p-5">
+              <div className="flex items-center justify-between border-b border-rule-dark pb-3 mb-4">
+                <h3 className="font-bold font-display text-sm md:text-base text-ink flex items-center gap-2 tracking-tight">
+                  <MapPin size={18} className="text-accent" /> Multi-City Index
                 </h3>
               </div>
 
-              <div className="space-y-4">
+              <div className="space-y-3">
                 {cityBreakdown.map((c, i) => (
-                  <div key={c.city} className="border-2 border-black dark:border-white p-3 bg-zinc-50 dark:bg-zinc-800">
-                    <div className="flex items-center justify-between mb-2">
-                      <span className="font-black text-xs uppercase font-mono text-black dark:text-white">{c.city}</span>
-                      <span className="font-black font-mono text-xs px-2 py-0.5 border border-black dark:border-white bg-white dark:bg-zinc-900">{c.score}% COMPLIANT</span>
+                  <div key={c.city} className="border border-rule-dark rounded-md p-3 bg-base/50">
+                    <div className="flex items-center justify-between mb-1.5">
+                      <span className="font-bold text-xs font-display text-ink">{c.city}</span>
+                      <span className="font-mono font-semibold text-xs px-2 py-0.2 border border-rule-dark rounded bg-surface">{c.score}% COMPLIANT</span>
                     </div>
-                    <div className="w-full h-3 border border-black dark:border-white bg-zinc-200 dark:bg-zinc-700 overflow-hidden mb-2">
+                    <div className="w-full h-2 bg-rule-dark rounded-full overflow-hidden mb-2">
                       <div
-                        className={`h-full ${c.score >= 80 ? 'bg-emerald-400' : c.score >= 50 ? 'bg-amber-400' : 'bg-rose-400'}`}
+                        className={`h-full ${c.score >= 80 ? 'bg-settled' : c.score >= 50 ? 'bg-caution' : 'bg-danger'}`}
                         style={{ width: `${c.score}%` }}
                       />
                     </div>
                     <div className="grid grid-cols-4 gap-1 text-center font-mono text-[10px]">
-                      <div className="bg-emerald-100 dark:bg-emerald-950/40 p-1 font-bold text-emerald-800 dark:text-emerald-300">ACT: {c.satisfied}</div>
-                      <div className="bg-blue-100 dark:bg-blue-950/40 p-1 font-bold text-blue-800 dark:text-blue-300">PROG: {c.inProgress}</div>
-                      <div className="bg-rose-100 dark:bg-rose-950/40 p-1 font-bold text-rose-800 dark:text-rose-300">EXP: {c.expired}</div>
-                      <div className="bg-zinc-200 dark:bg-zinc-700 p-1 font-bold text-zinc-700 dark:text-zinc-300">NEED: {c.needed}</div>
+                      <div className="bg-surface rounded border border-rule-dark/50 p-1 font-semibold text-settled">ACT: {c.satisfied}</div>
+                      <div className="bg-surface rounded border border-rule-dark/50 p-1 font-semibold text-blue-700">PROG: {c.inProgress}</div>
+                      <div className="bg-surface rounded border border-rule-dark/50 p-1 font-semibold text-danger">EXP: {c.expired}</div>
+                      <div className="bg-surface rounded border border-rule-dark/50 p-1 font-semibold text-ink-muted">NEED: {c.needed}</div>
                     </div>
                   </div>
                 ))}
@@ -749,12 +728,12 @@ export default function Analytics() {
           )}
 
           {/* RIGHT (7 COLS): PRIORITY ACTION QUEUE */}
-          <div className={`${cityBreakdown.length > 0 ? 'lg:col-span-7' : 'lg:col-span-12'} bg-white dark:bg-zinc-900 border-[3px] border-black dark:border-white shadow-[8px_8px_0px_0px_rgba(0,0,0,1)] dark:shadow-[8px_8px_0px_0px_rgba(255,255,255,1)] p-6`}>
-            <div className="flex items-center justify-between border-b-[3px] border-black dark:border-white pb-3 mb-6">
-              <h3 className="font-black uppercase text-xl text-black dark:text-white flex items-center gap-2">
-                <Zap size={20} /> Priority Execution Queue
+          <div className={`${cityBreakdown.length > 0 ? 'lg:col-span-7' : 'lg:col-span-12'} bg-surface rounded-lg border border-rule-dark shadow-card p-5`}>
+            <div className="flex items-center justify-between border-b border-rule-dark pb-3 mb-4">
+              <h3 className="font-bold font-display text-sm md:text-base text-ink flex items-center gap-2 tracking-tight">
+                <Zap size={18} className="text-accent" /> Priority Execution Queue
               </h3>
-              <span className="font-mono text-xs font-black bg-black text-white dark:bg-white dark:text-black px-2 py-0.5">
+              <span className="font-mono text-[10px] font-semibold bg-base border border-rule-dark text-ink-muted px-2 py-0.5 rounded">
                 URGENT FIRST
               </span>
             </div>
@@ -780,18 +759,22 @@ export default function Analytics() {
                     : l.status === 'needed' ? 'APPLY NOW'
                     : days !== null && days <= 30 ? 'EXPIRING SOON'
                     : 'COMPLIANT';
-                  const actionBg = action.includes('NOW') ? 'bg-rose-400 text-black' : action.includes('SOON') ? 'bg-amber-400 text-black' : 'bg-emerald-400 text-black';
+                  const actionCls = action.includes('NOW')
+                    ? 'bg-red-50 text-danger border-red-200'
+                    : action.includes('SOON')
+                    ? 'bg-amber-50 text-caution border-amber-200'
+                    : 'bg-settled/10 text-settled border-settled/25';
 
                   return (
                     <div
                       key={l.id || i}
-                      className="flex items-center justify-between p-3 border-2 border-black dark:border-white bg-zinc-50 dark:bg-zinc-800"
+                      className="flex items-center justify-between p-2.5 rounded-md border border-rule-dark/60 bg-base/50"
                     >
                       <div className="flex-1 min-w-0 pr-3">
-                        <div className="font-bold text-xs truncate text-black dark:text-white">{name}</div>
-                        <div className="font-mono text-[10px] text-zinc-500">{l.requirement?.city || 'Federal / Multi-Jurisdiction'}</div>
+                        <div className="font-semibold text-xs truncate text-ink font-display">{name}</div>
+                        <div className="font-mono text-[10px] text-ink-muted">{l.requirement?.city || 'Federal / Multi-Jurisdiction'}</div>
                       </div>
-                      <span className={`font-mono text-[10px] font-black px-2.5 py-1 border border-black dark:border-white ${actionBg}`}>
+                      <span className={`font-mono text-[10px] font-semibold px-2 py-0.5 rounded border ${actionCls}`}>
                         {action}
                       </span>
                     </div>
@@ -804,3 +787,4 @@ export default function Analytics() {
     </div>
   );
 }
+

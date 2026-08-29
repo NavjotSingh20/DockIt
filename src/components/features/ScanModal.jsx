@@ -97,23 +97,21 @@ export default function ScanModal({ onClose, onSave, businessType, cities = [] }
     setState(STATES.SCANNING);
 
     try {
-      setStatusText('Reading document text...');
-      const { text: ocrText, confidence: ocrConf } = await extractTextFromImage(file, (p) => {
-        setProgress(Math.round(p * 0.5));
-      });
-
-      setStatusText('Analyzing with AI...');
-      setProgress(60);
+      setStatusText('Analyzing document with Gemini Vision AI...');
+      setProgress(40);
 
       let data = null;
       let aiConf = null;
+      let rawOcrText = '';
 
       try {
+        // Primary Path: Multimodal Vision extraction via Gemini
         const res = await fetch('/api/ai/extract', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
-            ocrText,
+            imageBase64: prev,
+            mimeType: file.type || 'image/jpeg',
             businessType,
             cities,
           }),
@@ -121,21 +119,30 @@ export default function ScanModal({ onClose, onSave, businessType, cities = [] }
 
         if (res.ok) {
           const resJson = await res.json();
-          data = resJson.data;
-          aiConf = resJson.confidence;
-        } else {
-          const fallback = parseOcrTextHeuristically(ocrText);
-          data = fallback;
-          aiConf = fallback.confidence || 40;
+          if (resJson && resJson.data) {
+            data = resJson.data;
+            aiConf = resJson.confidence;
+          }
         }
       } catch (apiErr) {
-        console.warn('API extract call failed, using heuristic parser:', apiErr);
-        const fallback = parseOcrTextHeuristically(ocrText);
-        data = fallback;
-        aiConf = fallback.confidence || 40;
+        console.warn('Multimodal vision API call failed, falling back to local Tesseract:', apiErr);
       }
 
-      setProgress(90);
+      // Offline / Network Error Fallback: Run local Tesseract.js OCR
+      if (!data) {
+        setStatusText('Running offline optical character recognition...');
+        const { text: ocrText, confidence: ocrConf } = await extractTextFromImage(file, (p) => {
+          setProgress(40 + Math.round(p * 0.4));
+        });
+        rawOcrText = ocrText;
+
+        const fallback = parseOcrTextHeuristically(ocrText);
+        data = fallback;
+        aiConf = fallback.confidence || ocrConf || 40;
+      }
+
+      setProgress(85);
+      setStatusText('Matching with official regulatory catalog...');
 
       const finalFields = {
         license_type: data?.license_type || '',
@@ -148,11 +155,11 @@ export default function ScanModal({ onClose, onSave, businessType, cities = [] }
 
       setExtracted(data);
       setFields(finalFields);
-      const computedConf = aiConf || ocrConf || 50;
+      const computedConf = aiConf || 90;
       setConfidence(computedConf);
 
       // Perform real-time requirement linkage match
-      const matched = matchRequirementRow({ ...finalFields, rawOcr: ocrText }, catalogRequirements);
+      const matched = matchRequirementRow({ ...finalFields, rawOcr: rawOcrText }, catalogRequirements);
       if (matched) {
         setMatchedRequirement(matched);
         if (!finalFields.license_type) {

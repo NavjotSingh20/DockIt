@@ -6,7 +6,7 @@
 
 -- ── Mumbai Restaurants ────────────────────────────────────
 INSERT INTO requirements (business_type, city, jurisdiction_level, requirement_name, issuing_agency, fee_min, fee_max, renewal_cycle_months, processing_time, description, source_url, last_verified_date) VALUES
-('restaurant', 'Mumbai, Maharashtra', 'federal', 'FSSAI Food License', 'Food Safety and Standards Authority of India', 2000, 5000, 12, '7-14 business days', 'Mandatory food safety license for any food business in India. Required for manufacturing, storage, distribution, and sale of food.', 'https://foscos.fssai.gov.in', CURRENT_DATE),
+('restaurant', 'Mumbai, Maharashtra', 'state',   'FSSAI Food License', 'Food Safety and Standards Authority of India (Maharashtra State / FoSCoS)', 2000, 5000, 12, '7-14 business days', 'Premises-specific mandatory food safety license for food storage, preparation, and sale in Maharashtra. Required for each physical operating unit.', 'https://foscos.fssai.gov.in', CURRENT_DATE),
 ('restaurant', 'Mumbai, Maharashtra', 'state',   'Fire NOC', 'Maharashtra Fire & Emergency Services', 1000, 10000, 12, '14-30 business days', 'No Objection Certificate from fire department certifying fire safety compliance of the premises.', 'https://mumbaimunicipal.gov.in', CURRENT_DATE),
 ('restaurant', 'Mumbai, Maharashtra', 'city',    'Trade License', 'BMC (Brihatmumbai Municipal Corporation)', 5000, 25000, 12, '7-21 business days', 'Municipal trade license permitting commercial business operations within city jurisdiction.', 'https://portal.mcgm.gov.in', CURRENT_DATE),
 ('restaurant', 'Mumbai, Maharashtra', 'state',   'Shop & Establishment Registration', 'Maharashtra Labour Department', 500, 2000, 12, '7-14 business days', 'Registration under the Shops and Establishments Act for regulating working conditions and employee welfare.', 'https://mahashramm.gov.in', CURRENT_DATE),
@@ -22,12 +22,14 @@ ON CONFLICT (business_type, city, requirement_name) DO NOTHING;
 
 -- ── New Delhi, Delhi (Restaurant) ──────────────────────────
 INSERT INTO requirements (business_type, city, jurisdiction_level, requirement_name, issuing_agency, fee_min, fee_max, renewal_cycle_months, processing_time, description, source_url, last_verified_date) VALUES
-('restaurant', 'New Delhi, Delhi', 'city', 'MCD Health Trade License', 'Municipal Corporation of Delhi (MCD)', 1000, 1000, 36, '15-30 business days', 'Mandatory health trade license issued by Municipal Corporation of Delhi for eating and food establishments. (Fee note: ₹1,000 new application fee, ₹500 renewal)', 'https://mcdonline.nic.in/portal/citizenCharter', CURRENT_DATE)
+('restaurant', 'New Delhi, Delhi', 'city',  'MCD Health Trade License', 'Municipal Corporation of Delhi (MCD)', 1000, 1000, 36, '15-30 business days', 'Mandatory health trade license issued by Municipal Corporation of Delhi for eating and food establishments. (Fee note: ₹1,000 new application fee, ₹500 renewal)', 'https://mcdonline.nic.in/portal/citizenCharter', CURRENT_DATE),
+('restaurant', 'New Delhi, Delhi', 'state', 'FSSAI Food License', 'Food Safety and Standards Authority of India (Delhi Department of Food Safety)', 2000, 5000, 12, '7-14 business days', 'Premises-specific mandatory food safety license for food storage, preparation, and sale in Delhi.', 'https://foscos.fssai.gov.in', CURRENT_DATE)
 ON CONFLICT (business_type, city, requirement_name) DO NOTHING;
 
 -- ── Chandigarh (Restaurant) ────────────────────────────────
 INSERT INTO requirements (business_type, city, jurisdiction_level, requirement_name, issuing_agency, fee_min, fee_max, renewal_cycle_months, processing_time, description, source_url, last_verified_date) VALUES
-('restaurant', 'Chandigarh', 'city', 'Shop & Establishment Registration', 'Chandigarh Labour Department', NULL, NULL, 12, '7-14 business days', 'Statutory registration for commercial establishments under the Punjab Shops and Commercial Establishments Act, 1958 as applicable to the Union Territory of Chandigarh. (Fee note: unverified — verify against official Chandigarh Labour Department fee schedule before demo)', 'https://chandigarh.gov.in', CURRENT_DATE)
+('restaurant', 'Chandigarh', 'city',  'Shop & Establishment Registration', 'Chandigarh Labour Department', NULL, NULL, 12, '7-14 business days', 'Statutory registration for commercial establishments under the Punjab Shops and Commercial Establishments Act, 1958 as applicable to the Union Territory of Chandigarh. (Fee note: unverified — verify against official Chandigarh Labour Department fee schedule before demo)', 'https://chandigarh.gov.in', CURRENT_DATE),
+('restaurant', 'Chandigarh', 'state', 'FSSAI Food License', 'Food Safety and Standards Authority of India (Chandigarh UT Food Safety Cell)', 2000, 5000, 12, '7-14 business days', 'Premises-specific mandatory food safety license for food operating units in the Union Territory of Chandigarh.', 'https://foscos.fssai.gov.in', CURRENT_DATE)
 ON CONFLICT (business_type, city, requirement_name) DO NOTHING;
 
 -- ── Federal / All Cities (USA) ─────────────────────────────

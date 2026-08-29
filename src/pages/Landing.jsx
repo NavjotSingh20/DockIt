@@ -6,6 +6,7 @@ import { useDemo } from '../context/DemoContext';
 import toast from 'react-hot-toast';
 import ScrollFloat from '../components/ui/ScrollFloat';
 import SeamlessStrokeText from '../components/ui/SeamlessStrokeText';
+import DockItLogo from '../components/ui/DockItLogo';
 
 /* ─── Real permit data (Hero animation — NYC example) ─── */
 const NYC_CHECKLIST = [
@@ -624,19 +625,17 @@ export default function Landing() {
       {/* ─── Navbar ─── */}
       <nav className="fixed top-0 left-0 right-0 z-50 bg-base/90 backdrop-blur-md border-b border-rule">
         <div className="max-w-5xl mx-auto px-4 h-14 flex items-center justify-between">
-          <span className="font-display font-bold text-ink text-lg tracking-tight">
-            Dock<span className="text-accent">It</span>
-          </span>
+          <DockItLogo size="sm" />
           <div className="flex items-center gap-3">
             <button
               onClick={handleDemo}
-              className="text-sm text-ink-muted hover:text-accent font-display font-medium transition-colors px-3 py-2"
+              className="inline-flex items-center justify-center h-9 text-sm text-ink-muted hover:text-accent font-display font-medium transition-colors px-3 rounded-xl leading-none"
             >
               Demo
             </button>
             <button
               onClick={handleGetStarted}
-              className="btn-primary text-sm py-2 px-4"
+              className="btn-primary text-sm py-0 h-9 px-4 leading-none"
             >
               Get started
             </button>
@@ -667,10 +666,10 @@ export default function Landing() {
                 DockIt tells food truck owners exactly which licenses, permits, and inspections they need — city by city, agency by agency.
               </p>
               <div className="flex flex-col sm:flex-row gap-3">
-                <button onClick={handleGetStarted} className="btn-primary text-base px-7 py-3.5">
+                <button onClick={handleGetStarted} className="btn-primary text-base px-7 py-3.5 leading-none">
                   Build your checklist <ArrowRight size={18} />
                 </button>
-                <button onClick={handleDemo} className="text-sm text-ink-muted hover:text-accent font-display font-semibold transition-colors px-5 py-3.5 rounded-xl border border-rule hover:border-rule-dark">
+                <button onClick={handleDemo} className="inline-flex items-center justify-center text-sm text-ink-muted hover:text-accent font-display font-semibold transition-colors px-5 py-3.5 rounded-xl border border-rule hover:border-rule-dark bg-surface leading-none">
                   Try the demo
                 </button>
               </div>
@@ -685,12 +684,14 @@ export default function Landing() {
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             transition={{ delay: 0.8, duration: 0.5 }}
-            className="flex items-center justify-center gap-6 mt-12 md:mt-16 pt-6 border-t border-rule/50"
+            className="flex flex-wrap items-center justify-center gap-6 mt-12 md:mt-16 pt-6 border-t border-rule/50"
           >
-            {['NYC', 'Los Angeles', 'Mumbai'].map((city) => (
-              <div key={city} className="flex items-center gap-2">
-                <div className="w-1.5 h-1.5 rounded-full bg-settled" />
-                <span className="text-xs font-display font-semibold text-ink-faint uppercase tracking-wide">{city}</span>
+            {['Delhi', 'Mumbai', 'NYC', 'Los Angeles'].map((city) => (
+              <div key={city} className="inline-flex items-center gap-2">
+                <span className="w-1.5 h-1.5 rounded-full bg-settled shrink-0" />
+                <span className="text-xs font-display font-semibold text-ink-faint uppercase tracking-wider leading-none select-none">
+                  {city}
+                </span>
               </div>
             ))}
           </motion.div>
@@ -906,11 +907,13 @@ export default function Landing() {
               </p>
             </div>
             
-            <div className="flex items-center gap-4">
-              {['NYC', 'Los Angeles', 'Mumbai'].map((city) => (
-                <div key={city} className="flex items-center gap-1.5">
-                  <div className="w-1.5 h-1.5 rounded-full bg-settled" />
-                  <span className="text-xs text-white/40 font-display font-semibold uppercase tracking-wider">{city}</span>
+            <div className="flex flex-wrap items-center gap-4 sm:gap-5">
+              {['Delhi', 'Mumbai', 'NYC', 'Los Angeles'].map((city) => (
+                <div key={city} className="inline-flex items-center gap-2">
+                  <span className="w-1.5 h-1.5 rounded-full bg-settled shrink-0" />
+                  <span className="text-xs text-white/40 font-display font-semibold uppercase tracking-wider leading-none select-none">
+                    {city}
+                  </span>
                 </div>
               ))}
             </div>

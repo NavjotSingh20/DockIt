@@ -268,7 +268,7 @@ export default function Dashboard() {
                 Track requirements to view compliance scores
               </div>
               <Link to="/requirements" className="mt-0.5 text-accent text-xs font-semibold underline">
-                Browse Catalog →
+                {t('dashboard.browse_catalog', 'Browse Catalog')} →
               </Link>
             </div>
           )}
@@ -289,7 +289,7 @@ export default function Dashboard() {
             </div>
           </div>
           <button onClick={() => setViewMode('grid')} className="text-xs font-semibold text-danger underline font-display shrink-0 ml-2">
-            View Items →
+            {t('dashboard.view_items', 'View Items')} →
           </button>
         </motion.div>
       )}
@@ -318,46 +318,46 @@ export default function Dashboard() {
       <div className="space-y-4">
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-rule-dark pb-3">
           <div>
-            <h2 className="text-lg font-bold font-display text-ink tracking-tight">Tracked Requirements</h2>
+            <h2 className="text-lg font-bold font-display text-ink tracking-tight">{t('dashboard.tracked_requirements', 'Tracked Requirements')}</h2>
             <p className="text-xs text-ink-muted mt-0.5">
               {viewMode === 'timeline'
-                ? 'Chronological timeline of upcoming and past expirations'
-                : 'Monitor active, needed, and renewing permits across your operating jurisdictions'}
+                ? t('dashboard.timeline_subtitle', 'Chronological timeline of upcoming and past expirations')
+                : t('dashboard.grid_subtitle', 'Monitor active, needed, and renewing permits across your operating jurisdictions')}
             </p>
           </div>
 
           <div className="flex items-center gap-2.5">
             {/* View Mode Toggle */}
-            <div className="flex items-center bg-base p-0.5 rounded-md border border-rule-dark">
+            <div className="flex items-center bg-base p-0.5 rounded-lg border border-rule gap-0.5">
               <button
                 onClick={() => setViewMode('grid')}
-                className={`flex items-center gap-1 px-2.5 py-1 rounded text-xs font-semibold font-display transition-all ${viewMode === 'grid' ? 'bg-surface text-ink shadow-subtle' : 'text-ink-muted hover:text-ink'}`}
+                className={`inline-flex items-center justify-center gap-1.5 px-3 h-7 rounded-md text-xs font-semibold font-display leading-none select-none transition-all ${viewMode === 'grid' ? 'bg-surface text-ink shadow-subtle' : 'text-ink-muted hover:text-ink'}`}
                 title="Grid Card View"
               >
                 <LayoutGrid size={13} />
-                <span>Grid</span>
+                <span className="leading-none">{t('dashboard.grid', 'Grid')}</span>
               </button>
               <button
                 onClick={() => setViewMode('timeline')}
-                className={`flex items-center gap-1 px-2.5 py-1 rounded text-xs font-semibold font-display transition-all ${viewMode === 'timeline' ? 'bg-surface text-ink shadow-subtle' : 'text-ink-muted hover:text-ink'}`}
+                className={`inline-flex items-center justify-center gap-1.5 px-3 h-7 rounded-md text-xs font-semibold font-display leading-none select-none transition-all ${viewMode === 'timeline' ? 'bg-surface text-ink shadow-subtle' : 'text-ink-muted hover:text-ink'}`}
                 title="Chronological Timeline View"
               >
                 <Calendar size={13} />
-                <span>Timeline</span>
+                <span className="leading-none">{t('dashboard.timeline', 'Timeline')}</span>
               </button>
             </div>
 
             {viewMode === 'grid' && (
               <select value={sort} onChange={e => setSort(e.target.value)}
-                className="text-xs font-medium border border-rule-dark rounded-md px-2.5 py-1.5 outline-none focus:ring-1 focus:ring-accent bg-surface font-display text-ink shadow-subtle">
-                <option value="urgent">Most Urgent</option>
-                <option value="az">A–Z</option>
-                <option value="recent">Recently Added</option>
+                className="text-xs font-medium border border-rule rounded-md h-8 px-2.5 outline-none focus:ring-1 focus:ring-accent bg-surface font-display text-ink shadow-subtle leading-none">
+                <option value="urgent">{t('dashboard.sort_urgent', 'Most Urgent')}</option>
+                <option value="az">{t('dashboard.sort_az', 'A–Z')}</option>
+                <option value="recent">{t('dashboard.sort_recent', 'Recently Added')}</option>
               </select>
             )}
 
-            <button onClick={() => setShowScan(true)} className="btn-primary text-xs py-1.5 px-3">
-              <Plus size={13} /> Add Document
+            <button onClick={() => setShowScan(true)} className="btn-primary text-xs py-0 h-8 px-3.5 leading-none">
+              <Plus size={13} /> {t('dashboard.add_document', 'Add Document')}
             </button>
           </div>
         </div>
@@ -422,7 +422,7 @@ export default function Dashboard() {
                             <div className="space-y-0.5">
                               <div className="flex items-center gap-2">
                                 <span className="font-semibold font-display text-ink text-sm">
-                                  {lic.requirement?.requirement_name || lic.license_type}
+                                  {lic.requirement?.requirement_name || lic.requirement_name || lic.license_type || lic.name || 'Required License'}
                                 </span>
                                 {lic.requirement?.jurisdiction_level && (
                                   <span className="text-[10px] font-semibold uppercase px-1.5 py-0.2 rounded bg-base text-ink-muted border border-rule-dark">
@@ -431,7 +431,7 @@ export default function Dashboard() {
                                 )}
                               </div>
                               <div className="text-[11px] text-ink-muted flex flex-wrap items-center gap-2 font-mono">
-                                <span>Authority: <strong className="text-ink font-medium">{lic.issuing_authority || lic.requirement?.issuing_agency || '—'}</strong></span>
+                                <span>{t('requirements.authority', 'Authority')}: <strong className="text-ink font-medium">{lic.issuing_authority || lic.requirement?.issuing_agency || '—'}</strong></span>
                                 {lic.license_number && (
                                   <>
                                     <span>·</span>
@@ -444,13 +444,13 @@ export default function Dashboard() {
                             <div className="flex items-center gap-3 self-end sm:self-center shrink-0">
                               <div className="text-right">
                                 <div className="text-[10px] text-ink-muted uppercase font-semibold font-display tracking-wider">
-                                  {isExpired ? 'Expired' : 'Expires'}
+                                  {isExpired ? t('dashboard.expired', 'Expired') : t('dashboard.expires_label', 'Expires')}
                                 </div>
                                 <div className="text-xs font-bold font-mono text-ink">
                                   {formatDate(lic.expiry_date)}
                                 </div>
                                 <div className={`text-[11px] font-medium font-mono ${isExpired ? 'text-danger' : lic.daysLeft <= 30 ? 'text-caution' : 'text-settled'}`}>
-                                  {isExpired ? `${Math.abs(lic.daysLeft)}d overdue` : `${lic.daysLeft}d left`}
+                                  {isExpired ? `${Math.abs(lic.daysLeft)}d ${t('dashboard.overdue', 'overdue')}` : `${lic.daysLeft}d ${t('dashboard.days_left', 'left')}`}
                                 </div>
                               </div>
 
@@ -458,7 +458,7 @@ export default function Dashboard() {
                                 onClick={() => navigate(`/license/${lic.id}`)}
                                 className="btn-secondary text-xs py-1 px-2.5 flex items-center gap-1 font-display"
                               >
-                                <span>Details</span>
+                                <span>{t('common.details', 'Details')}</span>
                                 <ChevronRight size={12} />
                               </button>
                             </div>
@@ -542,7 +542,7 @@ export default function Dashboard() {
         className="fixed bottom-20 right-[4.75rem] lg:bottom-6 lg:right-24 z-30 w-14 h-14 bg-ink hover:bg-ink/80 text-white rounded-full shadow-xl flex flex-col items-center justify-center gap-0.5 transition-all hover:scale-110"
       >
         <Camera size={20} />
-        <span className="text-[9px] font-bold font-display tracking-wide leading-none">SCAN</span>
+        <span className="text-[9px] font-bold font-display tracking-wide leading-none">{t('dashboard.scan_btn', 'SCAN')}</span>
       </button>
 
       {/* Scan Modal */}

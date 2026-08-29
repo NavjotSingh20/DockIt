@@ -334,24 +334,24 @@ export default function MyRequirements() {
 
         {/* Operating Cities Badges & Add City Action */}
         <div className="flex flex-wrap items-center gap-2">
-          <span className="text-xs font-display font-medium px-2.5 py-1 bg-base rounded-md border border-rule-dark text-ink-muted flex items-center gap-1.5">
-            <Building2 size={12} className="text-accent" />
-            <span className="capitalize">{businessType.replace('_', ' ')}</span>
+          <span className="inline-flex items-center justify-center h-7 text-xs font-display font-medium px-2.5 bg-base rounded-md border border-rule text-ink-muted gap-1.5 leading-none select-none">
+            <Building2 size={12} className="text-accent shrink-0" />
+            <span className="capitalize leading-none">{businessType.replace('_', ' ')}</span>
           </span>
 
           {operatingCities.map((city, idx) => (
-            <span key={idx} className="text-xs font-display font-medium px-2.5 py-1 bg-accent/8 text-accent-dark rounded-md border border-accent/20 flex items-center gap-1.5">
-              <MapPin size={11} className="text-accent" />
-              {city}
+            <span key={idx} className="inline-flex items-center justify-center h-7 text-xs font-display font-medium px-2.5 bg-accent/8 text-accent-dark rounded-md border border-accent/20 gap-1.5 leading-none select-none">
+              <MapPin size={11} className="text-accent shrink-0" />
+              <span className="leading-none">{city}</span>
             </span>
           ))}
 
           {/* Quick Add City Button */}
           <button
             onClick={() => setShowAddCityModal(true)}
-            className="btn-secondary text-xs px-2.5 py-1 flex items-center gap-1 border-dashed border-rule-dark hover:border-accent text-accent"
+            className="inline-flex items-center justify-center gap-1.5 h-7 px-3 text-xs font-semibold font-display border border-dashed border-accent/40 text-accent hover:bg-accent/10 rounded-md transition-all leading-none select-none"
           >
-            <Plus size={13} /> {t('requirements.add_city')}
+            <Plus size={13} className="shrink-0" /> <span className="leading-none">{t('requirements.add_city')}</span>
           </button>
         </div>
       </div>
@@ -400,18 +400,20 @@ export default function MyRequirements() {
         </div>
 
         {/* Jurisdiction Filters */}
-        <div className="flex items-center bg-surface p-1 rounded-md border border-rule-dark gap-1 shadow-subtle">
+        <div className="flex items-center bg-surface p-1 rounded-lg border border-rule gap-1 shadow-subtle">
           {['all', 'federal', 'state', 'city'].map((j) => (
             <button
               key={j}
               onClick={() => setJurisdictionFilter(j)}
-              className={`px-3 py-1 text-xs font-medium font-display rounded transition-all capitalize ${
+              className={`inline-flex items-center justify-center h-7 px-3 text-xs font-semibold font-display leading-none select-none rounded-md transition-all capitalize ${
                 jurisdictionFilter === j
                   ? 'bg-accent text-white shadow-subtle'
                   : 'text-ink-muted hover:text-ink hover:bg-base'
               }`}
             >
-              {t(`requirements.${j}`)}
+              <span className="leading-none flex items-center justify-center">
+                {t(`requirements.${j}`)}
+              </span>
             </button>
           ))}
         </div>
@@ -436,10 +438,10 @@ export default function MyRequirements() {
               <div className="flex items-center gap-2 border-b border-rule-dark pb-2">
                 <CheckCircle2 size={16} className="text-settled" />
                 <h2 className="text-sm font-bold font-display text-ink tracking-tight">
-                  Covered Across Cities (Federal / Reusable Permits)
+                  {t('requirements.covered_federal', 'Covered Across Cities (Federal / Reusable Permits)')}
                 </h2>
                 <span className="text-[11px] font-mono px-2 py-0.2 bg-settled/10 text-settled rounded-md border border-settled/20 font-semibold">
-                  {coveredFederalReqs.length} Covered
+                  {coveredFederalReqs.length} {t('requirements.covered_badge', 'Covered')}
                 </span>
               </div>
 
@@ -457,7 +459,7 @@ export default function MyRequirements() {
                           {req.jurisdiction_level}
                         </span>
                         <span className="text-xs font-medium font-display text-settled flex items-center gap-1">
-                          <CheckCircle2 size={13} /> Satisfied
+                          <CheckCircle2 size={13} /> {t('status.satisfied', 'Satisfied')}
                         </span>
                       </div>
 
@@ -485,7 +487,7 @@ export default function MyRequirements() {
                       >
                         <div className="flex items-center gap-2">
                           <FileDown size={14} className="text-white/80" />
-                          <span className="font-semibold font-display">Pre-fill &amp; Download Form</span>
+                          <span className="font-semibold font-display">{t('requirements.download_packet', 'Pre-fill & Download Form')}</span>
                         </div>
                         <ExternalLink size={12} className="text-white/50" />
                       </button>
@@ -560,7 +562,7 @@ export default function MyRequirements() {
                         <div className="grid grid-cols-2 gap-2 mb-4">
                           {/* Fee */}
                           <div className="bg-base/70 p-2 rounded-md border border-rule-dark/60">
-                            <div className="text-[10px] font-display uppercase tracking-wider text-ink-muted font-semibold">Estimated Fee</div>
+                            <div className="text-[10px] font-display uppercase tracking-wider text-ink-muted font-semibold">{t('requirements.est_fees', 'Estimated Fee')}</div>
                             <div className="text-xs font-bold font-mono text-ink mt-0.5">
                               {req.fee_min !== null && req.fee_max !== null
                                 ? (req.fee_min === 0 && req.fee_max === 0
@@ -573,7 +575,7 @@ export default function MyRequirements() {
 
                           {/* Processing Time */}
                           <div className="bg-base/70 p-2 rounded-md border border-rule-dark/60">
-                            <div className="text-[10px] font-display uppercase tracking-wider text-ink-muted font-semibold">Processing Time</div>
+                            <div className="text-[10px] font-display uppercase tracking-wider text-ink-muted font-semibold">{t('requirements.processing_time', 'Processing Time')}</div>
                             <div className="text-xs font-bold font-mono text-ink mt-0.5 flex items-center gap-1">
                               <Clock size={11} className="text-ink-faint" />
                               {req.processing_time || 'Varies by agency'}
@@ -583,32 +585,32 @@ export default function MyRequirements() {
                       </div>
 
                       {/* Footer Action Bar */}
-                      <div className="pt-3 border-t border-rule-dark/50 space-y-2">
+                      <div className="pt-3 border-t border-rule/50 space-y-2">
                         <button
                           onClick={() => handleDownloadPacket(req)}
-                          className="w-full flex items-center justify-between px-3 py-2 rounded-md bg-ink hover:bg-ink/90 text-white transition-colors shadow-subtle text-xs"
+                          className="w-full inline-flex items-center justify-between px-3.5 h-9 rounded-md bg-ink hover:bg-ink/90 text-white transition-colors shadow-subtle text-xs leading-none select-none"
                           title="Download your pre-filled official application form"
                         >
-                          <div className="flex items-center gap-2">
-                            <FileDown size={14} className="text-white/80" />
-                            <span className="font-semibold font-display">Pre-fill &amp; Download Form</span>
+                          <div className="flex items-center gap-2 leading-none">
+                            <FileDown size={14} className="text-white/80 shrink-0" />
+                            <span className="font-semibold font-display leading-none">{t('requirements.download_packet', 'Pre-fill & Download Form')}</span>
                           </div>
-                          <ExternalLink size={12} className="text-white/50" />
+                          <ExternalLink size={12} className="text-white/50 shrink-0" />
                         </button>
 
                         <div className="flex items-center justify-end">
                           {isTracked ? (
-                            <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-md text-xs font-medium font-display bg-settled/10 text-settled border border-settled/25">
-                              <Check size={12} strokeWidth={2.5} /> Tracking in Licenses
+                            <span className="inline-flex items-center justify-center gap-1.5 px-3 h-8 rounded-md text-xs font-semibold font-display bg-settled/10 text-settled border border-settled/25 leading-none select-none">
+                              <Check size={13} strokeWidth={2.5} className="shrink-0" /> <span className="leading-none">{t('requirements.already_tracked', 'Tracking in Licenses')}</span>
                             </span>
                           ) : (
                             <button
                               onClick={() => handleAddRequirement(req)}
                               disabled={isAdding}
-                              className="inline-flex items-center gap-1.5 px-3 py-1 rounded-md text-xs font-semibold font-display bg-accent text-white hover:bg-accent-dark transition-colors shadow-subtle"
+                              className="inline-flex items-center justify-center gap-1.5 px-3.5 h-8 rounded-md text-xs font-semibold font-display bg-accent text-white hover:bg-accent-dark transition-colors shadow-subtle leading-none select-none"
                             >
-                              {isAdding ? <div className="w-3 h-3 border-2 border-white/30 border-t-white rounded-full animate-spin" /> : <Plus size={12} />}
-                              Add to My Licenses
+                              {isAdding ? <div className="w-3 h-3 border-2 border-white/30 border-t-white rounded-full animate-spin shrink-0" /> : <Plus size={13} className="shrink-0" />}
+                              <span className="leading-none">{t('requirements.add_to_licenses', 'Add to My Licenses')}</span>
                             </button>
                           )}
                         </div>

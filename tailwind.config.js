@@ -49,8 +49,8 @@ export default {
         ring: '#D97706',
       },
       fontFamily: {
-        display: ['"Bricolage Grotesque"', '"Noto Sans Devanagari"', 'system-ui', 'sans-serif'],
-        sans: ['"Public Sans"', '"Noto Sans Devanagari"', 'system-ui', 'sans-serif'],
+        display: ['"Space Grotesk"', '"Noto Sans Devanagari"', 'system-ui', 'sans-serif'],
+        sans: ['"DM Sans"', '"Noto Sans Devanagari"', 'system-ui', 'sans-serif'],
         mono: ['"IBM Plex Mono"', 'ui-monospace', 'SFMono-Regular', 'Menlo', 'Monaco', 'Consolas', 'monospace'],
       },
       borderRadius: {

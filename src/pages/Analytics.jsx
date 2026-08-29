@@ -1,5 +1,6 @@
 import { useState, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
+import { useTranslation } from 'react-i18next';
 import { cn } from '../lib/utils';
 import {
   AlertTriangle, ShieldCheck, TrendingUp, MapPin,
@@ -25,23 +26,24 @@ function getDaysLeft(expiryDate) {
 // 1. RESTRAINED BAR CHART (License Status Breakdown)
 // =========================================
 function RestrainedBarChart({ summary, total }) {
+  const { t } = useTranslation();
   const [hovered, setHovered] = useState(null);
 
   const barData = [
-    { label: 'Active', count: summary.satisfied, color: 'bg-emerald-500', pct: total > 0 ? Math.round((summary.satisfied / total) * 100) : 0 },
-    { label: 'Progress', count: summary.inProgress, color: 'bg-blue-500', pct: total > 0 ? Math.round((summary.inProgress / total) * 100) : 0 },
-    { label: 'Needed', count: summary.needed, color: 'bg-amber-500', pct: total > 0 ? Math.round((summary.needed / total) * 100) : 0 },
-    { label: 'Expired', count: summary.expired, color: 'bg-rose-500', pct: total > 0 ? Math.round((summary.expired / total) * 100) : 0 },
+    { label: t('status.active', 'Active'), count: summary.satisfied, color: 'bg-emerald-500', pct: total > 0 ? Math.round((summary.satisfied / total) * 100) : 0 },
+    { label: t('status.in_progress', 'Progress'), count: summary.inProgress, color: 'bg-blue-500', pct: total > 0 ? Math.round((summary.inProgress / total) * 100) : 0 },
+    { label: t('status.needed', 'Needed'), count: summary.needed, color: 'bg-amber-500', pct: total > 0 ? Math.round((summary.needed / total) * 100) : 0 },
+    { label: t('status.expired', 'Expired'), count: summary.expired, color: 'bg-rose-500', pct: total > 0 ? Math.round((summary.expired / total) * 100) : 0 },
     { label: 'Waived', count: summary.waived, color: 'bg-purple-500', pct: total > 0 ? Math.round((summary.waived / total) * 100) : 0 },
   ];
 
   return (
-    <div className="w-full h-full bg-surface rounded-lg border border-rule-dark shadow-card relative flex flex-col p-5">
-      <div className="flex items-center justify-between border-b border-rule-dark pb-2.5 mb-4">
-        <h3 className="font-bold font-display text-sm text-ink tracking-tight">
-          Permit Status Distribution
-        </h3>
-        <span className="text-[11px] font-mono font-semibold px-2 py-0.5 bg-base text-ink-muted border border-rule-dark rounded">
+    <div className="w-full h-full bg-surface rounded-2xl border border-rule shadow-card relative flex flex-col p-5 md:p-6">
+      <div className="flex items-center justify-between border-b border-rule pb-3.5 mb-4">
+        <h2 className="font-bold font-display text-base md:text-lg text-ink tracking-tight">
+          {t('analytics.distribution', 'Permit Status Distribution')}
+        </h2>
+        <span className="text-[11px] font-mono font-semibold px-2 py-0.5 bg-base text-ink-muted border border-rule rounded">
           {total} TOTAL
         </span>
       </div>
@@ -110,6 +112,7 @@ const getCoords = (value, index, totalAxes) => {
 };
 
 function RestrainedRadarChart({ radarData }) {
+  const { t } = useTranslation();
   const [hoveredMetric, setHoveredMetric] = useState(null);
   const numAxes = radarData.length;
 
@@ -122,7 +125,7 @@ function RestrainedRadarChart({ radarData }) {
   const gridLevels = [100, 75, 50, 25];
 
   return (
-    <div className="w-full h-full bg-surface rounded-lg border border-rule-dark shadow-card p-5 flex flex-col sm:flex-row gap-5 relative overflow-hidden">
+    <div className="w-full h-full bg-surface rounded-2xl border border-rule shadow-card p-5 md:p-6 flex flex-col sm:flex-row gap-5 relative overflow-hidden">
       {/* LEFT: CHART AREA */}
       <div className="flex-1 flex items-center justify-center relative min-h-[220px]">
         <svg
@@ -214,9 +217,9 @@ function RestrainedRadarChart({ radarData }) {
 
       {/* RIGHT: STATS LIST */}
       <div className="w-full sm:w-48 flex flex-col justify-center gap-1.5 z-10">
-        <h3 className="font-bold font-display text-sm mb-1 border-b border-rule-dark pb-1.5 text-ink tracking-tight">
-          Health Dimensions
-        </h3>
+        <h2 className="font-bold font-display text-base border-b border-rule pb-2 text-ink tracking-tight">
+          {t('analytics.health_dimensions', 'Health Dimensions')}
+        </h2>
         {radarData.map((item, i) => (
           <motion.div
             key={i}
@@ -254,6 +257,7 @@ const getPieCoords = (percent) => {
 };
 
 function RestrainedDonut({ complianceScore, totalFine, totalDailyFine, totalLicenses }) {
+  const { t } = useTranslation();
   const [hoveredSlice, setHoveredSlice] = useState(null);
 
   const pieData = [
@@ -264,12 +268,12 @@ function RestrainedDonut({ complianceScore, totalFine, totalDailyFine, totalLice
   let cumulativePercent = 0;
 
   return (
-    <div className="w-full h-full bg-surface rounded-lg border border-rule-dark shadow-card p-5 flex flex-col items-center justify-between overflow-hidden relative">
-      <div className="flex items-center justify-between border-b border-rule-dark pb-2.5 mb-4 w-full z-10">
-        <h3 className="font-bold font-display text-sm text-ink tracking-tight">
-          System Compliance Score
-        </h3>
-        <span className="font-mono text-[11px] font-semibold px-2 py-0.5 border border-rule-dark rounded bg-base text-ink">
+    <div className="w-full h-full bg-surface rounded-2xl border border-rule shadow-card p-5 md:p-6 flex flex-col items-center justify-between overflow-hidden relative">
+      <div className="flex items-center justify-between border-b border-rule pb-3.5 mb-4 w-full z-10">
+        <h2 className="font-bold font-display text-base md:text-lg text-ink tracking-tight">
+          {t('dashboard.compliance_score', 'System Compliance Score')}
+        </h2>
+        <span className="font-mono text-[11px] font-semibold px-2 py-0.5 border border-rule rounded bg-base text-ink">
           {complianceScore >= 80 ? 'GRADE A' : complianceScore >= 60 ? 'GRADE B' : complianceScore >= 40 ? 'GRADE C' : 'CRITICAL'}
         </span>
       </div>
@@ -374,6 +378,7 @@ function RestrainedDonut({ complianceScore, totalFine, totalDailyFine, totalLice
 // 4. MAIN BENTO ANALYTICS PAGE
 // =========================================
 export default function Analytics() {
+  const { t } = useTranslation();
   const { isDemo, demoLicenses } = useDemo();
   const { user } = useAuth();
   const { licenses } = useLicenses(null, isDemo ? demoLicenses : null);
@@ -495,7 +500,7 @@ export default function Analytics() {
         <header className="flex flex-col sm:flex-row sm:items-end justify-between gap-4 border-b border-rule-dark pb-4">
           <div>
             <h1 className="text-2xl md:text-3xl font-bold font-display tracking-tight text-ink">
-              Analytics &amp; Telemetry
+              {t('analytics.title', 'Analytics & Telemetry')}
             </h1>
             <p className="text-xs text-ink-muted mt-0.5">
               Real-time compliance performance, risk forecasting, and inspection health
@@ -536,12 +541,12 @@ export default function Analytics() {
         </div>
 
         {/* ── BENTO ROW 2: FINE PROJECTION & ESCALATION ── */}
-        <div className="w-full bg-surface rounded-lg border border-rule-dark shadow-card p-5">
-          <div className="flex flex-col sm:flex-row sm:items-center justify-between border-b border-rule-dark pb-3 mb-4 gap-2">
+        <div className="w-full bg-surface rounded-2xl border border-rule shadow-card p-5 md:p-6">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between border-b border-rule pb-3.5 mb-5 gap-2">
             <div>
-              <h3 className="font-bold font-display text-sm md:text-base text-ink flex items-center gap-2 tracking-tight">
-                <TrendingUp size={18} className="text-accent" /> Fine Escalation Projection (90-Day Forecast)
-              </h3>
+              <h2 className="font-bold font-display text-base md:text-lg text-ink flex items-center gap-2.5 tracking-tight">
+                <TrendingUp size={18} className="text-accent" /> {t('analytics.fine_projection', 'Fine Escalation Projection (90-Day Forecast)')}
+              </h2>
               <p className="text-xs text-ink-muted mt-0.5">
                 Estimated cumulative penalty exposure if unresolved
               </p>
@@ -552,7 +557,7 @@ export default function Analytics() {
                 { label: '+30D', val: projectionData.find(p => p.label === '+30d')?.fine || 0 },
                 { label: '+90D', val: projectionData.find(p => p.label === '+90d')?.fine || 0 },
               ].map(s => (
-                <div key={s.label} className="border border-rule-dark rounded px-2.5 py-1 bg-base">
+                <div key={s.label} className="border border-rule rounded px-2.5 py-1 bg-base">
                   <span className="text-ink-muted mr-1">{s.label}:</span>
                   <span className="text-danger font-bold">{formatCurrency(s.val)}</span>
                 </div>
@@ -565,7 +570,7 @@ export default function Analytics() {
               const maxFine = Math.max(...projectionData.map(p => p.fine), 1);
               const heightPct = Math.max(15, Math.round((pt.fine / maxFine) * 100));
               return (
-                <div key={i} className="flex flex-col items-center border border-rule-dark/60 rounded-md p-2.5 bg-base/50">
+                <div key={i} className="flex flex-col items-center border border-rule/60 rounded-md p-2.5 bg-base/50">
                   <span className="font-mono font-medium text-xs text-ink-muted">{pt.label}</span>
                   <div className="w-full h-20 flex items-end justify-center my-1.5">
                     <motion.div
@@ -582,7 +587,7 @@ export default function Analytics() {
           </div>
 
           {expiredWithPenalties.length > 0 && (
-            <div className="grid md:grid-cols-2 gap-3 pt-3 border-t border-rule-dark">
+            <div className="grid md:grid-cols-2 gap-3 pt-3 border-t border-rule">
               {expiredWithPenalties.map(l => (
                 <div key={l.id} className="border border-red-200 border-l-[3px] border-l-danger rounded-md p-3 bg-red-50/40">
                   <div className="flex items-start justify-between">
@@ -595,7 +600,7 @@ export default function Analytics() {
                       <div className="font-mono text-[10px] text-ink-muted">+{formatCurrency(l.penalty.dailyCost)}/day</div>
                     </div>
                   </div>
-                  <div className="mt-1.5 text-[11px] font-mono text-ink-muted bg-surface border border-rule-dark rounded px-2 py-0.5">
+                  <div className="mt-1.5 text-[11px] font-mono text-ink-muted bg-surface border border-rule rounded px-2 py-0.5">
                     ⚠️ {l.penalty.currentConsequence}
                   </div>
                 </div>
@@ -607,12 +612,12 @@ export default function Analytics() {
         {/* ── BENTO ROW 3: INSPECTION READINESS & RENEWAL COUNTDOWN ── */}
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-5">
           {/* LEFT (6 COLS): INSPECTION READINESS */}
-          <div className="lg:col-span-6 bg-surface rounded-lg border border-rule-dark shadow-card p-5">
-            <div className="flex items-center justify-between border-b border-rule-dark pb-3 mb-4">
-              <h3 className="font-bold font-display text-sm md:text-base text-ink flex items-center gap-2 tracking-tight">
-                <Eye size={18} className="text-accent" /> Inspection Audit Checklist
-              </h3>
-              <span className={`font-mono font-semibold text-xs px-2.5 py-0.5 border border-rule-dark rounded ${inspectionScore.score >= 80 ? 'bg-settled/15 text-settled' : inspectionScore.score >= 50 ? 'bg-amber-100 text-amber-800' : 'bg-red-100 text-danger'}`}>
+          <div className="lg:col-span-6 bg-surface rounded-2xl border border-rule shadow-card p-5 md:p-6">
+            <div className="flex items-center justify-between border-b border-rule pb-3.5 mb-5">
+              <h2 className="font-bold font-display text-base md:text-lg text-ink flex items-center gap-2.5 tracking-tight">
+                <Eye size={18} className="text-accent" /> {t('analytics.audit_checklist', 'Inspection Audit Checklist')}
+              </h2>
+              <span className={`font-mono font-semibold text-xs px-2.5 py-0.5 border border-rule rounded ${inspectionScore.score >= 80 ? 'bg-settled/15 text-settled' : inspectionScore.score >= 50 ? 'bg-amber-100 text-amber-800' : 'bg-red-100 text-danger'}`}>
                 {inspectionScore.score}/100 — {inspectionScore.label}
               </span>
             </div>
@@ -621,7 +626,7 @@ export default function Analytics() {
               {inspectionChecklist.map((item, i) => (
                 <div
                   key={i}
-                  className={`flex items-center justify-between p-2.5 rounded-md border border-rule-dark/60 ${item.ok ? 'bg-settled/5' : item.critical ? 'bg-red-50/40' : 'bg-amber-50/40'}`}
+                  className={`flex items-center justify-between p-2.5 rounded-md border border-rule/60 ${item.ok ? 'bg-settled/5' : item.critical ? 'bg-red-50/40' : 'bg-amber-50/40'}`}
                 >
                   <div className="flex items-center gap-2.5">
                     <div className={`w-5 h-5 rounded flex items-center justify-center font-bold text-xs ${item.ok ? 'bg-settled text-white' : item.critical ? 'bg-danger text-white' : 'bg-caution text-white'}`}>
@@ -642,17 +647,17 @@ export default function Analytics() {
           </div>
 
           {/* RIGHT (6 COLS): RENEWAL COUNTDOWN */}
-          <div className="lg:col-span-6 bg-surface rounded-lg border border-rule-dark shadow-card p-5 flex flex-col justify-between">
+          <div className="lg:col-span-6 bg-surface rounded-2xl border border-rule shadow-card p-5 md:p-6 flex flex-col justify-between">
             <div>
-              <div className="flex items-center justify-between border-b border-rule-dark pb-3 mb-4">
-                <h3 className="font-bold font-display text-sm md:text-base text-ink flex items-center gap-2 tracking-tight">
-                  <Calendar size={18} className="text-accent" /> Expiry Horizon
-                </h3>
+              <div className="flex items-center justify-between border-b border-rule pb-3.5 mb-5">
+                <h2 className="font-bold font-display text-base md:text-lg text-ink flex items-center gap-2.5 tracking-tight">
+                  <Calendar size={18} className="text-accent" /> {t('analytics.expiry_horizon', 'Expiry Horizon')}
+                </h2>
                 <span className="font-mono text-xs text-ink-muted font-medium">CHRONOLOGICAL</span>
               </div>
 
               {renewalTimeline.length === 0 ? (
-                <div className="p-8 text-center border border-dashed border-rule-dark rounded-md font-mono text-xs text-ink-muted">
+                <div className="p-8 text-center border border-dashed border-rule rounded-md font-mono text-xs text-ink-muted">
                   No expiring permits tracked.
                 </div>
               ) : (
@@ -666,7 +671,7 @@ export default function Analytics() {
                     return (
                       <div
                         key={lic.id || i}
-                        className="flex items-center justify-between p-2.5 rounded-md border border-rule-dark/60 bg-base/50 hover:bg-base transition-colors"
+                        className="flex items-center justify-between p-2.5 rounded-md border border-rule/60 bg-base/50 hover:bg-base transition-colors"
                       >
                         <div className="flex-1 min-w-0 pr-2">
                           <div className="font-semibold text-xs truncate text-ink font-display">{name}</div>
@@ -695,19 +700,19 @@ export default function Analytics() {
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-5">
           {/* LEFT (5 COLS): CITY BREAKDOWN */}
           {cityBreakdown.length > 0 && (
-            <div className="lg:col-span-5 bg-surface rounded-lg border border-rule-dark shadow-card p-5">
-              <div className="flex items-center justify-between border-b border-rule-dark pb-3 mb-4">
-                <h3 className="font-bold font-display text-sm md:text-base text-ink flex items-center gap-2 tracking-tight">
-                  <MapPin size={18} className="text-accent" /> Multi-City Index
-                </h3>
+            <div className="lg:col-span-5 bg-surface rounded-2xl border border-rule shadow-card p-5 md:p-6">
+              <div className="flex items-center justify-between border-b border-rule pb-3.5 mb-5">
+                <h2 className="font-bold font-display text-base md:text-lg text-ink flex items-center gap-2.5 tracking-tight">
+                  <MapPin size={18} className="text-accent" /> {t('analytics.multi_city_index', 'Multi-City Index')}
+                </h2>
               </div>
 
               <div className="space-y-3">
                 {cityBreakdown.map((c, i) => (
-                  <div key={c.city} className="border border-rule-dark rounded-md p-3 bg-base/50">
+                  <div key={c.city} className="border border-rule rounded-md p-3 bg-base/50">
                     <div className="flex items-center justify-between mb-1.5">
                       <span className="font-bold text-xs font-display text-ink">{c.city}</span>
-                      <span className="font-mono font-semibold text-xs px-2 py-0.2 border border-rule-dark rounded bg-surface">{c.score}% COMPLIANT</span>
+                      <span className="font-mono font-semibold text-xs px-2 py-0.2 border border-rule rounded bg-surface">{c.score}% COMPLIANT</span>
                     </div>
                     <div className="w-full h-2 bg-rule-dark rounded-full overflow-hidden mb-2">
                       <div
@@ -716,10 +721,10 @@ export default function Analytics() {
                       />
                     </div>
                     <div className="grid grid-cols-4 gap-1 text-center font-mono text-[10px]">
-                      <div className="bg-surface rounded border border-rule-dark/50 p-1 font-semibold text-settled">ACT: {c.satisfied}</div>
-                      <div className="bg-surface rounded border border-rule-dark/50 p-1 font-semibold text-blue-700">PROG: {c.inProgress}</div>
-                      <div className="bg-surface rounded border border-rule-dark/50 p-1 font-semibold text-danger">EXP: {c.expired}</div>
-                      <div className="bg-surface rounded border border-rule-dark/50 p-1 font-semibold text-ink-muted">NEED: {c.needed}</div>
+                      <div className="bg-surface rounded border border-rule/50 p-1 font-semibold text-settled">ACT: {c.satisfied}</div>
+                      <div className="bg-surface rounded border border-rule/50 p-1 font-semibold text-blue-700">PROG: {c.inProgress}</div>
+                      <div className="bg-surface rounded border border-rule/50 p-1 font-semibold text-danger">EXP: {c.expired}</div>
+                      <div className="bg-surface rounded border border-rule/50 p-1 font-semibold text-ink-muted">NEED: {c.needed}</div>
                     </div>
                   </div>
                 ))}
@@ -728,12 +733,12 @@ export default function Analytics() {
           )}
 
           {/* RIGHT (7 COLS): PRIORITY ACTION QUEUE */}
-          <div className={`${cityBreakdown.length > 0 ? 'lg:col-span-7' : 'lg:col-span-12'} bg-surface rounded-lg border border-rule-dark shadow-card p-5`}>
-            <div className="flex items-center justify-between border-b border-rule-dark pb-3 mb-4">
-              <h3 className="font-bold font-display text-sm md:text-base text-ink flex items-center gap-2 tracking-tight">
-                <Zap size={18} className="text-accent" /> Priority Execution Queue
-              </h3>
-              <span className="font-mono text-[10px] font-semibold bg-base border border-rule-dark text-ink-muted px-2 py-0.5 rounded">
+          <div className={`${cityBreakdown.length > 0 ? 'lg:col-span-7' : 'lg:col-span-12'} bg-surface rounded-2xl border border-rule shadow-card p-5 md:p-6`}>
+            <div className="flex items-center justify-between border-b border-rule pb-3.5 mb-5">
+              <h2 className="font-bold font-display text-base md:text-lg text-ink flex items-center gap-2.5 tracking-tight">
+                <Zap size={18} className="text-accent" /> {t('analytics.priority_queue', 'Priority Execution Queue')}
+              </h2>
+              <span className="font-mono text-[10px] font-semibold bg-base border border-rule text-ink-muted px-2 py-0.5 rounded">
                 URGENT FIRST
               </span>
             </div>

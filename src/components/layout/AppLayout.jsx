@@ -6,7 +6,6 @@ import { useDemo } from '../../context/DemoContext';
 import { X } from 'lucide-react';
 import { useAuth } from '../../hooks/useAuth';
 import { getBusiness } from '../../services/supabase';
-import ChatBot from '../features/ChatBot';
 
 export default function AppLayout() {
   const { t } = useTranslation();
@@ -75,7 +74,6 @@ export default function AppLayout() {
           <Outlet context={{ business }} />
         </main>
       </div>
-      <ChatBot />
     </div>
   );
 }

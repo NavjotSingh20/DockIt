@@ -101,8 +101,12 @@ export default function LicenseDetail() {
               <Icon size={20} />
             </div>
             <div>
-              <h1 className="text-xl font-bold font-display text-ink tracking-tight">{def?.name || license.license_type}</h1>
-              <div className="text-xs text-ink-muted mt-0.5 font-mono">{license.issuing_authority || def?.issuing_authority}</div>
+              <h1 className="text-xl font-bold font-display text-ink tracking-tight">
+                {license.requirement?.requirement_name || license.requirement_name || def?.name || license.license_type || 'Required License'}
+              </h1>
+              <div className="text-xs text-ink-muted mt-0.5 font-mono">
+                {license.issuing_authority || license.issuing_agency || license.requirement?.issuing_agency || def?.issuing_authority || 'Regulatory Agency'}
+              </div>
             </div>
           </div>
           <StatusBadge status={computedStatus} large />

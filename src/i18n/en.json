@@ -3,6 +3,7 @@
     "dashboard": "Dashboard",
     "requirements": "Requirements",
     "analytics": "Analytics",
+    "compliance_ai": "Compliance AI",
     "settings": "Settings",
     "sign_out": "Sign Out"
   },
@@ -33,6 +34,7 @@
     "add_license": "Add License",
     "days_left": "days left",
     "overdue": "days overdue",
+    "days_overdue": "Days Overdue",
     "fine": "fine",
     "expires_label": "Expires",
     "expired": "EXPIRED",
@@ -56,7 +58,23 @@
     "expiring_this_month": "Expiring This Month",
     "expired_lapsed": "Expired / Lapsed",
     "action_required": "Action Required",
-    "active_monitored": "Active & Monitored"
+    "active_monitored": "Active & Monitored",
+    "tracked_requirements": "Tracked Requirements",
+    "timeline_subtitle": "Chronological timeline of upcoming and past expirations",
+    "grid_subtitle": "Monitor active, needed, and renewing permits across your operating jurisdictions",
+    "grid": "Grid",
+    "timeline": "Timeline",
+    "sort_urgent": "Most Urgent",
+    "sort_az": "A–Z",
+    "sort_recent": "Recently Added",
+    "add_document": "Add Document",
+    "timeline_urgent": "Action Required / Urgent",
+    "timeline_quarter": "Expiring This Quarter",
+    "timeline_safe": "Safe / Later Expiry",
+    "scan_btn": "SCAN",
+    "browse_catalog": "Browse Catalog",
+    "view_items": "View Items",
+    "app_pending": "Application pending"
   },
   "requirements": {
     "title": "Requirements",
@@ -77,7 +95,27 @@
     "renewal_cycle": "Renewal",
     "est_fees": "Est. Fee",
     "processing_time": "Est. Time",
-    "source": "Source"
+    "source": "Source",
+    "smart_diff_active": "Smart-Diff Engine Active"
+  },
+  "compliance_ai": {
+    "title": "Compliance AI Assistant",
+    "subtitle": "Real-time regulatory intelligence for food truck and restaurant compliance.",
+    "welcome_q": "What can I help you verify today?",
+    "welcome_desc": "Ask about specific city permits, statutory penalty escalation, license renewals, or cross-jurisdiction rules.",
+    "cat_permit_discovery": "Permit Discovery",
+    "q_permit_discovery": "What licenses & permits do I need to operate in my city?",
+    "cat_penalties": "Penalty & Fines",
+    "q_penalties": "What are the statutory penalty risks and daily fines for expired permits?",
+    "cat_renewals": "Renewal Procedures",
+    "q_renewals": "Walk me through the official renewal process and required inspections.",
+    "cat_multicity": "Multi-City Rules",
+    "q_multicity": "Compare health code rules and fire safety requirements across jurisdictions.",
+    "input_placeholder": "Ask anything about permits, renewal deadlines, or statutory penalty exposure...",
+    "send": "Send",
+    "clear": "Clear",
+    "copy": "Copy",
+    "copied": "Copied"
   },
   "scan": {
     "title": "Scan License Document",
@@ -109,7 +147,8 @@
     "back": "Back",
     "save": "Save",
     "cancel": "Cancel",
-    "close": "Close"
+    "close": "Close",
+    "details": "Details"
   },
   "settings": {
     "title": "Settings",
@@ -130,11 +169,17 @@
     "title": "Compliance Analytics",
     "savings_title": "Penalties Avoided",
     "score_trend": "Score Trend (6 months)",
-    "distribution": "License Status",
+    "distribution": "Permit Status Distribution",
     "upcoming": "Upcoming Renewals",
     "savings_table": "Penalty Savings",
     "license_col": "License",
-    "avoided_col": "Penalty Avoided"
+    "avoided_col": "Penalty Avoided",
+    "health_dimensions": "Health Dimensions",
+    "fine_projection": "Fine Escalation Projection (90-Day Forecast)",
+    "multi_city_index": "Multi-City Index",
+    "audit_checklist": "Inspection Audit Checklist",
+    "priority_queue": "Priority Execution Queue",
+    "expiry_horizon": "Expiry Horizon"
   },
   "onboarding": {
     "step1": "Verify Email",

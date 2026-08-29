@@ -1,5 +1,7 @@
-import { NavLink, useNavigate } from 'react-router-dom';
-import { LayoutDashboard, ClipboardList, BarChart2, Settings, Map, LogOut, Bell, Zap } from 'lucide-react';
+import { useState, useRef, useEffect, useCallback } from 'react';
+import { NavLink, useNavigate, useLocation } from 'react-router-dom';
+import { motion } from 'framer-motion';
+import { LayoutDashboard, ClipboardList, BarChart2, Settings, Map, LogOut, Bell, Zap, Sparkles } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { useAuth } from '../../hooks/useAuth';
 import { useDemo } from '../../context/DemoContext';
@@ -26,6 +28,7 @@ const NAV = [
   { to: '/dashboard', icon: LayoutDashboard, key: 'nav.dashboard' },
   { to: '/requirements', icon: ClipboardList, key: 'nav.requirements' },
   { to: '/analytics', icon: BarChart2, key: 'nav.analytics' },
+  { to: '/ai', icon: Sparkles, key: 'nav.compliance_ai' },
 ];
 
 function UserMenu({ business, user, isDemo, onSignOut }) {
@@ -39,10 +42,12 @@ function UserMenu({ business, user, isDemo, onSignOut }) {
   return (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
-        <Button variant="ghost" size="icon" className="size-8 rounded-full p-0">
-          <Avatar className="h-8 w-8">
-            <AvatarFallback className="bg-ink text-white text-xs font-semibold font-display">
-              {initials}
+        <Button variant="ghost" size="icon" className="size-8 rounded-full p-0 flex items-center justify-center overflow-hidden">
+          <Avatar className="h-8 w-8 flex items-center justify-center">
+            <AvatarFallback className="bg-ink text-white text-xs font-semibold font-display flex items-center justify-center leading-none select-none">
+              <span className="leading-none select-none flex items-center justify-center">
+                {initials}
+              </span>
             </AvatarFallback>
           </Avatar>
         </Button>
@@ -137,6 +142,38 @@ export default function NavBar({ business }) {
   const { user } = useAuth();
   const { isDemo, exitDemo, activeProfileId, switchDemoProfile, demoProfiles } = useDemo();
   const navigate = useNavigate();
+  const location = useLocation();
+
+  const navContainerRef = useRef(null);
+  const navItemRefs = useRef({});
+  const [activeUnderline, setActiveUnderline] = useState({ left: 0, width: 0, opacity: 0 });
+
+  const updateActiveUnderline = useCallback(() => {
+    const activeNav = NAV.find(
+      ({ to }) => location.pathname === to || (to !== '/' && location.pathname.startsWith(to))
+    );
+    if (activeNav && navItemRefs.current[activeNav.to] && navContainerRef.current) {
+      const containerRect = navContainerRef.current.getBoundingClientRect();
+      const itemRect = navItemRefs.current[activeNav.to].getBoundingClientRect();
+      const left = itemRect.left - containerRect.left + 8;
+      const width = Math.max(0, itemRect.width - 16);
+      setActiveUnderline({ left, width, opacity: 1 });
+    } else {
+      setActiveUnderline((prev) => ({ ...prev, opacity: 0 }));
+    }
+  }, [location.pathname]);
+
+  useEffect(() => {
+    // Run immediately and after a tick to ensure font renders
+    updateActiveUnderline();
+    const timeout = setTimeout(updateActiveUnderline, 50);
+    const handleResize = () => updateActiveUnderline();
+    window.addEventListener('resize', handleResize);
+    return () => {
+      clearTimeout(timeout);
+      window.removeEventListener('resize', handleResize);
+    };
+  }, [updateActiveUnderline, i18n.language]);
 
   const handleSignOut = async () => {
     if (isDemo) { exitDemo(); navigate('/'); return; }
@@ -158,7 +195,7 @@ export default function NavBar({ business }) {
     <header className="fixed top-0 left-0 right-0 z-50 bg-surface/95 backdrop-blur-md border-b border-rule">
       <div className="max-w-7xl mx-auto flex h-16 items-center justify-between gap-4 px-4 md:px-6 relative">
         {/* Left side: Mobile Trigger + Logo */}
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-3 shrink-0">
           {/* Mobile menu trigger */}
           <Popover>
             <PopoverTrigger asChild>
@@ -194,63 +231,84 @@ export default function NavBar({ business }) {
                 </svg>
               </Button>
             </PopoverTrigger>
-            <PopoverContent align="start" className="w-48 p-1 md:hidden">
-              <nav className="flex flex-col gap-0.5">
-                {NAV.map(({ to, icon: Icon, key }) => (
-                  <NavLink
-                    key={to}
-                    to={to}
-                    className={({ isActive }) =>
-                      `flex items-center gap-2.5 px-3 py-2 rounded-lg text-sm font-medium transition-colors ${
+            <PopoverContent align="start" className="w-52 p-1.5 md:hidden bg-surface border border-rule shadow-card">
+              <nav className="flex flex-col gap-1">
+                {NAV.map(({ to, icon: Icon, key }) => {
+                  const isActive = location.pathname === to || (to !== '/' && location.pathname.startsWith(to));
+                  return (
+                    <NavLink
+                      key={to}
+                      to={to}
+                      className={`flex items-center gap-2.5 px-3 py-2 rounded-lg text-xs font-semibold font-display transition-all ${
                         isActive
-                          ? 'bg-accent text-white'
-                          : 'text-ink-muted hover:text-ink hover:bg-base-dark'
-                      }`
-                    }
-                  >
-                    <Icon size={16} />
-                    {t(key)}
-                  </NavLink>
-                ))}
+                          ? 'bg-accent/10 text-accent font-bold border-l-2 border-accent'
+                          : 'text-ink-muted hover:text-ink hover:bg-base'
+                      }`}
+                    >
+                      <Icon size={15} className={isActive ? 'text-accent' : 'text-ink-faint'} />
+                      <span>{t(key)}</span>
+                    </NavLink>
+                  );
+                })}
               </nav>
             </PopoverContent>
           </Popover>
 
           {/* Logo */}
-          <NavLink to="/dashboard" className="flex items-center">
+          <NavLink to="/dashboard" className="inline-flex items-center">
             <DockItLogo size="sm" />
           </NavLink>
         </div>
 
-        {/* Center: Desktop horizontal clean text navigation links */}
-        <div className="hidden md:flex absolute left-1/2 -translate-x-1/2 items-center gap-8">
-          {NAV.map(({ to, key }) => (
-            <NavLink
-              key={to}
-              to={to}
-              className={({ isActive }) =>
-                `text-sm font-medium transition-colors py-1.5 ${
-                  isActive
-                    ? 'text-ink font-semibold'
-                    : 'text-ink-muted hover:text-ink'
-                }`
-              }
-            >
-              {t(key)}
-            </NavLink>
-          ))}
+        {/* Center: Desktop horizontal navigation links in centered flex container */}
+        <div className="hidden md:flex flex-1 items-center justify-center px-2 min-w-0">
+          <nav
+            ref={navContainerRef}
+            className="relative inline-flex items-center gap-1 bg-base/60 p-1 rounded-xl border border-rule/50 shadow-subtle shrink-0"
+          >
+            {/* Smooth gliding active indicator underline */}
+            <motion.span
+              className="absolute -bottom-1 h-[2.5px] bg-accent rounded-full shadow-sm z-10 pointer-events-none"
+              initial={false}
+              animate={{
+                left: activeUnderline.left,
+                width: activeUnderline.width,
+                opacity: activeUnderline.opacity,
+              }}
+              transition={{ type: 'spring', stiffness: 450, damping: 32 }}
+            />
+
+            {NAV.map(({ to, key, icon: Icon }) => {
+              const isActive = location.pathname === to || (to !== '/' && location.pathname.startsWith(to));
+              return (
+                <NavLink
+                  key={to}
+                  to={to}
+                  ref={(el) => {
+                    if (el) navItemRefs.current[to] = el;
+                  }}
+                  className={`relative z-10 px-3 py-1.5 text-xs font-semibold font-display transition-colors rounded-lg inline-flex items-center gap-1.5 select-none leading-none ${
+                    isActive ? 'text-ink font-bold' : 'text-ink-muted hover:text-ink'
+                  }`}
+                >
+                  <Icon size={14} className={isActive ? 'text-accent' : 'text-ink-faint transition-colors'} />
+                  <span className="leading-none">{t(key)}</span>
+                </NavLink>
+              );
+            })}
+          </nav>
         </div>
 
         {/* Right side: Action Cluster */}
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-2 sm:gap-3 shrink-0">
           {/* Demo mode indicator */}
           {isDemo && (
-            <div className="hidden sm:flex items-center gap-1.5 bg-accent/10 px-2.5 py-1 rounded-xl">
-              <Zap size={12} className="text-accent" />
+            <div className="hidden sm:inline-flex items-center h-8 gap-1.5 bg-accent/10 px-2.5 rounded-xl leading-none">
+              <Zap size={12} className="text-accent shrink-0" />
               <select
                 value={activeProfileId}
                 onChange={(e) => switchDemoProfile(e.target.value)}
-                className="bg-transparent text-accent font-bold text-xs focus:outline-none cursor-pointer font-display"
+                className="bg-transparent text-accent font-bold text-xs focus:outline-none cursor-pointer font-display leading-none"
               >
                 {(demoProfiles || []).map((p) => (
                   <option key={p.id} value={p.id} className="text-ink font-medium bg-surface">
@@ -267,10 +325,10 @@ export default function NavBar({ business }) {
               const newLang = i18n.language === 'hi' ? 'en' : 'hi';
               i18n.changeLanguage(newLang);
             }}
-            className="flex items-center gap-1 px-2.5 py-1 rounded-xl text-xs font-bold font-display border border-rule bg-surface hover:bg-base text-ink transition-colors cursor-pointer"
+            className="inline-flex items-center justify-center h-8 px-2.5 rounded-xl text-xs font-bold font-display border border-rule bg-surface hover:bg-base text-ink transition-colors cursor-pointer leading-none select-none"
             title="Switch Language / भाषा बदलें"
           >
-            <span className="text-[11px] uppercase tracking-wider">{i18n.language === 'hi' ? 'हिन्दी' : 'EN'}</span>
+            <span className="text-[11px] uppercase tracking-wider leading-none">{i18n.language === 'hi' ? 'हिन्दी' : 'EN'}</span>
           </button>
 
           <NotificationBell />

@@ -1,6 +1,6 @@
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { MessageCircle, X, Send, Shield, Minus } from 'lucide-react';
+import { MessageCircle, X, Send, Shield, Minus, Sparkles } from 'lucide-react';
 import { useDemo } from '../../context/DemoContext';
 import { streamChatResponse } from '../../services/geminiService';
 
@@ -199,6 +199,15 @@ export default function ChatBot() {
   const [streaming, setStreaming] = useState(false);
   const [unread, setUnread] = useState(true);
   const { demoBusiness, isDemo } = useDemo();
+
+  useEffect(() => {
+    const handleOpen = () => {
+      setOpen(true);
+      setUnread(false);
+    };
+    window.addEventListener('dockit:open-chat', handleOpen);
+    return () => window.removeEventListener('dockit:open-chat', handleOpen);
+  }, []);
 
   const sendMessage = useCallback(async (text) => {
     if (!text.trim() || streaming) return;

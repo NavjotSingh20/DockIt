@@ -77,16 +77,20 @@ export default function DockItLogo({
   }
 
   return (
-    <span className={`inline-flex items-center gap-2.5 select-none ${className}`} aria-label="DockIt">
-      <Icon />
-      <span className="flex flex-col leading-none">
+    <span className={`inline-flex items-center gap-2.5 select-none leading-none ${className}`} aria-label="DockIt">
+      <span className="flex items-center justify-center shrink-0">
+        <Icon />
+      </span>
+      <span className="flex flex-col justify-center leading-none">
         <span
+          className="leading-none"
           style={{ fontSize: s.text, color: ink, fontWeight: 700, letterSpacing: '-0.01em', fontFamily: 'var(--font-display, inherit)' }}
         >
           Dock<span style={{ color: amber }}>It</span>
         </span>
         <span
-          style={{ fontSize: s.sub, color: muted, letterSpacing: '0.08em', textTransform: 'uppercase', fontFamily: 'var(--font-display, inherit)', fontWeight: 500, marginTop: 2 }}
+          className="leading-none"
+          style={{ fontSize: s.sub, color: muted, letterSpacing: '0.08em', textTransform: 'uppercase', fontFamily: 'var(--font-display, inherit)', fontWeight: 500, marginTop: 3 }}
         >
           Compliance · Simplified
         </span>

@@ -47,6 +47,28 @@ export default function LicenseCard({ license, onRenew }) {
   const currentPenalty = rule?.slabs?.find(s => Math.abs(daysLeft) >= s.days_overdue)?.fine;
 
   // Left status bar color
+  const rawTitle =
+    license.requirement?.requirement_name ||
+    license.requirement_name ||
+    license.license_type ||
+    license.name ||
+    def?.name ||
+    'Required License';
+
+  const lookupKey = def?.id || (license.license_type && license.license_type !== 'undefined' ? license.license_type : null);
+  const displayName = lookupKey ? t(`license_names.${lookupKey}`, { defaultValue: rawTitle }) : rawTitle;
+
+  const rawAuthority =
+    license.issuing_authority ||
+    license.issuing_agency ||
+    license.requirement?.issuing_agency ||
+    def?.issuing_authority ||
+    'Regulatory Authority';
+
+  const authLookupKey = (license.issuing_authority && license.issuing_authority !== 'undefined') ? license.issuing_authority : (def?.issuing_authority || null);
+  const displayAuthority = authLookupKey ? t(`authorities.${authLookupKey}`, { defaultValue: rawAuthority }) : rawAuthority;
+
+  // Left status bar color
   const leftBorderColor = isExpired ? 'border-l-danger' : isExpiring ? 'border-l-caution' : isNeeded ? 'border-l-rule-dark' : 'border-l-settled';
 
   return (
@@ -65,10 +87,10 @@ export default function LicenseCard({ license, onRenew }) {
           </div>
           <div className="min-w-0">
             <div className="font-semibold font-display text-ink text-sm leading-snug truncate">
-              {t(`license_names.${def?.id || license.license_type}`, def?.name || license.license_type)}
+              {displayName}
             </div>
             <div className="text-[11px] text-ink-muted mt-0.5 truncate max-w-[140px]">
-              {t(`authorities.${license.issuing_authority || def?.issuing_authority}`, license.issuing_authority || def?.issuing_authority)}
+              {displayAuthority}
             </div>
           </div>
         </div>

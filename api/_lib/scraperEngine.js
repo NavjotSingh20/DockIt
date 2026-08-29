@@ -95,19 +95,59 @@ async function checkRobotsAllowed(urlStr) {
 async function executeHeadlessFetch(urlStr) {
   logEngineEvent('info', 'Attempting headless dynamic JS rendering fallback', { urlStr });
   try {
-    // Dynamic import to prevent crash if puppeteer is not bundled
     let puppeteer;
     try {
-      puppeteer = await import('puppeteer');
+      puppeteer = (await import('puppeteer')).default || (await import('puppeteer'));
     } catch (e) {
-      puppeteer = await import('puppeteer-core');
+      puppeteer = (await import('puppeteer-core')).default || (await import('puppeteer-core'));
     }
 
     if (!puppeteer) throw new Error('Puppeteer unavailable in runtime');
 
+    let executablePath;
+    let launchArgs = ['--no-sandbox', '--disable-setuid-sandbox', '--disable-dev-shm-usage', '--disable-gpu'];
+
+    // 1. Try @sparticuz/chromium (Serverless Linux / Vercel runtime)
+    try {
+      const chromiumModule = await import('@sparticuz/chromium');
+      const chromium = chromiumModule.default || chromiumModule;
+      if (chromium && typeof chromium.executablePath === 'function') {
+        const sparticuzPath = await chromium.executablePath();
+        if (sparticuzPath && fs.existsSync(sparticuzPath)) {
+          executablePath = sparticuzPath;
+          launchArgs = chromium.args || launchArgs;
+        }
+      }
+    } catch (e) {
+      // Not on serverless Linux
+    }
+
+    // 2. Local OS Chrome / Edge fallbacks (Windows / macOS / Dev Linux)
+    if (!executablePath) {
+      const localCandidates = [
+        process.env.CHROME_PATH,
+        process.env.PUPPETEER_EXECUTABLE_PATH,
+        'C:\\Program Files\\Google\\Chrome\\Application\\chrome.exe',
+        'C:\\Program Files (x86)\\Google\\Chrome\\Application\\chrome.exe',
+        'C:\\Program Files (x86)\\Microsoft\\Edge\\Application\\msedge.exe',
+        'C:\\Program Files\\Microsoft\\Edge\\Application\\msedge.exe',
+        '/usr/bin/google-chrome',
+        '/usr/bin/chromium-browser',
+        '/Applications/Google Chrome.app/Contents/MacOS/Google Chrome',
+      ].filter(Boolean);
+
+      for (const p of localCandidates) {
+        if (fs.existsSync(p)) {
+          executablePath = p;
+          break;
+        }
+      }
+    }
+
     const browser = await puppeteer.launch({
+      executablePath: executablePath || undefined,
       headless: 'new',
-      args: ['--no-sandbox', '--disable-setuid-sandbox', '--disable-dev-shm-usage'],
+      args: launchArgs,
     });
 
     const page = await browser.newPage();

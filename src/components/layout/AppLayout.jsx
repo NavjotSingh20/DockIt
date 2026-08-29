@@ -71,7 +71,7 @@ export default function AppLayout() {
           </div>
         )}
         <main className="flex-1 px-4 py-6 lg:px-8 max-w-7xl mx-auto w-full">
-          <Outlet context={{ business }} />
+          <Outlet context={{ business: isDemo ? demoBusiness : business }} />
         </main>
       </div>
     </div>

@@ -15,22 +15,12 @@ import { computeSmartDiff, isRequirementApplicable } from '../utils/jurisdiction
 
 const CITIES_DATA = {
   India: [
-    { city: 'Mumbai', state: 'Maharashtra' },
-    { city: 'Delhi', state: 'NCT' },
-    { city: 'Chennai', state: 'Tamil Nadu' },
-    { city: 'Kolkata', state: 'West Bengal' },
-    { city: 'Hyderabad', state: 'Telangana' },
-    { city: 'Pune', state: 'Maharashtra' },
-    { city: 'Ahmedabad', state: 'Gujarat' },
+    { city: 'New Delhi', state: 'Delhi' },
+    { city: 'Chandigarh', state: 'Chandigarh' },
   ],
   USA: [
     { city: 'New York', state: 'NY' },
     { city: 'Los Angeles', state: 'CA' },
-    { city: 'Chicago', state: 'IL' },
-    { city: 'Houston', state: 'TX' },
-    { city: 'Phoenix', state: 'AZ' },
-    { city: 'San Francisco', state: 'CA' },
-    { city: 'Seattle', state: 'WA' },
   ]
 };
 

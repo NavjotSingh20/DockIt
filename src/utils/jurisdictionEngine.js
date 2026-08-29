@@ -140,9 +140,14 @@ export function isRequirementApplicable(req, operatingCities = [], businessType 
   // 2. Federal Level
   if (level === 'federal' || (req.city && req.city.toLowerCase().includes('federal'))) {
     // Country must match
-    const reqIsIndia = (req.city || '').toLowerCase().includes('mumbai') ||
+    const reqIsIndia = req.country === 'India' ||
+      (req.city || '').toLowerCase().includes('mumbai') ||
       (req.city || '').toLowerCase().includes('india') ||
       (req.issuing_agency || '').toLowerCase().includes('india') ||
+      (req.issuing_agency || '').toLowerCase().includes('iprs') ||
+      (req.issuing_agency || '').toLowerCase().includes('ppl') ||
+      (req.issuing_agency || '').toLowerCase().includes('gst') ||
+      (req.requirement_name || '').toLowerCase().includes('pan') ||
       reqJurisdiction.country === 'India';
     return (primaryCountry === 'India') === reqIsIndia;
   }

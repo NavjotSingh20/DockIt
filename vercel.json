@@ -32,6 +32,9 @@
     },
     "api/requirements/health.js": {
       "maxDuration": 10
+    },
+    "api/pdf-proxy.js": {
+      "maxDuration": 15
     }
   }
 }

@@ -24,8 +24,9 @@ export const FIELD_LABELS = {
 // Value lookup helper based on key name
 export const getProfileFieldValue = (keyName, business, requirement) => {
   const todayFormatted = format(new Date(), 'MM/dd/yyyy');
-  const rawCity = business?.city || (business?.cities?.[0]?.split(',')[0]?.trim()) || '';
-  const rawState = business?.state || (business?.cities?.[0]?.split(',')[1]?.trim()) || '';
+  const cityEntry = business?.cities?.[0] || '';
+  const rawCity = business?.city || (cityEntry.includes(',') ? cityEntry.split(',')[0].trim() : cityEntry.trim()) || '';
+  const rawState = business?.state || (cityEntry.includes(',') ? cityEntry.split(',')[1].trim() : '') || '';
   const rawZip = business?.zip || '';
 
   switch (keyName) {
@@ -45,12 +46,19 @@ export const getProfileFieldValue = (keyName, business, requirement) => {
       return rawState;
     case 'zip':
       return rawZip;
-    case 'city_state_zip':
-      return [rawCity, rawState, rawZip].filter(Boolean).join(', ') || rawCity;
-    case 'county_state':
-      return [rawCity ? `${rawCity} County` : '', rawState].filter(Boolean).join(', ') || rawState;
+    case 'city_state_zip': {
+      const parts = [rawCity, rawState, rawZip].filter(Boolean);
+      const unique = parts.filter((item, idx) => parts.indexOf(item) === idx);
+      return unique.join(', ') || rawCity;
+    }
+    case 'county_state': {
+      if (rawCity && rawState && rawCity.toLowerCase() !== rawState.toLowerCase()) {
+        return `${rawCity} County, ${rawState}`;
+      }
+      return rawState || rawCity;
+    }
     case 'business_type':
-      return (business?.business_type || '').replace('_', ' ').toUpperCase();
+      return (business?.business_type || '').replace(/_/g, ' ').toUpperCase();
     case 'date':
       return todayFormatted;
     case 'requirement_name':
@@ -137,6 +145,21 @@ export function checkApplicationReadiness(requirement, business) {
 }
 
 /**
+ * Resolves a template URL through the server-side PDF proxy to bypass CORS & mixed content.
+ */
+function resolveTemplateUrl(url) {
+  if (!url) return url;
+  if (url.startsWith('/') || url.startsWith('data:') || url.startsWith('blob:')) {
+    return url;
+  }
+  // In Node.js testing environment where window is undefined, direct fetch template
+  if (typeof window === 'undefined') {
+    return url;
+  }
+  return `/api/pdf-proxy?url=${encodeURIComponent(url)}`;
+}
+
+/**
  * Generic Form Fill Engine
  * Loads a requirement's official PDF template (if mapped) and fills it either via:
  * 1. AcroForm fields (if form_field_map.mode === 'acroform')
@@ -154,8 +177,9 @@ export async function fillOfficialForm(requirement, business) {
   // Try loading and filling official template PDF if template_url is present
   if (templateUrl && fieldMap) {
     try {
-      const response = await fetch(templateUrl, { headers: { 'User-Agent': 'Mozilla/5.0' } });
-      if (!response.ok) throw new Error(`HTTP ${response.status} when fetching template`);
+      const fetchUrl = resolveTemplateUrl(templateUrl);
+      const response = await fetch(fetchUrl);
+      if (!response.ok) throw new Error(`HTTP ${response.status} when fetching template via proxy`);
       
       const buffer = await response.arrayBuffer();
       const pdfDoc = await PDFDocument.load(buffer, { ignoreEncryption: true });
@@ -186,7 +210,7 @@ export async function fillOfficialForm(requirement, business) {
         });
 
       } else if (fieldMap.mode === 'overlay') {
-        // Coordinate Overlay mode
+        // Coordinate Overlay mode with bounding-box width calculation & auto-scaling
         const pages = pdfDoc.getPages();
         const font = await pdfDoc.embedFont(StandardFonts.Helvetica);
         const overlayFields = fieldMap.fields || {};
@@ -197,15 +221,40 @@ export async function fillOfficialForm(requirement, business) {
 
           const pageIndex = pos.page || 0;
           const targetPage = pages[pageIndex];
-          if (targetPage) {
-            targetPage.drawText(String(val), {
-              x: pos.x,
-              y: pos.y,
-              size: pos.fontSize || 10,
-              font: font,
-              color: rgb(0, 0, 0),
-            });
+          if (!targetPage) return;
+
+          const { width: pageWidth } = targetPage.getSize();
+          const textStr = String(val);
+          const initialFontSize = pos.fontSize || 10;
+          const minFontSize = pos.minFontSize || 6.5;
+          const maxBoxWidth = pos.maxWidth || (pageWidth - pos.x - 36);
+
+          let currentFontSize = initialFontSize;
+          let renderedText = textStr;
+          let textWidth = font.widthOfTextAtSize(renderedText, currentFontSize);
+
+          // Step 1: Auto-shrink font size down to minFontSize to prevent collision
+          while (textWidth > maxBoxWidth && currentFontSize > minFontSize) {
+            currentFontSize = Math.max(minFontSize, currentFontSize - 0.5);
+            textWidth = font.widthOfTextAtSize(renderedText, currentFontSize);
           }
+
+          // Step 2: If still exceeding maxWidth at minFontSize, truncate with ellipsis
+          if (textWidth > maxBoxWidth) {
+            while (textWidth > maxBoxWidth && renderedText.length > 3) {
+              renderedText = renderedText.slice(0, -1);
+              textWidth = font.widthOfTextAtSize(renderedText + '…', currentFontSize);
+            }
+            renderedText += '…';
+          }
+
+          targetPage.drawText(renderedText, {
+            x: pos.x,
+            y: pos.y,
+            size: currentFontSize,
+            font: font,
+            color: rgb(0, 0, 0),
+          });
         });
       }
 
@@ -318,6 +367,251 @@ export function generateJsPdfSummary(requirement, business) {
   doc.setFontSize(8);
   doc.setTextColor(140, 140, 140);
   doc.text(`Generated automatically by DockIt Compliance Platform on ${today}`, 15, 285);
+
+  const pdfBytes = doc.output('arraybuffer');
+  return new Blob([pdfBytes], { type: 'application/pdf' });
+}
+
+/**
+ * Generates an official DockIt Payment Confirmation / Receipt PDF
+ * @param {Object} paymentData
+ * @returns {Blob} PDF Blob
+ */
+export function generatePaymentReceiptPDF(paymentData) {
+  const {
+    paymentId = `pi_test_${Date.now()}`,
+    amount = 0,
+    baseFee = 0,
+    penalty = 0,
+    daysOverdue = 0,
+    currency = 'USD',
+    requirementName = 'Government License / Permit',
+    issuingAgency = 'Regulatory Licensing Authority',
+    businessName = 'Business Operator',
+    ownerName = 'Business Owner',
+    businessAddress = '',
+    city = '',
+    country = 'USA',
+    paidAt = new Date().toISOString(),
+  } = paymentData;
+
+  const doc = new jsPDF({
+    orientation: 'portrait',
+    unit: 'pt',
+    format: 'a4',
+  });
+
+  const pageWidth = doc.internal.pageSize.getWidth();
+  const pageHeight = doc.internal.pageSize.getHeight();
+  const margin = 40;
+  const contentWidth = pageWidth - margin * 2;
+
+  // Header Background Banner
+  doc.setFillColor(26, 36, 43); // Dark slate (#1a242b)
+  doc.rect(0, 0, pageWidth, 95, 'F');
+
+  // Brand Wordmark
+  doc.setTextColor(255, 255, 255);
+  doc.setFont('helvetica', 'bold');
+  doc.setFontSize(22);
+  doc.text('DOCKIT', margin, 42);
+
+  doc.setFont('helvetica', 'normal');
+  doc.setFontSize(10);
+  doc.setTextColor(217, 119, 6); // Amber accent
+  doc.text('STATUTORY COMPLIANCE LEDGER · PAYMENT CONFIRMATION', margin, 58);
+
+  // Receipt Number & Date (Right Header)
+  doc.setFont('helvetica', 'bold');
+  doc.setFontSize(10);
+  doc.setTextColor(255, 255, 255);
+  doc.text('OFFICIAL RECEIPT', pageWidth - margin, 38, { align: 'right' });
+
+  doc.setFont('helvetica', 'normal');
+  doc.setFontSize(9);
+  doc.setTextColor(200, 200, 200);
+  doc.text(`Date: ${new Date(paidAt).toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' })}`, pageWidth - margin, 52, { align: 'right' });
+  doc.text(`Time: ${new Date(paidAt).toLocaleTimeString('en-US')}`, pageWidth - margin, 64, { align: 'right' });
+
+  // Success Status Badge
+  let y = 120;
+  doc.setFillColor(240, 253, 244); // Light green (#f0fdf4)
+  doc.setDrawColor(187, 247, 208); // Green border (#bbf7d0)
+  doc.roundedRect(margin, y, contentWidth, 38, 6, 6, 'FD');
+
+  doc.setTextColor(22, 101, 52); // Dark green
+  doc.setFont('helvetica', 'bold');
+  doc.setFontSize(12);
+  doc.text('✓  PAYMENT RECORDED & TRANSMITTED', margin + 14, y + 23);
+
+  doc.setFont('helvetica', 'normal');
+  doc.setFontSize(9);
+  doc.setTextColor(21, 128, 61);
+  doc.text(`Gateway Ref: ${paymentId}`, pageWidth - margin - 14, y + 23, { align: 'right' });
+
+  // Payer & Permit Information Grid
+  y += 55;
+  const colWidth = (contentWidth - 20) / 2;
+
+  // Box 1: Payer Details
+  doc.setFillColor(249, 250, 251);
+  doc.setDrawColor(229, 231, 235);
+  doc.roundedRect(margin, y, colWidth, 100, 4, 4, 'FD');
+
+  doc.setFont('helvetica', 'bold');
+  doc.setFontSize(10);
+  doc.setTextColor(31, 41, 55);
+  doc.text('PAYER & ESTABLISHMENT', margin + 12, y + 20);
+
+  doc.setFont('helvetica', 'normal');
+  doc.setFontSize(9);
+  doc.setTextColor(75, 85, 99);
+  doc.text(`Business Name:`, margin + 12, y + 38);
+  doc.setFont('helvetica', 'bold');
+  doc.text(`${businessName}`, margin + 95, y + 38);
+
+  doc.setFont('helvetica', 'normal');
+  doc.text(`Owner / Rep:`, margin + 12, y + 54);
+  doc.text(`${ownerName}`, margin + 95, y + 54);
+
+  doc.text(`Operating City:`, margin + 12, y + 70);
+  doc.text(`${city || 'Main Jurisdiction'} (${country})`, margin + 95, y + 70);
+
+  if (businessAddress) {
+    doc.text(`Address:`, margin + 12, y + 86);
+    doc.text(`${businessAddress.substring(0, 32)}`, margin + 95, y + 86);
+  }
+
+  // Box 2: Regulatory Target
+  doc.setFillColor(249, 250, 251);
+  doc.setDrawColor(229, 231, 235);
+  doc.roundedRect(margin + colWidth + 20, y, colWidth, 100, 4, 4, 'FD');
+
+  doc.setFont('helvetica', 'bold');
+  doc.setFontSize(10);
+  doc.setTextColor(31, 41, 55);
+  doc.text('REGULATORY TARGET', margin + colWidth + 32, y + 20);
+
+  doc.setFont('helvetica', 'normal');
+  doc.setFontSize(9);
+  doc.setTextColor(75, 85, 99);
+  doc.text(`Requirement:`, margin + colWidth + 32, y + 38);
+  doc.setFont('helvetica', 'bold');
+  doc.text(`${requirementName.substring(0, 28)}`, margin + colWidth + 105, y + 38);
+
+  doc.setFont('helvetica', 'normal');
+  doc.text(`Issuing Body:`, margin + colWidth + 32, y + 54);
+  doc.text(`${issuingAgency.substring(0, 28)}`, margin + colWidth + 105, y + 54);
+
+  doc.text(`Environment:`, margin + colWidth + 32, y + 70);
+  doc.setFont('helvetica', 'bold');
+  doc.setTextColor(217, 119, 6);
+  doc.text(`Sandbox Test Mode (Stripe)`, margin + colWidth + 105, y + 70);
+
+  doc.setFont('helvetica', 'normal');
+  doc.setTextColor(75, 85, 99);
+  doc.text(`Ledger Status:`, margin + colWidth + 32, y + 86);
+  doc.setFont('helvetica', 'bold');
+  doc.setTextColor(22, 101, 52);
+  doc.text(`payment_recorded`, margin + colWidth + 105, y + 86);
+
+  // Itemized Fee Breakdown Table
+  y += 120;
+  doc.setFont('helvetica', 'bold');
+  doc.setFontSize(11);
+  doc.setTextColor(17, 24, 39);
+  doc.text('ITEMIZED STATUTORY BREAKDOWN', margin, y);
+
+  y += 12;
+  // Table Header
+  doc.setFillColor(243, 244, 246);
+  doc.rect(margin, y, contentWidth, 24, 'F');
+  doc.setFont('helvetica', 'bold');
+  doc.setFontSize(9);
+  doc.setTextColor(55, 65, 81);
+  doc.text('DESCRIPTION', margin + 10, y + 16);
+  doc.text('TYPE', margin + 280, y + 16);
+  doc.text('AMOUNT', pageWidth - margin - 10, y + 16, { align: 'right' });
+
+  // Table Row 1: Base Fee
+  y += 24;
+  doc.setDrawColor(229, 231, 235);
+  doc.line(margin, y, pageWidth - margin, y);
+
+  const formattedBase = currency === 'INR' ? `Rs. ${baseFee || (amount - penalty)}` : `$${baseFee || (amount - penalty)}`;
+  doc.setFont('helvetica', 'normal');
+  doc.setFontSize(9);
+  doc.setTextColor(31, 41, 55);
+  doc.text(`Statutory Permit / Renewal Filing Fee`, margin + 10, y + 18);
+  doc.text('Base Fee', margin + 280, y + 18);
+  doc.setFont('helvetica', 'bold');
+  doc.text(formattedBase, pageWidth - margin - 10, y + 18, { align: 'right' });
+
+  // Table Row 2: Accrued Penalty (if applicable)
+  if (penalty > 0) {
+    y += 28;
+    doc.line(margin, y, pageWidth - margin, y);
+
+    const formattedPen = currency === 'INR' ? `+Rs. ${penalty}` : `+$${penalty}`;
+    doc.setFont('helvetica', 'normal');
+    doc.setFontSize(9);
+    doc.setTextColor(185, 28, 28); // Red
+    doc.text(`Accrued Statutory Late Penalty (${daysOverdue} days overdue)`, margin + 10, y + 18);
+    doc.text('Late Surcharge', margin + 280, y + 18);
+    doc.setFont('helvetica', 'bold');
+    doc.text(formattedPen, pageWidth - margin - 10, y + 18, { align: 'right' });
+  }
+
+  // Table Row Total
+  y += 28;
+  doc.setFillColor(254, 243, 199); // Amber light
+  doc.rect(margin, y, contentWidth, 28, 'F');
+
+  doc.setFont('helvetica', 'bold');
+  doc.setFontSize(11);
+  doc.setTextColor(17, 24, 39);
+  doc.text('TOTAL AMOUNT CHARGED & RECORDED', margin + 10, y + 19);
+
+  const formattedTotal = currency === 'INR' ? `Rs. ${amount}` : `$${amount}`;
+  doc.setFontSize(13);
+  doc.setTextColor(180, 83, 9); // Amber-700
+  doc.text(`${formattedTotal} ${currency.toUpperCase()}`, pageWidth - margin - 10, y + 19, { align: 'right' });
+
+  // Next Step Instructions
+  y += 50;
+  doc.setFont('helvetica', 'bold');
+  doc.setFontSize(11);
+  doc.setTextColor(17, 24, 39);
+  doc.text('COMPLIANCE NEXT STEPS & FILING INSTRUCTIONS', margin, y);
+
+  y += 15;
+  const steps = [
+    { title: '1. Ledger Record Updated', desc: 'DockIt has automatically shifted this license to payment_recorded status across all compliance dashboards.' },
+    { title: '2. Official Agency Submission', desc: 'Ensure your official filled form and accompanying identification documents are submitted to the issuing agency portal or municipal office.' },
+    { title: '3. Physical Inspection / Decal Dispatch', desc: 'For permits requiring site inspection (e.g. Health Trade / Food Safety), keep this confirmation accessible for visiting inspectors.' },
+    { title: '4. Audit Retention', desc: 'Retain this electronic record for 36 months to satisfy state and municipal regulatory audit requirements.' }
+  ];
+
+  doc.setFontSize(8.5);
+  steps.forEach(st => {
+    doc.setFont('helvetica', 'bold');
+    doc.setTextColor(31, 41, 55);
+    doc.text(st.title, margin + 10, y + 14);
+    doc.setFont('helvetica', 'normal');
+    doc.setTextColor(107, 114, 128);
+    doc.text(st.desc, margin + 10, y + 26);
+    y += 32;
+  });
+
+  // Bottom Cryptographic Stamp & Footer
+  doc.setDrawColor(209, 213, 219);
+  doc.line(margin, pageHeight - 50, pageWidth - margin, pageHeight - 50);
+
+  doc.setFont('helvetica', 'normal');
+  doc.setFontSize(7.5);
+  doc.setTextColor(156, 163, 175);
+  doc.text(`Generated by DockIt Automated Compliance System · Immutable Ref: ${paymentId}`, margin, pageHeight - 36);
+  doc.text(`Verification Source: DockIt Statutory Ledger Engine · Page 1 of 1`, pageWidth - margin, pageHeight - 36, { align: 'right' });
 
   const pdfBytes = doc.output('arraybuffer');
   return new Blob([pdfBytes], { type: 'application/pdf' });

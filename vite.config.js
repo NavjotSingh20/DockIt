@@ -10,6 +10,51 @@ export default defineConfig({
     {
       name: 'api-serverless-middleware',
       configureServer(server) {
+        // PDF Proxy Middleware for local development
+        server.middlewares.use('/api/pdf-proxy', async (req, res) => {
+          res.setHeader('Access-Control-Allow-Origin', '*');
+          res.setHeader('Access-Control-Allow-Methods', 'GET, OPTIONS');
+          res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
+          if (req.method === 'OPTIONS') {
+            res.statusCode = 200;
+            res.end();
+            return;
+          }
+
+          try {
+            const parsedUrl = new URL(req.url, 'http://localhost:3000');
+            const targetUrl = parsedUrl.searchParams.get('url');
+
+            if (!targetUrl) {
+              res.statusCode = 400;
+              res.end(JSON.stringify({ error: 'Missing url query param' }));
+              return;
+            }
+
+            const upstreamRes = await fetch(targetUrl, {
+              headers: {
+                'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36 DockIt-Proxy/1.0',
+                Accept: 'application/pdf,*/*',
+              },
+            });
+
+            if (!upstreamRes.ok) {
+              res.statusCode = upstreamRes.status;
+              res.end(JSON.stringify({ error: `Upstream error: ${upstreamRes.status}` }));
+              return;
+            }
+
+            const buf = await upstreamRes.arrayBuffer();
+            res.setHeader('Content-Type', 'application/pdf');
+            res.setHeader('Content-Length', buf.byteLength);
+            res.statusCode = 200;
+            res.end(Buffer.from(buf));
+          } catch (err) {
+            res.statusCode = 502;
+            res.end(JSON.stringify({ error: err.message }));
+          }
+        });
+
         server.middlewares.use('/api/payments/create-intent', async (req, res) => {
           if (req.method === 'OPTIONS') {
             res.setHeader('Access-Control-Allow-Origin', '*');

@@ -27,13 +27,15 @@ export default async function handler(req, res) {
     // Stripe expects amounts in the smallest currency unit (e.g. cents for USD, paise for INR)
     const normalizedCurrency = (currency || 'usd').toLowerCase();
     const multiplier = ['jpy', 'krw'].includes(normalizedCurrency) ? 1 : 100;
+    const amountInSmallestUnit = Math.round(Number(amount) * multiplier);
+
     if (!stripe) {
       // In local dev/sandbox when env var is not set, provide simulated client_secret
       return res.status(200).json({
         clientSecret: `pi_mock_${Date.now()}_secret_${Math.random().toString(36).slice(2)}`,
         paymentIntentId: `pi_mock_${Date.now()}`,
-        amount: Math.round(Number(amount) * 100),
-        currency: (currency || 'usd').toLowerCase(),
+        amount: amountInSmallestUnit,
+        currency: normalizedCurrency,
         mock: true,
       });
     }

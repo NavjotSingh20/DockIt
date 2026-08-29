@@ -1,12 +1,12 @@
 // DockIt Logo — SVG inline component
 // Usage:
-//   <DockItLogo />             — horizontal (icon + wordmark), default dark theme
-//   <DockItLogo variant="light" />  — for dark backgrounds (white text)
-//   <DockItLogo iconOnly />    — just the clipboard mark (e.g. favicon, avatar)
+//   <DockItLogo />             — horizontal (icon + wordmark), adapts to dark/light theme
+//   <DockItLogo variant="light" />  — force light on dark
+//   <DockItLogo iconOnly />    — just the clipboard mark
 //   <DockItLogo size="sm|md|lg" />
 
 export default function DockItLogo({
-  variant = 'dark',   // 'dark' | 'light'
+  variant,            // optional override
   iconOnly = false,
   size = 'md',        // 'sm' | 'md' | 'lg'
   className = '',
@@ -18,10 +18,6 @@ export default function DockItLogo({
   };
   const s = sizes[size] || sizes.md;
 
-  const ink = variant === 'light' ? '#FEFDFB' : '#1C1917';
-  const amber = '#D97706';
-  const muted = variant === 'light' ? 'rgba(254,253,251,0.55)' : '#78716C';
-
   // The clipboard icon SVG (32×32 design space, scales via width/height)
   const Icon = () => (
     <svg
@@ -31,6 +27,7 @@ export default function DockItLogo({
       fill="none"
       xmlns="http://www.w3.org/2000/svg"
       aria-hidden="true"
+      className="shrink-0"
     >
       {/* Clipboard body */}
       <rect
@@ -39,7 +36,7 @@ export default function DockItLogo({
         width="22"
         height="24"
         rx="2.5"
-        stroke={ink}
+        className="stroke-ink"
         strokeWidth="2.2"
         fill="none"
       />
@@ -50,21 +47,21 @@ export default function DockItLogo({
         width="10"
         height="5.5"
         rx="2"
-        fill={amber}
+        className="fill-accent"
       />
       {/* Clip ring */}
-      <circle cx="16" cy="4.5" r="1.5" fill={amber} />
+      <circle cx="16" cy="4.5" r="1.5" className="fill-accent" />
       {/* Checkmark (amber) */}
       <polyline
         points="10,16 14,20.5 22,12"
-        stroke={amber}
+        className="stroke-accent"
         strokeWidth="2.4"
         strokeLinecap="round"
         strokeLinejoin="round"
       />
       {/* Text lines (ink) */}
-      <line x1="9.5" y1="23.5" x2="22.5" y2="23.5" stroke={ink} strokeWidth="1.8" strokeLinecap="round" />
-      <line x1="9.5" y1="26.5" x2="18"   y2="26.5" stroke={ink} strokeWidth="1.8" strokeLinecap="round" />
+      <line x1="9.5" y1="23.5" x2="22.5" y2="23.5" className="stroke-ink" strokeWidth="1.8" strokeLinecap="round" />
+      <line x1="9.5" y1="26.5" x2="18"   y2="26.5" className="stroke-ink" strokeWidth="1.8" strokeLinecap="round" />
     </svg>
   );
 
@@ -83,14 +80,14 @@ export default function DockItLogo({
       </span>
       <span className="flex flex-col justify-center leading-none">
         <span
-          className="leading-none"
-          style={{ fontSize: s.text, color: ink, fontWeight: 700, letterSpacing: '-0.01em', fontFamily: 'var(--font-display, inherit)' }}
+          className="leading-none text-ink font-display"
+          style={{ fontSize: s.text, fontWeight: 700, letterSpacing: '-0.01em' }}
         >
-          Dock<span style={{ color: amber }}>It</span>
+          Dock<span className="text-accent">It</span>
         </span>
         <span
-          className="leading-none"
-          style={{ fontSize: s.sub, color: muted, letterSpacing: '0.08em', textTransform: 'uppercase', fontFamily: 'var(--font-display, inherit)', fontWeight: 500, marginTop: 3 }}
+          className="leading-none text-ink-muted uppercase font-display"
+          style={{ fontSize: s.sub, letterSpacing: '0.08em', fontWeight: 500, marginTop: 3 }}
         >
           Compliance · Simplified
         </span>

@@ -11,7 +11,7 @@ import { useAuth } from '../hooks/useAuth';
 import { useLicenses } from '../hooks/useLicenses';
 import { getLicenseById, BUSINESS_TYPES } from '../utils/licenseTypes';
 import { formatDate, formatCurrency } from '../utils/formatters';
-import { fillOfficialForm, checkApplicationReadiness, getProfileFieldValue } from '../utils/formFillEngine';
+import { fillOfficialForm, checkApplicationReadiness, getProfileFieldValue, generatePaymentReceiptPDF } from '../utils/formFillEngine';
 import StatusBadge from '../components/ui/StatusBadge';
 import PenaltyCalculator from '../components/features/PenaltyCalculator';
 import RenewalForm from '../components/features/RenewalForm';
@@ -24,9 +24,10 @@ export default function LicenseDetail() {
   const { id } = useParams();
   const navigate = useNavigate();
   const { t } = useTranslation();
-  const { isDemo, demoLicenses, updateDemoRequirement } = useDemo();
+  const { isDemo, demoBusiness, demoLicenses, activeProfileId, updateDemoRequirement } = useDemo();
   const { user } = useAuth();
-  const { business } = useOutletContext();
+  const { business: outletBiz } = useOutletContext();
+  const business = isDemo ? demoBusiness : outletBiz;
   const [editing, setEditing] = useState(false);
   const [editData, setEditData] = useState({});
   const [showPaymentModal, setShowPaymentModal] = useState(false);
@@ -387,9 +388,11 @@ export default function LicenseDetail() {
             isOpen={showPaymentModal}
             onClose={() => setShowPaymentModal(false)}
             requirement={reqObj}
+            license={license}
             business={business}
+            daysLeft={daysLeft}
             onPaymentSuccess={async (paymentRecord) => {
-              toast.success(`Payment recorded! Test ID: ${paymentRecord.paymentId.substring(0, 16)}...`, {
+              toast.success(`Payment recorded! Ref: ${paymentRecord.paymentId.substring(0, 16)}...`, {
                 icon: '💳',
                 duration: 5000,
               });
@@ -399,6 +402,8 @@ export default function LicenseDetail() {
                   status: 'payment_recorded',
                   payment_recorded_at: paymentRecord.paidAt,
                   payment_id: paymentRecord.paymentId,
+                  amount_paid: paymentRecord.amount,
+                  penalty_paid: paymentRecord.penalty,
                 });
                 return;
               }
@@ -406,6 +411,8 @@ export default function LicenseDetail() {
               try {
                 await editLicense(id, {
                   status: 'payment_recorded',
+                  payment_recorded_at: paymentRecord.paidAt,
+                  payment_id: paymentRecord.paymentId,
                 });
               } catch (err) {
                 console.error('Failed to update payment status:', err);
@@ -415,6 +422,60 @@ export default function LicenseDetail() {
           />
         );
       })()}
+
+      {/* Paid Receipt Download Banner */}
+      {license.status === 'payment_recorded' && (
+        <div className="bg-green-50/80 border border-green-200 rounded-2xl p-4 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 text-xs text-green-900 shadow-xs">
+          <div className="flex items-center gap-2.5">
+            <div className="w-8 h-8 rounded-xl bg-green-100 border border-green-300 text-green-700 flex items-center justify-center flex-shrink-0">
+              <CheckCircle2 size={16} />
+            </div>
+            <div>
+              <div className="font-bold font-display text-sm text-green-900">Government Renewal Fee Paid & Recorded</div>
+              <div className="text-[11px] text-green-700 font-mono mt-0.5">
+                Ref: {license.payment_id || 'pi_sandbox_recorded'} · Status: payment_recorded
+              </div>
+            </div>
+          </div>
+
+          <button
+            onClick={() => {
+              const reqObj = license.requirement || {
+                requirement_name: def?.name || license.license_type,
+                issuing_agency: license.issuing_authority || def?.issuing_authority,
+                city: license.city || business?.cities?.[0],
+              };
+              const pdfBlob = generatePaymentReceiptPDF({
+                paymentId: license.payment_id || `pi_${id.slice(0, 8)}`,
+                amount: license.amount_paid || reqObj.fee_max || reqObj.fee_min || 50,
+                baseFee: reqObj.fee_max || reqObj.fee_min || 50,
+                penalty: license.penalty_paid || 0,
+                daysOverdue: Math.abs(daysLeft || 0),
+                currency: business?.country === 'India' ? 'INR' : 'USD',
+                requirementName: reqObj.requirement_name || license.license_type,
+                issuingAgency: reqObj.issuing_agency || license.issuing_authority,
+                businessName: business?.business_name,
+                ownerName: business?.owner_name,
+                city: reqObj.city || business?.cities?.[0] || business?.city,
+                country: business?.country || 'USA',
+                paidAt: license.payment_recorded_at || new Date().toISOString(),
+              });
+              const url = URL.createObjectURL(pdfBlob);
+              const a = document.createElement('a');
+              a.href = url;
+              a.download = `Official_Receipt_${(reqObj.requirement_name || 'License').replace(/[^a-zA-Z0-9_]/g, '_')}.pdf`;
+              document.body.appendChild(a);
+              a.click();
+              document.body.removeChild(a);
+              URL.revokeObjectURL(url);
+              toast.success('Downloaded Payment Confirmation PDF!');
+            }}
+            className="btn-primary text-xs py-2 px-3.5 flex items-center gap-1.5 font-bold shadow-xs whitespace-nowrap"
+          >
+            <FileDown size={14} /> Download Official Receipt (PDF)
+          </button>
+        </div>
+      )}
 
       {/* Why Do I Need This? */}
       {(() => {

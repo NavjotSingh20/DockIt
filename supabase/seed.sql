@@ -194,7 +194,7 @@ BEGIN
    NULL, NULL, 12, '14-30 business days',
    'Public health permit authorizing mobile food facility operations within LA County jurisdictions.',
    'https://ftala.org/Permits-and-Licenses-2025',
-   'http://publichealth.lacounty.gov/eh/docs/permit/Public-Health-Permit-License-Application.pdf',
+   'https://publichealth.lacounty.gov/eh/docs/permit/Public-Health-Permit-License-Application.pdf',
    '{"mode":"acroform","fields":{"LEGAL NAME OF BUSINESS DBA":"business_name","Business Street AddressRow1":"address","CityRow1":"city","ZipRow1":"zip","OWNER 1":"owner_name","PhoneOWNER 1":"phone","EmailOWNER 1":"email","Print Name Title":"owner_name","Date of Application":"date","Signature Date":"date","Mobile Food Facility":"checkbox_true","New Business":"checkbox_true"}}'::jsonb,
    CURRENT_DATE),
 
@@ -218,7 +218,7 @@ BEGIN
    NULL, NULL, 12, '1-7 business days',
    'Formally executed agreement with an approved commercial commissary facility for cleaning, filling, and storage.',
    'https://streetlegal.io/blog/california/los-angeles-food-truck-permit-guide',
-   'http://publichealth.lacounty.gov/eh/docs/permit/Public-Health-Permit-License-Application.pdf',
+   'https://publichealth.lacounty.gov/eh/docs/permit/Public-Health-Permit-License-Application.pdf',
    '{"mode":"acroform","fields":{"LEGAL NAME OF BUSINESS DBA":"business_name","Business Street AddressRow1":"address","CityRow1":"city","ZipRow1":"zip","OWNER 1":"owner_name","PhoneOWNER 1":"phone","EmailOWNER 1":"email","Print Name Title":"owner_name","Date of Application":"date","Signature Date":"date","Mobile Food Facility":"checkbox_true","New Business":"checkbox_true"}}'::jsonb,
    CURRENT_DATE),
 
@@ -235,7 +235,7 @@ BEGIN
    NULL, NULL, 60, '1-5 business days',
    'Certified food safety manager accreditation required for person-in-charge of mobile food facilities.',
    'https://getvendorloop.com/guides/how-to-start-a-food-truck-in-los-angeles',
-   'http://publichealth.lacounty.gov/eh/docs/permit/Public-Health-Permit-License-Application.pdf',
+   'https://publichealth.lacounty.gov/eh/docs/permit/Public-Health-Permit-License-Application.pdf',
    '{"mode":"acroform","fields":{"LEGAL NAME OF BUSINESS DBA":"business_name","Business Street AddressRow1":"address","CityRow1":"city","ZipRow1":"zip","OWNER 1":"owner_name","PhoneOWNER 1":"phone","EmailOWNER 1":"email","Print Name Title":"owner_name","Date of Application":"date","Signature Date":"date","Mobile Food Facility":"checkbox_true","New Business":"checkbox_true"}}'::jsonb,
    CURRENT_DATE);
 

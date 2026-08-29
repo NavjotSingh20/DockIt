@@ -10,43 +10,63 @@ export default {
   theme: {
     extend: {
       colors: {
-        // DockIt design system — SKILL.md compliant
-        // Warm neutral base, one sharp accent, status tones
-        base: '#F5F2EB',
-        'base-dark': '#EDE9E0',
-        ink: '#1C1917',
-        'ink-muted': '#57534E',
-        'ink-faint': '#A8A29E',
-        accent: '#D97706',
-        'accent-dark': '#B45309',
-        'accent-light': '#FEF3C7',
-        caution: '#CA8A04',
-        settled: '#6B8F71',
-        'settled-light': '#E8F0EA',
-        surface: '#FEFDFB',
-        rule: '#E7E0D5',
-        'rule-dark': '#D6CFC4',
+        // DockIt design system — Dark & Light adaptive tokens via CSS variables
+        base: 'rgb(var(--color-base) / <alpha-value>)',
+        'base-dark': 'rgb(var(--color-base-dark) / <alpha-value>)',
+        ink: 'rgb(var(--color-ink) / <alpha-value>)',
+        'ink-muted': 'rgb(var(--color-ink-muted) / <alpha-value>)',
+        'ink-faint': 'rgb(var(--color-ink-faint) / <alpha-value>)',
+        accent: 'rgb(var(--color-accent) / <alpha-value>)',
+        'accent-dark': 'rgb(var(--color-accent-dark) / <alpha-value>)',
+        'accent-light': 'rgb(var(--color-accent-light) / <alpha-value>)',
+        caution: 'rgb(var(--color-caution) / <alpha-value>)',
+        settled: 'rgb(var(--color-settled) / <alpha-value>)',
+        'settled-light': 'rgb(var(--color-settled-light) / <alpha-value>)',
+        surface: 'rgb(var(--color-surface) / <alpha-value>)',
+        rule: 'rgb(var(--color-rule) / <alpha-value>)',
+        'rule-dark': 'rgb(var(--color-rule-dark) / <alpha-value>)',
+        danger: 'rgb(var(--color-danger) / <alpha-value>)',
+        'danger-light': 'rgb(var(--color-danger-light) / <alpha-value>)',
 
-        // Keep old tokens as aliases so other pages don't break
-        primary: { DEFAULT: '#D97706', dark: '#B45309', light: '#FEF3C7' },
-        navy: { DEFAULT: '#1C1917', 800: '#292524', 700: '#44403C' },
-        success: '#6B8F71',
-        warning: '#CA8A04',
-        danger: '#C2410C',
-        neutral: '#78716C',
-        bg: '#F5F2EB',
-        card: '#FEFDFB',
-        border: '#E7E0D5',
+        // Legacy / alias tokens
+        primary: {
+          DEFAULT: 'rgb(var(--color-accent) / <alpha-value>)',
+          dark: 'rgb(var(--color-accent-dark) / <alpha-value>)',
+          light: 'rgb(var(--color-accent-light) / <alpha-value>)',
+        },
+        navy: {
+          DEFAULT: 'rgb(var(--color-ink) / <alpha-value>)',
+          800: 'rgb(var(--color-surface) / <alpha-value>)',
+          700: 'rgb(var(--color-rule-dark) / <alpha-value>)',
+        },
+        success: 'rgb(var(--color-settled) / <alpha-value>)',
+        warning: 'rgb(var(--color-caution) / <alpha-value>)',
+        neutral: 'rgb(var(--color-ink-muted) / <alpha-value>)',
+        bg: 'rgb(var(--color-base) / <alpha-value>)',
+        card: 'rgb(var(--color-surface) / <alpha-value>)',
+        border: 'rgb(var(--color-rule) / <alpha-value>)',
 
-        // shadcn semantic color tokens (mapped to DockIt palette)
-        background: '#F5F2EB',
-        foreground: '#1C1917',
-        popover: { DEFAULT: '#FEFDFB', foreground: '#1C1917' },
-        muted: { DEFAULT: '#EDE9E0', foreground: '#57534E' },
-        'accent-shadcn': { DEFAULT: '#FEF3C7', foreground: '#B45309' },
-        destructive: { DEFAULT: '#C2410C', foreground: '#FFFFFF' },
-        input: '#E7E0D5',
-        ring: '#D97706',
+        // shadcn semantic color tokens
+        background: 'rgb(var(--color-base) / <alpha-value>)',
+        foreground: 'rgb(var(--color-ink) / <alpha-value>)',
+        popover: {
+          DEFAULT: 'rgb(var(--color-surface) / <alpha-value>)',
+          foreground: 'rgb(var(--color-ink) / <alpha-value>)',
+        },
+        muted: {
+          DEFAULT: 'rgb(var(--color-base-dark) / <alpha-value>)',
+          foreground: 'rgb(var(--color-ink-muted) / <alpha-value>)',
+        },
+        'accent-shadcn': {
+          DEFAULT: 'rgb(var(--color-accent-light) / <alpha-value>)',
+          foreground: 'rgb(var(--color-accent-dark) / <alpha-value>)',
+        },
+        destructive: {
+          DEFAULT: 'rgb(var(--color-danger) / <alpha-value>)',
+          foreground: '#FFFFFF',
+        },
+        input: 'rgb(var(--color-rule) / <alpha-value>)',
+        ring: 'rgb(var(--color-accent) / <alpha-value>)',
       },
       fontFamily: {
         display: ['"Space Grotesk"', '"Noto Sans Devanagari"', 'system-ui', 'sans-serif'],

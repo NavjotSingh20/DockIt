@@ -9,7 +9,7 @@
  * Response:  { requirements: [ ...processedWithProvenance ], summary: { total, verified, cached, fallback } }
  */
 
-import { executeExtraction } from './scraperEngine.js';
+import { executeExtraction } from '../_lib/scraperEngine.js';
 
 const MAX_CONCURRENT = 6;
 

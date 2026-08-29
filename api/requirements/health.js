@@ -6,7 +6,7 @@
  * cache hit ratios, and recent execution logs.
  */
 
-import { scrapeHealth } from './scraperEngine.js';
+import { scrapeHealth } from '../_lib/scraperEngine.js';
 
 export default function handler(req, res) {
   res.setHeader('Access-Control-Allow-Origin', '*');

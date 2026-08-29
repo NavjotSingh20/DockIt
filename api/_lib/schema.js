@@ -1,6 +1,7 @@
 /**
- * api/requirements/schema.js
+ * api/_lib/schema.js
  * Normalized schema definitions, provenance tracking, and change detection.
+ * (Moved to _lib so Vercel does not treat it as a Serverless Function)
  */
 
 export const ExtractionStatus = {
@@ -138,4 +139,3 @@ export function detectChanges(storedData = {}, liveData = {}) {
     },
   };
 }
-

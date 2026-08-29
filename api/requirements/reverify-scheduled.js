@@ -9,7 +9,7 @@
  * GET / POST: triggers audit cycle and returns diff report
  */
 
-import { executeExtraction } from './scraperEngine.js';
+import { executeExtraction } from '../_lib/scraperEngine.js';
 
 // Default monitored catalog of official statutory requirements
 const MONITORED_REQUIREMENTS = [

@@ -1,6 +1,7 @@
 /**
- * api/requirements/adapters/index.js
+ * api/_lib/adapters/index.js
  * Domain-specific extraction adapters for official government requirement portals.
+ * (Moved to _lib so Vercel does not treat it as a Serverless Function)
  *
  * Rule: NO GENERIC REGEX GUESSING.
  * Each adapter searches verified DOM structures / containers.
@@ -327,4 +328,3 @@ export function resolveAdapter(urlStr) {
   }
   return null;
 }
-

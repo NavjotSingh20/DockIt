@@ -19,7 +19,7 @@
  *  }
  */
 
-import { executeExtraction } from './scraperEngine.js';
+import { executeExtraction } from '../_lib/scraperEngine.js';
 
 export default async function handler(req, res) {
   res.setHeader('Access-Control-Allow-Origin', '*');

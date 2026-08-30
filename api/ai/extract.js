@@ -1,7 +1,44 @@
 import { GoogleGenerativeAI } from '@google/generative-ai'
 import { createClient } from '@supabase/supabase-js'
 
-const PRIMARY_MODEL = 'gemini-3.6-flash'
+const VISION_MODELS = [
+  'gemini-3.6-flash',
+  'gemini-flash-latest',
+  'gemini-3.7-flash',
+  'gemini-2.5-flash',
+  'gemini-1.5-flash',
+  'gemini-1.5-pro',
+]
+
+async function generateWithModelCascade(genAI, parts) {
+  let lastErr = null
+  for (const modelName of VISION_MODELS) {
+    for (let attempt = 0; attempt < 2; attempt++) {
+      try {
+        const model = genAI.getGenerativeModel({ model: modelName })
+        const result = await model.generateContent({
+          contents: [{ role: 'user', parts }],
+          generationConfig: { responseMimeType: "application/json" }
+        })
+        const text = result?.response?.text()
+        if (text) {
+          return JSON.parse(text)
+        }
+      } catch (err) {
+        lastErr = err
+        const is429 = err.status === 429 || (err.message && (err.message.includes('429') || err.message.includes('quota') || err.message.includes('RESOURCE_EXHAUSTED')))
+        if (is429 && attempt === 0) {
+          console.warn(`[api/ai/extract] Model ${modelName} 429 rate-limited, waiting 2s for quota refresh...`)
+          await new Promise(r => setTimeout(r, 2000))
+          continue
+        }
+        console.warn(`[api/ai/extract] Model ${modelName} failed (${err.status || err.message}), trying next model...`)
+        break
+      }
+    }
+  }
+  throw lastErr || new Error('All vision models in cascade exhausted')
+}
 
 const supabaseUrl = process.env.VITE_SUPABASE_URL || process.env.SUPABASE_URL || ''
 const supabaseKey = process.env.VITE_SUPABASE_ANON_KEY || process.env.SUPABASE_ANON_KEY || ''
@@ -71,9 +108,15 @@ CRITICAL INSTRUCTIONS:
    - Many official Indian government forms (e.g. FSSAI, Trade License, MCD Eating House, Fire NOC, Shop & Establishment) display bilingual text.
    - Prioritize the English line for the actual extracted values (e.g. "URBAN TADKA", "SECTOR 12, CHANDIGARH", "State", "Restaurants").
    - Use the Devanagari text for cross-validation (e.g., verifying licensee/owner name if mentioned like 'मालिक: हरप्रीत सिंह').
-2. WATERMARKS / DEMO LABELS:
-   - Completely ignore any background or header "DEMO", "SAMPLE", "FOR OCR TESTING ONLY" watermarks/banners. Focus strictly on the official document fields.
-3. OUTPUT FORMAT:
+2. TIERED & CATEGORY LICENSES (INDIA-CENTRIC):
+   - For FSSAI-style tiered licenses, map license_category to "Basic", "State", or "Central".
+3. DUAL / DISTINCT ADDRESSES:
+   - Extract registered_office_address and authorized_premises_address separately when distinct, and also populate generic address with the operating premises address.
+4. VALIDITY PERIOD & DATES:
+   - Extract period_of_validity_start and period_of_validity_end strictly formatted as "YYYY-MM-DD", while keeping generic issue_date and expiry_date populated.
+5. WATERMARKS / DEMO LABELS:
+   - Completely ignore any background or header "DEMO", "SAMPLE", "FOR OCR TESTING ONLY" watermarks/banners. Focus strictly on official document data.
+6. OUTPUT FORMAT:
    - Return ONLY a valid JSON object matching the schema below. No markdown fences, no conversational text.
 
 Schema:
@@ -83,19 +126,22 @@ Schema:
   "issuing_authority": string or null (e.g. "Food Safety and Standards Authority of India / Chandigarh Administration", "IRS", "NYC DCWP"),
   "business_name": string or null (legal or registered trade name of business),
   "owner_name": string or null (proprietor/owner name, in English or transliterated),
-  "address": string or null (registered office address),
+  "address": string or null (generic or primary operating address),
+  "registered_office_address": string or null (registered office address of licensee),
   "authorized_premises_address": string or null (address of authorized premises),
-  "kind_of_business": string or null (e.g. "Restaurants", "Food Truck", etc.),
+  "kind_of_business": string or null (e.g. "Restaurants", "Food Truck", "Retail"),
+  "license_category": string or null (e.g. "Basic", "State", "Central"),
   "category_of_license": string or null (e.g. "State", "Central", "Registration"),
   "issue_date": string or null (strictly formatted as "YYYY-MM-DD"),
   "expiry_date": string or null (strictly formatted as "YYYY-MM-DD"),
+  "period_of_validity_start": string or null (strictly formatted as "YYYY-MM-DD"),
+  "period_of_validity_end": string or null (strictly formatted as "YYYY-MM-DD"),
   "license_fee_paid": string or number or null (e.g. "Rs.6000" or 6000),
   "confidence": integer (0 to 100 based on legibility and completeness)
 }`
 
   try {
     const genAI = new GoogleGenerativeAI(apiKey)
-    const model = genAI.getGenerativeModel({ model: PRIMARY_MODEL })
     let parts = []
 
     if (imageBase64) {
@@ -116,30 +162,36 @@ Schema:
       ]
     }
 
-    const result = await model.generateContent({
-      contents: [{ role: 'user', parts }],
-      generationConfig: { responseMimeType: "application/json" }
-    })
-
-    const rawText = result.response.text()
-
-    let parsed
-    try {
-      parsed = JSON.parse(rawText)
-    } catch {
-      return res.status(200).json({
-        data: null,
-        confidence: 0,
-        error: 'AI returned invalid JSON format',
-        raw: rawText,
-      })
-    }
+    const parsed = await generateWithModelCascade(genAI, parts)
 
     const confidence = typeof parsed.confidence === 'number'
       ? Math.min(100, Math.max(0, parsed.confidence))
       : 85
 
-    return res.status(200).json({ data: parsed, confidence, error: null, catalogNames })
+    const normalized = {
+      // Common & US-shaped fields
+      license_type: parsed.license_type || null,
+      license_number: parsed.license_number || null,
+      issuing_authority: parsed.issuing_authority || null,
+      business_name: parsed.business_name || null,
+      owner_name: parsed.owner_name || null,
+      address: parsed.address || parsed.authorized_premises_address || parsed.registered_office_address || null,
+      issue_date: parsed.issue_date || parsed.period_of_validity_start || null,
+      expiry_date: parsed.expiry_date || parsed.period_of_validity_end || null,
+
+      // India-centric additive fields
+      license_category: parsed.license_category || parsed.category_of_license || null,
+      kind_of_business: parsed.kind_of_business || null,
+      registered_office_address: parsed.registered_office_address || null,
+      authorized_premises_address: parsed.authorized_premises_address || null,
+      license_fee_paid: parsed.license_fee_paid || null,
+      period_of_validity_start: parsed.period_of_validity_start || parsed.issue_date || null,
+      period_of_validity_end: parsed.period_of_validity_end || parsed.expiry_date || null,
+
+      confidence
+    }
+
+    return res.status(200).json({ data: normalized, confidence, error: null, catalogNames })
   } catch (err) {
     console.error('[/api/ai/extract]', err)
     return res.status(500).json({

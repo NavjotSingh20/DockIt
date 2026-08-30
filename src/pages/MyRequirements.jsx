@@ -3,15 +3,16 @@ import { useOutletContext, useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   ClipboardList, Search, Plus, Check, ExternalLink, Clock,
-  Building2, AlertCircle, Sparkles, MapPin, X, ChevronRight, CheckCircle2, FileDown
+  Building2, AlertCircle, Sparkles, MapPin, X, ChevronRight, CheckCircle2, FileDown, Globe
 } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { useTranslation } from 'react-i18next';
 import { useDemo } from '../context/DemoContext';
 import { getRequirements, getBusinessRequirements, createBusinessRequirement, updateBusiness } from '../services/supabase';
 import { formatCurrency } from '../utils/formatters';
-import { fillOfficialForm } from '../utils/formFillEngine';
+import { fillOfficialForm, hasOfficialForm } from '../utils/formFillEngine';
 import { computeSmartDiff, isRequirementApplicable } from '../utils/jurisdictionEngine';
+import AutofillModal from '../components/features/AutofillModal';
 
 const CITIES_DATA = {
   India: [
@@ -48,6 +49,8 @@ export default function MyRequirements() {
   const [showAddCityModal, setShowAddCityModal] = useState(false);
   const [selectedNewCity, setSelectedNewCity] = useState('');
   const [addingCity, setAddingCity] = useState(false);
+  const [selectedAutofillReq, setSelectedAutofillReq] = useState(null);
+  const [showAutofillModal, setShowAutofillModal] = useState(false);
 
   const activeBiz = isDemo ? demoBusiness : business;
   const country = activeBiz?.country || localStorage.getItem('country') || 'USA';
@@ -55,10 +58,10 @@ export default function MyRequirements() {
   
   const rawCities = activeBiz?.cities && activeBiz.cities.length > 0
     ? activeBiz.cities
-    : [activeBiz?.city ? `${activeBiz.city}, ${activeBiz.state || ''}` : (country === 'India' ? 'Mumbai, Maharashtra' : 'New York, NY')];
+    : [activeBiz?.city ? (activeBiz.state ? `${activeBiz.city}, ${activeBiz.state}` : activeBiz.city) : (country === 'India' ? 'Chandigarh' : 'New York, NY')];
   
   // Deduplicated operating cities list
-  const operatingCities = Array.from(new Set(rawCities));
+  const operatingCities = Array.from(new Set(rawCities.filter(Boolean)));
 
   // Load requirements & tracked business requirements
   useEffect(() => {
@@ -234,25 +237,10 @@ export default function MyRequirements() {
     }
   };
 
-  // Handle Download Application Packet
-  const handleDownloadPacket = async (reqItem) => {
-    const toastId = toast.loading(`Generating official packet for ${reqItem.requirement_name}...`);
-    try {
-      const pdfBlob = await fillOfficialForm(reqItem, activeBiz);
-      const url = URL.createObjectURL(pdfBlob);
-      const a = document.createElement('a');
-      a.href = url;
-      const safeName = (reqItem.requirement_name || 'Application_Packet').replace(/[^a-zA-Z0-9_]/g, '_');
-      a.download = `${safeName}_Application_Packet.pdf`;
-      document.body.appendChild(a);
-      a.click();
-      document.body.removeChild(a);
-      URL.revokeObjectURL(url);
-      toast.success(`Downloaded application packet!`, { id: toastId });
-    } catch (err) {
-      console.error("Download packet error:", err);
-      toast.error("Failed to generate application packet.", { id: toastId });
-    }
+  // Handle Autofill & Official Application Packet Modal
+  const handleDownloadPacket = (reqItem) => {
+    setSelectedAutofillReq(reqItem);
+    setShowAutofillModal(true);
   };
 
   // Filtered requirements view
@@ -274,23 +262,49 @@ export default function MyRequirements() {
     const coveredFederal = [];
     const cityMap = {};
     const seenReqKeys = new Set();
+    const normalizedOpCities = operatingCities.map(c => c.toLowerCase().trim());
 
     filteredRequirements.forEach(req => {
       const isTracked = trackedReqIds.has(req.id);
-      const isFederal = req.jurisdiction_level === 'federal';
+      const isFederal = (req.jurisdiction_level || '').toLowerCase() === 'federal';
 
-      if (isFederal && isTracked) {
-        if (!seenReqKeys.has(`federal_${req.requirement_name.toLowerCase()}`)) {
-          seenReqKeys.add(`federal_${req.requirement_name.toLowerCase()}`);
-          coveredFederal.push(req);
+      if (isFederal) {
+        if (isTracked) {
+          if (!seenReqKeys.has(`fed_tracked_${req.requirement_name.toLowerCase()}`)) {
+            seenReqKeys.add(`fed_tracked_${req.requirement_name.toLowerCase()}`);
+            coveredFederal.push(req);
+          }
+        } else {
+          // Untracked Federal Requirement — show under national header, not under a random city
+          const fedKey = country === 'India' ? 'National / Central Government (India)' : 'Federal / National (USA)';
+          if (!seenReqKeys.has(`fed_untracked_${req.requirement_name.toLowerCase()}`)) {
+            seenReqKeys.add(`fed_untracked_${req.requirement_name.toLowerCase()}`);
+            if (!cityMap[fedKey]) cityMap[fedKey] = [];
+            cityMap[fedKey].push({ ...req, city: fedKey });
+          }
         }
       } else {
-        const cityKey = req.city || 'General / Federal';
-        const dedupeKey = `${cityKey}_${req.requirement_name?.toLowerCase().trim()}`;
-        if (!seenReqKeys.has(dedupeKey)) {
-          seenReqKeys.add(dedupeKey);
-          if (!cityMap[cityKey]) cityMap[cityKey] = [];
-          cityMap[cityKey].push(req);
+        // City / State specific requirement
+        const reqCity = (req.city || '').trim();
+        // Check if req applies to one of the operating cities
+        const matchesOpCity = normalizedOpCities.some(opc => {
+          const opcCityOnly = opc.split(',')[0].trim().toLowerCase();
+          const reqCityOnly = reqCity.split(',')[0].trim().toLowerCase();
+          return (
+            reqCity.toLowerCase().includes(opcCityOnly) ||
+            opc.includes(reqCityOnly) ||
+            opcCityOnly === reqCityOnly
+          );
+        });
+
+        if (matchesOpCity || normalizedOpCities.length === 0) {
+          const cityKey = reqCity || operatingCities[0] || 'Local Jurisdiction';
+          const dedupeKey = `${cityKey}_${req.requirement_name?.toLowerCase().trim()}`;
+          if (!seenReqKeys.has(dedupeKey)) {
+            seenReqKeys.add(dedupeKey);
+            if (!cityMap[cityKey]) cityMap[cityKey] = [];
+            cityMap[cityKey].push(req);
+          }
         }
       }
     });
@@ -299,7 +313,7 @@ export default function MyRequirements() {
       coveredFederalReqs: coveredFederal,
       citySpecificGroups: cityMap
     };
-  }, [filteredRequirements, trackedReqIds]);
+  }, [filteredRequirements, trackedReqIds, operatingCities, country]);
 
   const isMultiCity = operatingCities.length > 1;
   const availableCitiesToAdd = (CITIES_DATA[country] || [])
@@ -472,12 +486,21 @@ export default function MyRequirements() {
                     <div className="pt-3 border-t border-rule-dark/50 space-y-2">
                       <button
                         onClick={() => handleDownloadPacket(req)}
-                        className="w-full flex items-center justify-between px-3 py-2 rounded-md bg-ink hover:bg-ink/90 text-white transition-colors shadow-subtle text-xs"
-                        title="Download your pre-filled official application form"
+                        className="w-full flex items-center justify-between px-3 py-2 rounded-md bg-ink hover:bg-ink/90 text-white transition-colors shadow-subtle text-xs cursor-pointer"
+                        title={hasOfficialForm(req) ? "Pre-fill and download the official statutory government PDF" : "Online electronic portal registration (No manual PDF)"}
                       >
                         <div className="flex items-center gap-2">
-                          <FileDown size={14} className="text-white/80" />
-                          <span className="font-semibold font-display">{t('requirements.download_packet', 'Pre-fill & Download Form')}</span>
+                          {hasOfficialForm(req) ? (
+                            <>
+                              <FileDown size={14} className="text-white/80" />
+                              <span className="font-semibold font-display">Pre-fill Official Form</span>
+                            </>
+                          ) : (
+                            <>
+                              <Globe size={14} className="text-white/80" />
+                              <span className="font-semibold font-display">Apply on Govt Portal</span>
+                            </>
+                          )}
                         </div>
                         <ExternalLink size={12} className="text-white/50" />
                       </button>
@@ -578,12 +601,21 @@ export default function MyRequirements() {
                       <div className="pt-3 border-t border-rule/50 space-y-2">
                         <button
                           onClick={() => handleDownloadPacket(req)}
-                          className="w-full inline-flex items-center justify-between px-3.5 h-9 rounded-md bg-ink hover:bg-ink/90 text-white transition-colors shadow-subtle text-xs leading-none select-none"
-                          title="Download your pre-filled official application form"
+                          className="w-full inline-flex items-center justify-between px-3.5 h-9 rounded-md bg-ink hover:bg-ink/90 text-white transition-colors shadow-subtle text-xs leading-none select-none cursor-pointer"
+                          title={hasOfficialForm(req) ? "Pre-fill and download the official statutory government PDF" : "Online electronic portal registration (No manual PDF)"}
                         >
                           <div className="flex items-center gap-2 leading-none">
-                            <FileDown size={14} className="text-white/80 shrink-0" />
-                            <span className="font-semibold font-display leading-none">{t('requirements.download_packet', 'Pre-fill & Download Form')}</span>
+                            {hasOfficialForm(req) ? (
+                              <>
+                                <FileDown size={14} className="text-white/80 shrink-0" />
+                                <span className="font-semibold font-display leading-none">Pre-fill Official Form</span>
+                              </>
+                            ) : (
+                              <>
+                                <Globe size={14} className="text-white/80 shrink-0" />
+                                <span className="font-semibold font-display leading-none">Apply on Govt Portal</span>
+                              </>
+                            )}
                           </div>
                           <ExternalLink size={12} className="text-white/50 shrink-0" />
                         </button>
@@ -681,6 +713,19 @@ export default function MyRequirements() {
           </div>
         )}
       </AnimatePresence>
+
+      {/* ─── Official Statutory Autofill Modal ─── */}
+      {showAutofillModal && selectedAutofillReq && (
+        <AutofillModal
+          isOpen={showAutofillModal}
+          onClose={() => {
+            setShowAutofillModal(false);
+            setSelectedAutofillReq(null);
+          }}
+          requirement={selectedAutofillReq}
+          business={activeBiz}
+        />
+      )}
     </div>
   );
 }

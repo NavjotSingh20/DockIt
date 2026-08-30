@@ -439,7 +439,7 @@ export default function NavBar({ business }) {
   };
 
   return (
-    <header className="fixed top-0 left-0 right-0 z-50 bg-surface/95 backdrop-blur-md border-b border-rule">
+    <header className="fixed top-0 left-0 right-0 z-30 bg-surface/95 backdrop-blur-md border-b border-rule">
       <div className="max-w-7xl mx-auto flex h-16 items-center justify-between gap-4 px-4 md:px-6 relative">
         {/* Left side: Mobile Trigger + Logo */}
         <div className="flex items-center gap-3 shrink-0">

@@ -1,10 +1,18 @@
-import { defineConfig } from 'vite'
+import { defineConfig, loadEnv } from 'vite'
 import react from '@vitejs/plugin-react'
 import path from 'path'
-
 import Stripe from 'stripe'
+import extractHandler from './api/ai/extract.js'
+import chatHandler from './api/ai/chat.js'
 
-export default defineConfig({
+export default defineConfig(({ mode }) => {
+  const env = loadEnv(mode, process.cwd(), '')
+  process.env.GEMINI_API_KEY = env.GEMINI_API_KEY || env.VITE_GEMINI_API_KEY || process.env.GEMINI_API_KEY
+  process.env.VITE_SUPABASE_URL = env.VITE_SUPABASE_URL || env.SUPABASE_URL || process.env.VITE_SUPABASE_URL
+  process.env.VITE_SUPABASE_ANON_KEY = env.VITE_SUPABASE_ANON_KEY || env.SUPABASE_ANON_KEY || process.env.VITE_SUPABASE_ANON_KEY
+  process.env.STRIPE_SECRET_KEY = env.STRIPE_SECRET_KEY || env.VITE_STRIPE_SECRET_KEY || process.env.STRIPE_SECRET_KEY
+
+  return {
   plugins: [
     react(),
     {
@@ -128,6 +136,96 @@ export default defineConfig({
             }
           });
         });
+
+        server.middlewares.use('/api/ai/extract', async (req, res) => {
+          if (req.method === 'OPTIONS') {
+            res.setHeader('Access-Control-Allow-Origin', '*');
+            res.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS');
+            res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
+            res.statusCode = 200;
+            res.end();
+            return;
+          }
+
+          if (req.method !== 'POST') {
+            res.statusCode = 405;
+            res.end(JSON.stringify({ error: 'Method not allowed' }));
+            return;
+          }
+
+          let body = '';
+          req.on('data', chunk => { body += chunk; });
+          req.on('end', async () => {
+            try {
+              const parsedBody = JSON.parse(body || '{}');
+              const mockReq = { method: 'POST', body: parsedBody, headers: req.headers };
+              const mockRes = {
+                setHeader: (k, v) => res.setHeader(k, v),
+                status: (code) => {
+                  res.statusCode = code;
+                  return {
+                    json: (data) => {
+                      res.setHeader('Content-Type', 'application/json');
+                      res.end(JSON.stringify(data));
+                    },
+                    end: () => res.end()
+                  };
+                }
+              };
+              await extractHandler(mockReq, mockRes);
+            } catch (err) {
+              console.error('[Vite Dev API /api/ai/extract error]:', err);
+              res.setHeader('Content-Type', 'application/json');
+              res.statusCode = 500;
+              res.end(JSON.stringify({ data: null, confidence: 0, error: err.message }));
+            }
+          });
+        });
+
+        server.middlewares.use('/api/ai/chat', async (req, res) => {
+          if (req.method === 'OPTIONS') {
+            res.setHeader('Access-Control-Allow-Origin', '*');
+            res.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS');
+            res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization');
+            res.statusCode = 200;
+            res.end();
+            return;
+          }
+
+          if (req.method !== 'POST') {
+            res.statusCode = 405;
+            res.end(JSON.stringify({ error: 'Method not allowed' }));
+            return;
+          }
+
+          let body = '';
+          req.on('data', chunk => { body += chunk; });
+          req.on('end', async () => {
+            try {
+              const parsedBody = JSON.parse(body || '{}');
+              const mockReq = { method: 'POST', body: parsedBody, headers: req.headers };
+              const mockRes = {
+                setHeader: (k, v) => res.setHeader(k, v),
+                status: (code) => {
+                  res.statusCode = code;
+                  return {
+                    json: (data) => {
+                      res.setHeader('Content-Type', 'application/json');
+                      res.end(JSON.stringify(data));
+                    },
+                    end: () => res.end()
+                  };
+                }
+              };
+              await chatHandler(mockReq, mockRes);
+            } catch (err) {
+              console.error('[Vite Dev API /api/ai/chat error]:', err);
+              res.setHeader('Content-Type', 'application/json');
+              res.statusCode = 500;
+              res.end(JSON.stringify({ error: err.message || 'Chat service error' }));
+            }
+          });
+        });
       }
     }
   ],
@@ -156,4 +254,5 @@ export default defineConfig({
       },
     },
   },
-})
+};
+});

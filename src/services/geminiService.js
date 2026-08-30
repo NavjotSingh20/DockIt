@@ -72,28 +72,53 @@ export function parseOcrTextHeuristically(ocrText) {
   }
 
   // 3. Document / ID / Permit Number
+  const stopWords = new Set(['under', 'food', 'safety', 'standards', 'act', 'state', 'central', 'valid', 'issued', 'date', 'type', 'name', 'period', 'form', 'number', 'address', 'kind', 'business']);
+
   const einMatch = ocrText.match(/(?:ein|employer\s+identification\s+number)[\s\:\-]*([0-9]{2}\-[0-9]{7})/i) ||
                    ocrText.match(/\b([0-9]{2}\-[0-9]{7})\b/);
   if (einMatch && einMatch[1]) {
     result.license_number = einMatch[1];
+    result.license_type = 'Employer Identification Number (EIN)';
+    result.issuing_authority = 'Internal Revenue Service (IRS)';
   } else {
-    const certMatch = ocrText.match(/(?:certificate|license|permit|registration|cert|lic|id)\s*(?:number|no\.?|#)?[\s\:\-]+([A-Z0-9\-]{4,25})/i);
-    if (certMatch && certMatch[1]) {
-      result.license_number = certMatch[1];
+    // Check for explicit label like "License Number : 99990001000121" or Hindi "अनुज्ञप्ति संख्या"
+    const certMatch = ocrText.match(/(?:certificate|license|permit|registration|cert|lic|id|संख्या)\s*(?:number|no\.?|#|संख्या)?[\s\:\-]+([A-Z0-9\-]{6,25})/i);
+    if (certMatch && certMatch[1] && !stopWords.has(certMatch[1].toLowerCase().trim())) {
+      result.license_number = certMatch[1].trim();
     } else {
-      const standaloneNum = ocrText.match(/\b([0-9]{6,12})\b/);
-      if (standaloneNum) result.license_number = standaloneNum[1];
+      // 14-digit FSSAI / Standard government license number
+      const fssaiMatch = ocrText.match(/\b([0-9]{14})\b/) || ocrText.match(/\b([0-9]{12,14})\b/);
+      if (fssaiMatch) {
+        result.license_number = fssaiMatch[1];
+      } else {
+        const standaloneNum = ocrText.match(/\b([0-9]{6,12})\b/);
+        if (standaloneNum && !stopWords.has(standaloneNum[1].toLowerCase())) {
+          result.license_number = standaloneNum[1];
+        }
+      }
     }
   }
 
+  // Detect document type
+  if (/fssai|food safety/i.test(ocrText)) {
+    result.license_type = result.license_type || 'FSSAI Food License';
+    result.issuing_authority = result.issuing_authority || 'Food Safety and Standards Authority of India';
+  } else if (/trade license/i.test(ocrText)) {
+    result.license_type = result.license_type || 'Trade License';
+  } else if (/health permit|eating house/i.test(ocrText)) {
+    result.license_type = result.license_type || 'Health Trade License';
+  }
+
   // 4. Business Name Detection
-  const businessMatch = ocrText.match(/([A-Z0-9\s\,\.\-]{3,40}\b(?:LLC|INC|CORP|CO|LIMITED|SERVICES|STORE|KITCHEN)\b)/i);
+  const businessMatch = ocrText.match(/([A-Z0-9\s\,\.\-]{3,40}\b(?:LLC|INC|CORP|CO|LIMITED|SERVICES|STORE|KITCHEN|TADKA|DHABA|RESTAURANT)\b)/i);
   if (businessMatch && businessMatch[1]) {
     result.business_name = businessMatch[1].trim();
   }
 
   // Confidence calculation based purely on extracted raw primitives
-  if (result.expiry_date && result.license_number) {
+  if (result.expiry_date && result.license_number && result.license_type) {
+    result.confidence = 75;
+  } else if (result.expiry_date && result.license_number) {
     result.confidence = 65;
   } else if (result.expiry_date || result.license_number) {
     result.confidence = 50;

@@ -1,4 +1,5 @@
 import { useState, useCallback, useEffect, useMemo } from 'react';
+import { createPortal } from 'react-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { X, Upload, Camera, CheckCircle, AlertTriangle, Link2, ShieldCheck, Check, ChevronDown } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
@@ -10,7 +11,8 @@ import { useDemo } from '../../context/DemoContext';
 
 const STATES = { UPLOAD: 'upload', SCANNING: 'scanning', RESULTS: 'results', SUCCESS: 'success' };
 
-export default function ScanModal({ onClose, onSave, businessType, cities = [] }) {
+export default function ScanModal({ isOpen, onClose, onSave, onScanComplete, businessType, cities = [] }) {
+  if (isOpen === false) return null;
   const { t } = useTranslation();
   const { isDemo, demoRequirements } = useDemo();
   const [state, setState] = useState(STATES.UPLOAD);
@@ -24,6 +26,15 @@ export default function ScanModal({ onClose, onSave, businessType, cities = [] }
   const [catalogRequirements, setCatalogRequirements] = useState([]);
   const [matchedRequirement, setMatchedRequirement] = useState(null);
   const [manualRequirementOverride, setManualRequirementOverride] = useState(false);
+
+  // Lock body scroll when modal is open
+  useEffect(() => {
+    const originalOverflow = document.body.style.overflow;
+    document.body.style.overflow = 'hidden';
+    return () => {
+      document.body.style.overflow = originalOverflow;
+    };
+  }, []);
 
   // Fetch live requirement rows on mount for linkage matching
   useEffect(() => {
@@ -95,11 +106,26 @@ export default function ScanModal({ onClose, onSave, businessType, cities = [] }
     const { preview: prev } = await preprocessImage(file);
     setPreview(prev);
     setState(STATES.SCANNING);
+    setProgress(12);
+    setStatusText('Ingesting high-resolution document...');
+
+    // Smooth, gradual progress simulation across scanning lifecycle
+    let currentProgress = 12;
+    const progressTimer = setInterval(() => {
+      currentProgress += Math.floor(Math.random() * 5) + 3;
+      if (currentProgress >= 92) {
+        currentProgress = 92;
+      }
+      setProgress(currentProgress);
+
+      if (currentProgress > 68) {
+        setStatusText('Cross-referencing statutory regulatory catalog...');
+      } else if (currentProgress > 32) {
+        setStatusText('Extracting permit fields & bilingual Devanagari text...');
+      }
+    }, 160);
 
     try {
-      setStatusText('Analyzing document with Gemini Vision AI...');
-      setProgress(40);
-
       let data = null;
       let aiConf = null;
       let rawOcrText = '';
@@ -130,10 +156,8 @@ export default function ScanModal({ onClose, onSave, businessType, cities = [] }
 
       // Offline / Network Error Fallback: Run local Tesseract.js OCR
       if (!data) {
-        setStatusText('Running offline optical character recognition...');
-        const { text: ocrText, confidence: ocrConf } = await extractTextFromImage(file, (p) => {
-          setProgress(40 + Math.round(p * 0.4));
-        });
+        setStatusText('Running offline character recognition fallback...');
+        const { text: ocrText, confidence: ocrConf } = await extractTextFromImage(file);
         rawOcrText = ocrText;
 
         const fallback = parseOcrTextHeuristically(ocrText);
@@ -141,16 +165,24 @@ export default function ScanModal({ onClose, onSave, businessType, cities = [] }
         aiConf = fallback.confidence || ocrConf || 40;
       }
 
-      setProgress(85);
-      setStatusText('Matching with official regulatory catalog...');
+      clearInterval(progressTimer);
+      setProgress(98);
+      setStatusText('Verification complete.');
 
       const finalFields = {
         license_type: data?.license_type || '',
         license_number: data?.license_number || '',
         issuing_authority: data?.issuing_authority || '',
-        issue_date: data?.issue_date || '',
-        expiry_date: data?.expiry_date || '',
+        issue_date: data?.issue_date || data?.period_of_validity_start || '',
+        expiry_date: data?.expiry_date || data?.period_of_validity_end || '',
         business_name: data?.business_name || '',
+        owner_name: data?.owner_name || '',
+        address: data?.address || data?.authorized_premises_address || data?.registered_office_address || '',
+        authorized_premises_address: data?.authorized_premises_address || '',
+        registered_office_address: data?.registered_office_address || '',
+        kind_of_business: data?.kind_of_business || '',
+        license_category: data?.license_category || data?.category_of_license || '',
+        license_fee_paid: data?.license_fee_paid || '',
       };
 
       setExtracted(data);
@@ -170,9 +202,12 @@ export default function ScanModal({ onClose, onSave, businessType, cities = [] }
         }
       }
 
-      setProgress(100);
-      setState(STATES.RESULTS);
+      setTimeout(() => {
+        setProgress(100);
+        setState(STATES.RESULTS);
+      }, 250);
     } catch (err) {
+      clearInterval(progressTimer);
       console.error('Scan process exception:', err);
       toast('Could not auto-read all fields — please enter details manually.', { icon: 'ℹ️' });
 
@@ -181,12 +216,12 @@ export default function ScanModal({ onClose, onSave, businessType, cities = [] }
       setProgress(100);
       setState(STATES.RESULTS);
     }
-  }, [businessType, cities, catalogRequirements, matchRequirementRow]);
+  }, [matchRequirementRow, catalogRequirements, businessType, cities]);
 
   const handleDrop = (e) => {
-    e.preventDefault(); setDragging(false);
-    const file = e.dataTransfer.files[0];
-    if (file) handleFile(file);
+    e.preventDefault();
+    setDragging(false);
+    if (e.dataTransfer.files?.[0]) handleFile(e.dataTransfer.files[0]);
   };
 
   const handleRequirementSelect = (reqId) => {
@@ -221,12 +256,13 @@ export default function ScanModal({ onClose, onSave, businessType, cities = [] }
 
   const isLowConfidence = confidence < 60;
 
-  return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
-      <motion.div initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }}
-        className={`bg-surface rounded-3xl w-full ${state === STATES.RESULTS ? 'max-w-4xl' : 'max-w-2xl'} max-h-[90vh] overflow-hidden flex flex-col shadow-2xl border border-rule`}>
+  const modalContent = (
+    <AnimatePresence>
+      <div className="fixed inset-0 z-[99999] w-screen h-screen min-h-screen flex items-center justify-center p-4 sm:p-6 bg-black/75 backdrop-blur-md overflow-y-auto">
+        <motion.div initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0, scale: 0.95 }}
+          className={`bg-surface rounded-3xl w-full ${state === STATES.RESULTS ? 'max-w-4xl' : 'max-w-2xl'} max-h-[92vh] overflow-hidden flex flex-col shadow-2xl border border-rule transition-all duration-200 my-auto`}>
 
-        {/* Header */}
+        {/* HEADER */}
         <div className="flex items-center justify-between px-6 py-5 border-b border-rule bg-surface">
           <h2 className="text-xl font-bold font-display text-ink">{t('scan.title')}</h2>
           <button onClick={onClose} className="p-2 rounded-xl text-ink-faint hover:text-ink hover:bg-base transition-colors"><X size={20} /></button>
@@ -261,19 +297,54 @@ export default function ScanModal({ onClose, onSave, businessType, cities = [] }
 
             {/* SCANNING */}
             {state === STATES.SCANNING && (
-              <motion.div key="scanning" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="space-y-6">
-                <div className="relative rounded-2xl overflow-hidden bg-base flex items-center justify-center" style={{ height: 220 }}>
-                  {preview && <img src={preview} alt="doc" className="w-full h-full object-cover opacity-80" />}
-                  <div className="scan-laser absolute left-0 right-0 h-0.5 bg-accent shadow-lg shadow-accent/50" />
-                </div>
-                <div className="space-y-2">
-                  <div className="flex justify-between text-sm font-display">
-                    <span className="text-ink-muted font-medium">{statusText}</span>
-                    <span className="text-accent font-bold">{progress}%</span>
+              <motion.div key="scanning" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="space-y-5">
+                {/* Clean, Framed Document Viewport */}
+                <div className="relative rounded-2xl overflow-hidden bg-base/80 border border-rule/90 flex items-center justify-center p-3.5 max-h-[340px] min-h-[220px]">
+                  {preview && (
+                    <img
+                      src={preview}
+                      alt="Document Preview"
+                      className="max-h-[280px] w-auto max-w-full object-contain rounded-lg shadow-xs border border-rule/50"
+                    />
+                  )}
+
+                  {/* Professional Precision Scanner Line */}
+                  <div className="absolute inset-0 pointer-events-none overflow-hidden rounded-2xl">
+                    <motion.div
+                      className="absolute left-0 right-0 h-[1.5px] bg-accent/90"
+                      animate={{ top: ['4%', '95%', '4%'] }}
+                      transition={{ duration: 2.2, repeat: Infinity, ease: 'easeInOut' }}
+                    />
+                    <motion.div
+                      className="absolute left-0 right-0 h-8 bg-gradient-to-b from-accent/10 to-transparent pointer-events-none"
+                      animate={{ top: ['0%', '88%', '0%'] }}
+                      transition={{ duration: 2.2, repeat: Infinity, ease: 'easeInOut' }}
+                    />
                   </div>
-                  <div className="h-2 bg-rule rounded-full overflow-hidden">
-                    <motion.div className="h-full bg-accent rounded-full"
-                      animate={{ width: `${progress}%` }} transition={{ duration: 0.3 }} />
+
+                  {/* Scanning Status Badge */}
+                  <div className="absolute top-3 left-3 bg-surface/90 backdrop-blur-xs border border-rule px-2.5 py-1 rounded-lg flex items-center gap-1.5 shadow-xs">
+                    <span className="w-2 h-2 rounded-full bg-accent animate-pulse" />
+                    <span className="text-[10px] font-bold font-display uppercase tracking-wider text-ink-muted">
+                      Vision Processing
+                    </span>
+                  </div>
+                </div>
+
+                {/* Progress bar and text */}
+                <div className="space-y-2">
+                  <div className="flex justify-between items-center text-xs font-display">
+                    <span className="text-ink-muted font-medium flex items-center gap-1.5">
+                      {statusText}
+                    </span>
+                    <span className="text-accent font-bold font-mono text-sm">{progress}%</span>
+                  </div>
+                  <div className="h-2 bg-rule/70 rounded-full overflow-hidden p-0.5">
+                    <motion.div
+                      className="h-full bg-accent rounded-full"
+                      style={{ width: `${progress}%` }}
+                      transition={{ ease: 'easeOut', duration: 0.2 }}
+                    />
                   </div>
                 </div>
               </motion.div>
@@ -310,8 +381,8 @@ export default function ScanModal({ onClose, onSave, businessType, cities = [] }
                   </div>
 
                   <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-surface rounded-xl p-3.5 border border-rule/60">
-                    <div className="space-y-1">
-                      <div className="text-sm font-bold text-ink flex items-center gap-1.5">
+                    <div className="space-y-1 min-w-0 flex-1">
+                      <div className="text-sm font-bold text-ink flex items-center gap-1.5 flex-wrap">
                         <ShieldCheck size={16} className={matchedRequirement ? "text-settled flex-shrink-0" : "text-ink-faint flex-shrink-0"} />
                         <span>{matchedRequirement ? matchedRequirement.requirement_name : 'No direct catalog match — select from list'}</span>
                       </div>
@@ -321,20 +392,20 @@ export default function ScanModal({ onClose, onSave, businessType, cities = [] }
                         </div>
                       ) : (
                         <div className="text-xs text-ink-faint">
-                          Map this scan to one of your tracked business requirements
+                          Map this scan to one of your active business requirements or pick from dropdown
                         </div>
                       )}
                     </div>
 
                     {catalogRequirements.length > 0 && (
-                      <div className="flex items-center gap-1.5 self-start sm:self-center">
+                      <div className="flex items-center gap-2 flex-shrink-0 self-start sm:self-center">
                         <label className="text-[11px] font-semibold text-ink-faint uppercase whitespace-nowrap">
                           {matchedRequirement ? 'Change:' : 'Select:'}
                         </label>
                         <select
                           value={matchedRequirement?.id || ''}
                           onChange={(e) => handleRequirementSelect(e.target.value)}
-                          className="text-xs font-medium bg-base border border-rule rounded-lg px-2.5 py-1.5 text-ink focus:outline-none focus:ring-1 focus:ring-accent"
+                          className="text-xs font-medium bg-base border border-rule rounded-lg px-2.5 py-1.5 text-ink focus:outline-none focus:ring-1 focus:ring-accent max-w-[240px]"
                         >
                           <option value="">-- Choose Requirement --</option>
                           {catalogRequirements.map((r) => (
@@ -478,6 +549,9 @@ export default function ScanModal({ onClose, onSave, businessType, cities = [] }
         </div>
       </motion.div>
     </div>
+    </AnimatePresence>
   );
+
+  return typeof document !== 'undefined' ? createPortal(modalContent, document.body) : modalContent;
 }
 

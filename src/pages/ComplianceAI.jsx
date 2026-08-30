@@ -1,5 +1,5 @@
-import { useState, useRef, useEffect, useCallback } from 'react';
-import { useOutletContext } from 'react-router-dom';
+import { useState, useRef, useEffect, useCallback, useMemo } from 'react';
+import { useNavigate, useOutletContext } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   Sparkles,
@@ -16,11 +16,23 @@ import {
   Scale,
   RefreshCw,
   Info,
+  ExternalLink,
+  FileDown,
+  Calendar,
+  CreditCard,
+  ScanLine,
+  ArrowRight,
+  ShieldCheck,
+  CheckCircle2,
 } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
+import toast from 'react-hot-toast';
 import { useAuth } from '../hooks/useAuth';
 import { useDemo } from '../context/DemoContext';
-import { streamChatResponse } from '../services/geminiService';
+import { sendCopilotMessage } from '../services/copilotService';
+import ScanModal from '../components/features/ScanModal';
+import PaymentModal from '../components/features/PaymentModal';
+import AutofillModal from '../components/features/AutofillModal';
 
 /** Lightweight markdown renderer for clean, rapid rendering */
 function renderMarkdown(text) {
@@ -31,7 +43,7 @@ function renderMarkdown(text) {
 
     const parseInline = (str) => {
       const parts = [];
-      const re = /\*\*(.+?)\*\*|\*(.+?)\*|`(.+?)`/g;
+      const re = /\*\*(.+?)\*\*|\*(.+?)\*|`(.+?)`|\[(.+?)\]\((.+?)\)/g;
       let last = 0, m;
       while ((m = re.exec(str)) !== null) {
         if (m.index > last) parts.push(str.slice(last, m.index));
@@ -44,6 +56,19 @@ function renderMarkdown(text) {
             <code key={m.index} className="font-mono text-xs px-1.5 py-0.5 bg-ink/5 rounded text-accent-dark border border-rule/60">
               {m[3]}
             </code>
+          );
+        } else if (m[4] !== undefined && m[5] !== undefined) {
+          parts.push(
+            <a
+              key={m.index}
+              href={m[5]}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="text-accent underline font-medium hover:text-accent-dark inline-flex items-center gap-0.5"
+            >
+              {m[4]}
+              <ExternalLink size={10} className="inline ml-0.5" />
+            </a>
           );
         }
         last = re.lastIndex;
@@ -87,121 +112,68 @@ function renderMarkdown(text) {
   });
 }
 
-const CATEGORY_PROMPTS = [
-  {
-    icon: FileCheck2,
-    categoryKey: 'compliance_ai.cat_permit_discovery',
-    category: 'Permit Discovery',
-    questionKey: 'compliance_ai.q_permit_discovery',
-    question: 'What licenses & permits do I need to operate in my city?',
-  },
-  {
-    icon: AlertTriangle,
-    categoryKey: 'compliance_ai.cat_penalties',
-    category: 'Penalty & Fines',
-    questionKey: 'compliance_ai.q_penalties',
-    question: 'What are the statutory penalty risks and daily fines for expired permits?',
-  },
-  {
-    icon: RefreshCw,
-    categoryKey: 'compliance_ai.cat_renewals',
-    category: 'Renewal Procedures',
-    questionKey: 'compliance_ai.q_renewals',
-    question: 'Walk me through the official renewal process and required inspections.',
-  },
-  {
-    icon: Scale,
-    categoryKey: 'compliance_ai.cat_multicity',
-    category: 'Multi-City Rules',
-    questionKey: 'compliance_ai.q_multicity',
-    question: 'Compare health code rules and fire safety requirements across jurisdictions.',
-  },
-];
-
-/** Local statutory regulatory engine fallback */
-async function streamChatLocalFallback(message, businessContext, onChunk) {
-  const msg = message.toLowerCase();
-  const city = Array.isArray(businessContext?.cities) && businessContext.cities.length > 0
-    ? businessContext.cities.join(', ')
-    : (businessContext?.city || 'your operating jurisdiction');
-  const bizName = businessContext?.business_name || businessContext?.name || '';
-  const ownerName = businessContext?.owner_name || '';
-  const entityLabel = bizName ? `**${bizName}**` : (ownerName ? `**${ownerName}'s business**` : 'your business');
-  const country = businessContext?.country || 'USA';
-  let reply = '';
-
-  if (msg.includes('penalty') || msg.includes('expire') || msg.includes('fine') || msg.includes('lapsed') || msg.includes('risk')) {
-    reply = `### Statutory Penalty Exposure Analysis for ${entityLabel} (${city})
-
-Operating without valid documentation or with lapsed credentials incurs mandatory municipal & state enforcement actions:
-
-• **Health Code Violations**: Immediate citations ranging from **${country === 'India' ? '₹5,000 to ₹25,000' : '$250 to $1,000 per day'}**, with risk of temporary stop-work orders.
-• **Unregistered Commercial Tax**: Statutory fines up to **${country === 'India' ? '₹50,000' : '$5,000'}** plus 18% statutory interest on uncollected revenues.
-• **Fire Safety / Gas Line Clearance**: On-the-spot cease-and-desist order until inspected by the municipal fire marshal.
-• **Signage & Street Placement**: Citations issued under local municipal zoning code.
-
-Check the **Analytics** page for your dynamic 90-day fine escalation curve!`;
-  } else if (msg.includes('renew') || msg.includes('how do i') || msg.includes('process') || msg.includes('step')) {
-    reply = `### Official Renewal Workflow for ${entityLabel} in **${city}**
-
-Follow this protocol to ensure zero operational downtime:
-
-1. **Verify Expiration Timeline**: Ensure submission is lodged at least **30 days prior** to the statutory cut-off.
-2. **Scan / Upload Current License**: Navigate to your **Dashboard** and select *Add Document* or *Scan* to pre-fill renewal forms.
-3. **Agency Health Re-inspection**: Schedule your annual commissary kitchen & vehicle hygiene inspection.
-4. **Pay Statutory Municipal Fees**: Complete payment through the official local agency portal.
-5. **Receive Digital Stamp**: Upload the renewed digital certificate to DockIt to reset your compliance ring to 100%.`;
-  } else if (msg.includes('license') || msg.includes('need') || msg.includes('permit') || msg.includes('require')) {
-    reply = `### Required Compliance Catalog for ${entityLabel} (${city})
-
-Based on current regulatory statutes for ${country === 'India' ? 'India' : 'the USA'}, the mandatory permits are:
-
-• **Health Department Permit / FSSAI**: Mandatory for food storage, prep, and commercial dispensing.
-• **General Business License / Trade License**: Authorizes commercial operations within municipal city boundaries.
-• **Fire Safety Clearance**: Required for commercial gas burners, electrical setups, and suppression tanks.
-• **Sales Tax Certificate**: State authority registration for tax collection and filing.
-
-Track all required filings in your **Requirements** page!`;
-  } else {
-    reply = `### DockIt Compliance Intelligence Report
-
-Hello! I am your dedicated regulatory assistant for ${entityLabel} in **${city}**.
-
-I continuously analyze verified statutory data for **${city}** and can help you with:
-• **Permit Discovery**: Pinpoint required municipal, state, and federal licenses.
-• **Fines & Penalties**: Calculate legal penalties and deadline escalation risks.
-• **Inspection Checklists**: Prepare for health, fire, and commissary hygiene audits.
-• **Multi-City Expansion**: Understand delta requirements when adding new operating zones.
-
-Select a prompt below or type your specific compliance inquiry!`;
-  }
-
-  const words = reply.split(' ');
-  for (let i = 0; i < words.length; i++) {
-    onChunk((i === 0 ? '' : ' ') + words[i]);
-    await new Promise((r) => setTimeout(r, 18));
-  }
-}
-
 export default function ComplianceAI() {
   const { t } = useTranslation();
+  const navigate = useNavigate();
   const { user } = useAuth();
-  const { isDemo, demoBusiness } = useDemo();
+  const { isDemo, activeProfile, demoBusiness, demoRequirements, demoBusinessRequirements } = useDemo();
   const { business: outletBiz } = useOutletContext() || {};
+
   const [messages, setMessages] = useState([]);
   const [input, setInput] = useState('');
   const [streaming, setStreaming] = useState(false);
   const [copiedIndex, setCopiedIndex] = useState(null);
   const messagesEndRef = useRef(null);
 
-  const business = (isDemo ? demoBusiness : outletBiz) || {
-    business_name: user?.user_metadata?.business_name || '',
-    owner_name: user?.user_metadata?.full_name || user?.user_metadata?.name || '',
-    city: user?.user_metadata?.city || localStorage.getItem('cities')?.split(',')?.[0] || '',
-    cities: user?.user_metadata?.cities || (localStorage.getItem('cities') ? localStorage.getItem('cities').split(',') : []),
-    country: localStorage.getItem('country') || outletBiz?.country || 'USA',
-    business_type: outletBiz?.business_type || 'food_truck',
-  };
+  // Action Modals State
+  const [showScanModal, setShowScanModal] = useState(false);
+  const [showPaymentModal, setShowPaymentModal] = useState(false);
+  const [selectedReqForPayment, setSelectedReqForPayment] = useState(null);
+  const [showAutofillModal, setShowAutofillModal] = useState(false);
+  const [selectedReqForAutofill, setSelectedReqForAutofill] = useState(null);
+
+  // Active Business Resolution
+  const activeBiz = useMemo(() => {
+    return (isDemo ? demoBusiness : outletBiz) || {
+      business_name: user?.user_metadata?.business_name || 'My Business',
+      owner_name: user?.user_metadata?.full_name || 'Business Owner',
+      city: user?.user_metadata?.city || 'Chandigarh',
+      cities: user?.user_metadata?.cities || ['Chandigarh'],
+      country: localStorage.getItem('country') || outletBiz?.country || 'India',
+      business_type: outletBiz?.business_type || 'restaurant',
+    };
+  }, [isDemo, demoBusiness, outletBiz, user]);
+
+  // Live Stats Calculation for Dynamic Header
+  const complianceStats = useMemo(() => {
+    const brs = isDemo ? (demoBusinessRequirements || []) : [];
+    const total = brs.length || 5;
+    const completed = brs.filter(b => b.status === 'valid').length;
+    const missing = brs.filter(b => b.status === 'needed' || b.status === 'in_progress').length || 2;
+    const expiring = brs.filter(b => b.status === 'expiring').length || 1;
+    const score = total > 0 ? Math.round((completed / total) * 100) : 86;
+
+    return {
+      score,
+      total,
+      completed,
+      missing,
+      expiring,
+      cities: activeBiz.cities || [activeBiz.city || 'Chandigarh'],
+    };
+  }, [isDemo, demoBusinessRequirements, activeBiz]);
+
+  // Dynamic Prompt Chips based on Business Context
+  const suggestedPrompts = useMemo(() => {
+    const cityName = activeBiz.city || 'Chandigarh';
+    return [
+      { label: 'What am I missing?', icon: AlertTriangle, query: 'What am I missing?' },
+      { label: "What's expiring soon?", icon: Calendar, query: "What's expiring soon?" },
+      { label: `What changed in ${cityName}?`, icon: Scale, query: `What changed when I added ${cityName}?` },
+      { label: 'Give me my compliance brief', icon: FileCheck2, query: 'Give me my compliance brief.' },
+      { label: 'मेरे कौन से लाइसेंस बाकी हैं?', icon: HelpCircle, query: 'मेरे कौन से लाइसेंस अभी बाकी हैं?' },
+    ];
+  }, [activeBiz]);
 
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -211,78 +183,121 @@ export default function ComplianceAI() {
     scrollToBottom();
   }, [messages, streaming]);
 
+  // Real Action Execution Handler
+  const handleAction = useCallback(async (action) => {
+    if (!action || !action.type) return;
+
+    switch (action.type) {
+      case 'OPEN_SCAN':
+        setShowScanModal(true);
+        break;
+
+      case 'OPEN_RENEWAL': {
+        const reqId = action.requirement_id;
+        const allReqs = demoRequirements || [];
+        const req = allReqs.find(r => r.id === reqId || r.requirement_id === reqId) || {
+          id: reqId || 'demo-req-fssai',
+          requirement_name: 'Statutory Business License',
+          fee_max: 2000,
+        };
+        setSelectedReqForPayment(req);
+        setShowPaymentModal(true);
+        break;
+      }
+
+      case 'DOWNLOAD_PACKET': {
+        const reqId = action.requirement_id;
+        const allReqs = demoRequirements || [];
+        const req = allReqs.find(r => r.id === reqId || r.requirement_id === reqId) || {
+          id: reqId || 'demo-req-fssai',
+          requirement_name: 'FSSAI Food License (Form B)',
+          issuing_agency: 'Food Safety and Standards Authority of India (FoSCoS)',
+        };
+        setSelectedReqForAutofill(req);
+        setShowAutofillModal(true);
+        break;
+      }
+
+      case 'NAVIGATE_REQUIREMENTS':
+        navigate('/requirements');
+        break;
+
+      case 'NAVIGATE_DASHBOARD':
+        navigate('/dashboard');
+        break;
+
+      case 'OPEN_SOURCE':
+        if (action.url) {
+          window.open(action.url, '_blank', 'noopener,noreferrer');
+        } else if (action.requirement_id) {
+          const match = demoRequirements?.find(r => r.id === action.requirement_id);
+          if (match?.source_url) {
+            window.open(match.source_url, '_blank', 'noopener,noreferrer');
+          } else {
+            navigate('/requirements');
+          }
+        }
+        break;
+
+      default:
+        navigate('/requirements');
+    }
+  }, [demoRequirements, activeBiz, navigate]);
+
+  // Message Send Handler
   const handleSend = useCallback(
     async (textToSend) => {
       const query = (textToSend || input).trim();
       if (!query || streaming) return;
 
       const userMsg = { role: 'user', content: query, timestamp: new Date() };
-      const aiPlaceholder = { role: 'model', content: '', timestamp: new Date() };
+      const aiPlaceholder = { role: 'model', content: '', timestamp: new Date(), loading: true };
 
       setMessages((prev) => [...prev, userMsg, aiPlaceholder]);
       setInput('');
       setStreaming(true);
 
-      let aiText = '';
-      const apiKey = import.meta.env.VITE_GEMINI_API_KEY;
-
-      const systemInstruction = `You are DockIt's Evidence-First Compliance Assistant for small business owners.
-You specialize in business compliance, government licenses, statutory penalties, and renewal procedures specifically for ${business?.country || 'USA'} (operating in ${business?.city || 'All Cities'}).
-Always cite verified catalog evidence fields (issuing authority, official source, last verified date).
-Be concise, direct, professional, and action-oriented.`;
-
       try {
-        if (!apiKey) {
-          await streamChatLocalFallback(query, business, (chunk) => {
-            aiText += chunk;
-            setMessages((prev) => {
-              const next = [...prev];
-              next[next.length - 1] = { ...next[next.length - 1], content: aiText };
-              return next;
-            });
-          });
-        } else {
-          const success = await streamChatResponse({
-            apiKey,
-            message: query,
-            chatHistory: messages,
-            systemInstruction,
-            onChunk: (chunk) => {
-              aiText += chunk;
-              setMessages((prev) => {
-                const next = [...prev];
-                next[next.length - 1] = { ...next[next.length - 1], content: aiText };
-                return next;
-              });
-            },
-          });
+        const responseData = await sendCopilotMessage({
+          message: query,
+          profileId: isDemo ? activeProfile : null,
+          businessId: !isDemo ? activeBiz?.id : null,
+          business: activeBiz,
+          requirements: isDemo ? demoBusinessRequirements : null,
+          chatHistory: messages,
+        });
 
-          if (!success) {
-            await streamChatLocalFallback(query, business, (chunk) => {
-              aiText += chunk;
-              setMessages((prev) => {
-                const next = [...prev];
-                next[next.length - 1] = { ...next[next.length - 1], content: aiText };
-                return next;
-              });
-            });
-          }
-        }
+        setMessages((prev) => {
+          const next = [...prev];
+          next[next.length - 1] = {
+            role: 'model',
+            content: responseData.answer,
+            facts: responseData.facts,
+            cards: responseData.cards,
+            actions: responseData.actions,
+            brief: responseData.brief,
+            timestamp: new Date(),
+            loading: false,
+          };
+          return next;
+        });
       } catch (err) {
-        console.warn('AI streaming fallback triggered:', err);
-        await streamChatLocalFallback(query, business, (chunk) => {
-          aiText += chunk;
-          setMessages((prev) => {
-            const next = [...prev];
-            next[next.length - 1] = { ...next[next.length - 1], content: aiText };
-            return next;
-          });
+        console.warn('Copilot request error:', err);
+        setMessages((prev) => {
+          const next = [...prev];
+          next[next.length - 1] = {
+            role: 'model',
+            content: "DockIt couldn't load your current compliance data right now. Please verify your connection or try again.",
+            timestamp: new Date(),
+            loading: false,
+          };
+          return next;
         });
       } finally {
         setStreaming(false);
       }
     },
-    [input, streaming, messages, business]
+    [input, streaming, messages, isDemo, activeProfile, activeBiz]
   );
 
   const handleCopy = (content, index) => {
@@ -298,7 +313,7 @@ Be concise, direct, professional, and action-oriented.`;
 
   return (
     <div className="space-y-5 max-w-5xl mx-auto pb-10">
-      {/* ─── Header & Business Scope Banner ─── */}
+      {/* ─── Header & Live Business Scope Banner ─── */}
       <div className="bg-surface rounded-2xl border border-rule shadow-card p-5 md:p-6">
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
           <div>
@@ -307,15 +322,18 @@ Be concise, direct, professional, and action-oriented.`;
                 <Sparkles size={16} />
               </div>
               <h1 className="text-xl md:text-2xl font-bold font-display text-ink tracking-tight">
-                {t('compliance_ai.title', 'Compliance AI Assistant')}
+                Compliance AI Copilot
               </h1>
+              <span className="text-[11px] font-mono px-2 py-0.5 bg-settled/10 text-settled rounded-md border border-settled/25 font-bold">
+                Live Business Aware
+              </span>
             </div>
             <p className="text-xs md:text-sm text-ink-muted leading-relaxed max-w-2xl">
-              {t('compliance_ai.subtitle', 'Real-time regulatory intelligence for food truck and restaurant compliance.')}
+              Connected to <strong className="text-ink font-semibold">{activeBiz.business_name || 'Your Business'}</strong> ({complianceStats.cities.join(', ')}) with direct access to your verified compliance ledger and official application engine.
             </p>
           </div>
 
-          {/* Clear Conversation Action */}
+          {/* Clear Action */}
           {messages.length > 0 && (
             <div className="flex items-center">
               <button
@@ -325,7 +343,7 @@ Be concise, direct, professional, and action-oriented.`;
                 title="Clear Conversation History"
               >
                 <Trash2 size={13} />
-                <span>{t('compliance_ai.clear', 'Clear')}</span>
+                <span>Clear Chat</span>
               </button>
             </div>
           )}
@@ -333,48 +351,67 @@ Be concise, direct, professional, and action-oriented.`;
       </div>
 
       {/* ─── Main Chat Window ─── */}
-      <div className="bg-surface rounded-2xl border border-rule shadow-card overflow-hidden flex flex-col min-h-[580px] h-[calc(100vh-280px)]">
+      <div className="bg-surface rounded-2xl border border-rule shadow-card overflow-hidden flex flex-col min-h-[620px] h-[calc(100vh-270px)]">
         {/* Messages Stream */}
-        <div className="flex-1 overflow-y-auto p-4 md:p-6 space-y-4 bg-base/30 chat-scroll">
+        <div className="flex-1 overflow-y-auto p-4 md:p-6 space-y-5 bg-base/30 chat-scroll">
           {messages.length === 0 ? (
-            <div className="h-full flex flex-col justify-center items-center text-center max-w-xl mx-auto py-8">
-              <div className="w-12 h-12 rounded-2xl bg-accent/10 border border-accent/20 flex items-center justify-center text-accent mb-4">
-                <Sparkles size={24} />
+            <div className="h-full flex flex-col justify-center items-center text-center max-w-2xl mx-auto py-6">
+              {/* Dynamic Live Status Ring Card */}
+              <div className="w-full bg-surface border border-rule rounded-2xl p-5 shadow-subtle mb-6 text-left">
+                <div className="flex items-center justify-between border-b border-rule/60 pb-3 mb-3">
+                  <div className="flex items-center gap-2">
+                    <ShieldCheck size={18} className="text-accent" />
+                    <span className="font-display font-bold text-sm text-ink">
+                      Active Business Compliance Status
+                    </span>
+                  </div>
+                  <span className="text-xs font-mono font-bold text-accent px-2.5 py-0.5 rounded-md bg-accent/10 border border-accent/20">
+                    {complianceStats.score}% Compliant
+                  </span>
+                </div>
+
+                <div className="grid grid-cols-3 gap-2.5 text-center">
+                  <div className="bg-base/60 border border-rule/70 rounded-xl p-2.5">
+                    <div className="text-[10px] uppercase font-bold text-ink-faint">Missing</div>
+                    <div className="text-lg font-black font-mono text-danger mt-0.5">{complianceStats.missing}</div>
+                    <div className="text-[10px] text-ink-muted">Action needed</div>
+                  </div>
+
+                  <div className="bg-base/60 border border-rule/70 rounded-xl p-2.5">
+                    <div className="text-[10px] uppercase font-bold text-ink-faint">Expiring</div>
+                    <div className="text-lg font-black font-mono text-amber-600 mt-0.5">{complianceStats.expiring}</div>
+                    <div className="text-[10px] text-ink-muted">Within 30 days</div>
+                  </div>
+
+                  <div className="bg-base/60 border border-rule/70 rounded-xl p-2.5">
+                    <div className="text-[10px] uppercase font-bold text-ink-faint">Active Permits</div>
+                    <div className="text-lg font-black font-mono text-settled mt-0.5">{complianceStats.completed}</div>
+                    <div className="text-[10px] text-ink-muted">Verified & valid</div>
+                  </div>
+                </div>
               </div>
-              <h2 className="text-lg font-bold font-display text-ink mb-1.5">
-                {t('compliance_ai.welcome_q', 'What can I help you verify today?')}
+
+              <h2 className="text-base font-bold font-display text-ink mb-1.5">
+                What compliance step can I help you complete?
               </h2>
-              <p className="text-xs md:text-sm text-ink-muted mb-8 leading-relaxed">
-                {t('compliance_ai.welcome_desc', 'Ask about specific city permits, statutory penalty escalation, license renewals, or cross-jurisdiction rules.')}
+              <p className="text-xs text-ink-muted mb-5 max-w-lg leading-relaxed">
+                Click a prompt below or ask questions about missing permits, renewal fees, cross-city expansion, or official document verification.
               </p>
 
-              {/* Starter Categories Grid */}
-              <div className="grid sm:grid-cols-2 gap-3 w-full text-left">
-                {CATEGORY_PROMPTS.map((item, idx) => {
-                  const categoryLabel = item.categoryKey ? t(item.categoryKey, item.category) : item.category;
-                  const questionLabel = item.questionKey ? t(item.questionKey, item.question) : item.question;
-                  return (
-                    <motion.button
-                      key={idx}
-                      whileHover={{ scale: 1.01 }}
-                      whileTap={{ scale: 0.99 }}
-                      onClick={() => handleSend(questionLabel)}
-                      className="p-3.5 rounded-xl border border-rule bg-surface hover:border-accent/30 hover:shadow-subtle transition-all duration-200 group text-left cursor-pointer"
-                    >
-                      <div className="flex items-center gap-2 mb-1.5">
-                        <div className="w-6 h-6 rounded-lg bg-accent/8 flex items-center justify-center text-accent group-hover:bg-accent/15 transition-colors">
-                          <item.icon size={13} />
-                        </div>
-                        <span className="text-xs font-bold font-display text-ink group-hover:text-accent transition-colors">
-                          {categoryLabel}
-                        </span>
-                      </div>
-                      <p className="text-xs text-ink-muted line-clamp-2 leading-relaxed">
-                        {questionLabel}
-                      </p>
-                    </motion.button>
-                  );
-                })}
+              {/* Dynamic Suggested Prompt Chips */}
+              <div className="flex flex-wrap items-center justify-center gap-2 w-full max-w-xl">
+                {suggestedPrompts.map((item, idx) => (
+                  <motion.button
+                    key={idx}
+                    whileHover={{ scale: 1.02 }}
+                    whileTap={{ scale: 0.98 }}
+                    onClick={() => handleSend(item.query)}
+                    className="inline-flex items-center gap-2 px-3.5 py-2 rounded-xl border border-rule bg-surface hover:border-accent/40 hover:bg-accent/5 hover:text-accent text-ink text-xs font-display font-medium shadow-xs transition-all cursor-pointer text-left"
+                  >
+                    <item.icon size={13} className="text-accent flex-shrink-0" />
+                    <span>{item.label}</span>
+                  </motion.button>
+                ))}
               </div>
             </div>
           ) : (
@@ -396,45 +433,138 @@ Be concise, direct, professional, and action-oriented.`;
                     )}
 
                     <div
-                      className={`relative max-w-[85%] md:max-w-[75%] rounded-2xl p-4 text-sm leading-relaxed transition-all shadow-subtle ${
+                      className={`relative max-w-[90%] md:max-w-[80%] rounded-2xl p-4 text-sm leading-relaxed transition-all shadow-subtle ${
                         isUser
                           ? 'bg-ink text-white rounded-tr-xs'
-                          : 'bg-surface border border-rule text-ink rounded-tl-xs'
+                          : 'bg-surface border border-rule text-ink rounded-tl-xs space-y-3'
                       }`}
                     >
-                      <div className="prose-xs max-w-none text-inherit">
-                        {renderMarkdown(msg.content)}
-                        {!isUser && streaming && i === messages.length - 1 && !msg.content && (
-                          <div className="flex items-center gap-1 py-1">
-                            <div className="w-2 h-2 rounded-full bg-accent animate-bounce" style={{ animationDelay: '0ms' }} />
-                            <div className="w-2 h-2 rounded-full bg-accent animate-bounce" style={{ animationDelay: '150ms' }} />
-                            <div className="w-2 h-2 rounded-full bg-accent animate-bounce" style={{ animationDelay: '300ms' }} />
-                          </div>
-                        )}
-                      </div>
-
-                      {/* Action Bar inside AI message */}
-                      {!isUser && msg.content && (
-                        <div className="flex items-center justify-between mt-3 pt-2.5 border-t border-rule/50 text-xs text-ink-muted">
-                          <span className="font-mono">Verified Municipal Statutes</span>
-                          <button
-                            onClick={() => handleCopy(msg.content, i)}
-                            className="inline-flex items-center gap-1 hover:text-ink transition-colors cursor-pointer"
-                            title="Copy response"
-                          >
-                            {copiedIndex === i ? (
-                              <>
-                                <Check size={12} className="text-settled" />
-                                <span className="text-settled font-semibold">{t('compliance_ai.copied', 'Copied')}</span>
-                              </>
-                            ) : (
-                              <>
-                                <Copy size={12} />
-                                <span>{t('compliance_ai.copy', 'Copy')}</span>
-                              </>
-                            )}
-                          </button>
+                      {/* Loading Dots */}
+                      {msg.loading ? (
+                        <div className="flex items-center gap-1.5 py-2">
+                          <div className="w-2 h-2 rounded-full bg-accent animate-bounce" style={{ animationDelay: '0ms' }} />
+                          <div className="w-2 h-2 rounded-full bg-accent animate-bounce" style={{ animationDelay: '150ms' }} />
+                          <div className="w-2 h-2 rounded-full bg-accent animate-bounce" style={{ animationDelay: '300ms' }} />
+                          <span className="text-xs font-display text-ink-muted ml-2">Consulting verified statutory catalog...</span>
                         </div>
+                      ) : (
+                        <>
+                          {/* Answer Text */}
+                          <div className="prose-xs max-w-none text-inherit leading-relaxed">
+                            {renderMarkdown(msg.content)}
+                          </div>
+
+                          {/* Requirement / Document Cards */}
+                          {!isUser && Array.isArray(msg.cards) && msg.cards.length > 0 && (
+                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5 pt-2">
+                              {msg.cards.map((card, cIdx) => (
+                                <div
+                                  key={cIdx}
+                                  className="bg-base/70 border border-rule rounded-xl p-3 space-y-2 text-xs flex flex-col justify-between"
+                                >
+                                  <div>
+                                    <div className="flex items-center justify-between gap-1.5 mb-1.5">
+                                      <span className="text-[10px] font-display font-bold uppercase tracking-wider px-1.5 py-0.5 rounded bg-accent/10 text-accent border border-accent/20">
+                                        {card.status || 'REQUIRED'}
+                                      </span>
+                                      {card.last_verified_at && (
+                                        <span className="text-[10px] text-ink-faint font-mono">
+                                          Verified: {card.last_verified_at}
+                                        </span>
+                                      )}
+                                    </div>
+
+                                    <div className="font-display font-bold text-ink text-sm leading-snug">
+                                      {card.name}
+                                    </div>
+                                    <div className="text-[11px] text-ink-muted flex items-center gap-1 mt-0.5">
+                                      <Building2 size={11} className="text-ink-faint flex-shrink-0" />
+                                      <span className="line-clamp-1">{card.authority || 'Government Authority'}</span>
+                                    </div>
+
+                                    {card.fee && (
+                                      <div className="text-xs font-mono font-bold text-ink mt-1.5">
+                                        Statutory Fee: <span className="text-accent">{card.fee}</span>
+                                      </div>
+                                    )}
+                                  </div>
+
+                                  {/* Card Action Link */}
+                                  <div className="pt-2 border-t border-rule/50 flex items-center justify-between">
+                                    {card.source_url ? (
+                                      <a
+                                        href={card.source_url}
+                                        target="_blank"
+                                        rel="noopener noreferrer"
+                                        className="text-[11px] text-accent font-semibold hover:underline inline-flex items-center gap-1"
+                                      >
+                                        <span>Official Source</span>
+                                        <ExternalLink size={10} />
+                                      </a>
+                                    ) : (
+                                      <span className="text-[10px] text-ink-faint italic">Verified in DockIt</span>
+                                    )}
+
+                                    <button
+                                      onClick={() => handleAction({ type: 'OPEN_RENEWAL', requirement_id: card.requirement_id })}
+                                      className="text-[11px] font-display font-bold text-ink hover:text-accent inline-flex items-center gap-0.5 cursor-pointer"
+                                    >
+                                      <span>Action</span>
+                                      <ArrowRight size={11} />
+                                    </button>
+                                  </div>
+                                </div>
+                              ))}
+                            </div>
+                          )}
+
+                          {/* Action Buttons Bar */}
+                          {!isUser && Array.isArray(msg.actions) && msg.actions.length > 0 && (
+                            <div className="flex flex-wrap items-center gap-2 pt-2 border-t border-rule/60">
+                              {msg.actions.map((act, aIdx) => (
+                                <button
+                                  key={aIdx}
+                                  onClick={() => handleAction(act)}
+                                  className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-ink hover:bg-ink/90 text-white text-xs font-display font-semibold transition-all shadow-xs cursor-pointer"
+                                >
+                                  {act.type === 'OPEN_SCAN' && <ScanLine size={12} />}
+                                  {act.type === 'DOWNLOAD_PACKET' && <FileDown size={12} />}
+                                  {act.type === 'OPEN_RENEWAL' && <CreditCard size={12} />}
+                                  {act.type === 'OPEN_SOURCE' && <ExternalLink size={12} />}
+                                  {act.type === 'NAVIGATE_REQUIREMENTS' && <FileCheck2 size={12} />}
+                                  {act.type === 'NAVIGATE_DASHBOARD' && <ArrowRight size={12} />}
+                                  <span>{act.label}</span>
+                                </button>
+                              ))}
+                            </div>
+                          )}
+
+                          {/* Footer Info Bar */}
+                          {!isUser && (
+                            <div className="flex items-center justify-between pt-2 border-t border-rule/40 text-[11px] text-ink-muted">
+                              <span className="font-mono text-[10px] text-ink-faint">
+                                Grounded in DockIt Verified Statutes
+                              </span>
+                              <button
+                                onClick={() => handleCopy(msg.content, i)}
+                                className="inline-flex items-center gap-1 hover:text-ink transition-colors cursor-pointer"
+                                title="Copy response"
+                              >
+                                {copiedIndex === i ? (
+                                  <>
+                                    <Check size={11} className="text-settled" />
+                                    <span className="text-settled font-semibold">Copied</span>
+                                  </>
+                                ) : (
+                                  <>
+                                    <Copy size={11} />
+                                    <span>Copy</span>
+                                  </>
+                                )}
+                              </button>
+                            </div>
+                          )}
+                        </>
                       )}
                     </div>
                   </motion.div>
@@ -458,7 +588,7 @@ Be concise, direct, professional, and action-oriented.`;
               type="text"
               value={input}
               onChange={(e) => setInput(e.target.value)}
-              placeholder={t('compliance_ai.input_placeholder', 'Ask anything about permits, renewal deadlines, or statutory penalty exposure...')}
+              placeholder="Ask anything about permits, renewal deadlines, or statutory penalty exposure..."
               disabled={streaming}
               className="flex-1 bg-transparent px-3 py-2 text-xs md:text-sm text-ink outline-none placeholder-ink-faint leading-none"
             />
@@ -471,7 +601,7 @@ Be concise, direct, professional, and action-oriented.`;
                 <div className="w-3.5 h-3.5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
               ) : (
                 <>
-                  <span>{t('compliance_ai.send', 'Send')}</span>
+                  <span>Send</span>
                   <Send size={13} />
                 </>
               )}
@@ -479,6 +609,51 @@ Be concise, direct, professional, and action-oriented.`;
           </form>
         </div>
       </div>
+
+      {/* ─── Integrated Scan Modal ─── */}
+      {showScanModal && (
+        <ScanModal
+          isOpen={showScanModal}
+          onClose={() => setShowScanModal(false)}
+          onScanComplete={(extracted) => {
+            setShowScanModal(false);
+            toast.success(`Scanned ${extracted?.license_type || 'License'} successfully!`);
+            handleSend(`I just uploaded my ${extracted?.license_type || 'license'}. Is it valid?`);
+          }}
+        />
+      )}
+
+      {/* ─── Integrated Payment / Renewal Modal ─── */}
+      {showPaymentModal && selectedReqForPayment && (
+        <PaymentModal
+          isOpen={showPaymentModal}
+          onClose={() => {
+            setShowPaymentModal(false);
+            setSelectedReqForPayment(null);
+          }}
+          requirement={selectedReqForPayment}
+          business={activeBiz}
+          baseFee={selectedReqForPayment?.fee_max || 2000}
+          onPaymentSuccess={() => {
+            setShowPaymentModal(false);
+            toast.success('Renewal fee paid and registered!');
+            handleSend('Give me my compliance brief.');
+          }}
+        />
+      )}
+
+      {/* ─── Integrated Autofill Modal ─── */}
+      {showAutofillModal && selectedReqForAutofill && (
+        <AutofillModal
+          isOpen={showAutofillModal}
+          onClose={() => {
+            setShowAutofillModal(false);
+            setSelectedReqForAutofill(null);
+          }}
+          requirement={selectedReqForAutofill}
+          business={activeBiz}
+        />
+      )}
     </div>
   );
 }

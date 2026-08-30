@@ -6,51 +6,49 @@ import { useDemo } from '../context/DemoContext';
 import toast from 'react-hot-toast';
 import ScrollFloat from '../components/ui/ScrollFloat';
 import SeamlessStrokeText from '../components/ui/SeamlessStrokeText';
+import DockItLogo from '../components/ui/DockItLogo';
 
-/* ─── Real permit data (Hero animation — NYC example) ─── */
-const NYC_CHECKLIST = [
-  { id: 'nyc-1', name: 'Mobile Food Vending License', agency: 'NYC DCWP', cities: ['NYC'] },
-  { id: 'nyc-2', name: 'Mobile Food Unit Permit', agency: 'DOHMH', cities: ['NYC'] },
-  { id: 'nyc-3', name: 'Fire Dept. Certificate of Fitness', agency: 'FDNY', cities: ['NYC'] },
-  { id: 'nyc-4', name: 'Commissary Agreement (letter)', agency: 'DOHMH requirement', cities: ['NYC'] },
-  { id: 'nyc-5', name: 'Food Protection Certificate', agency: 'DOHMH', cities: ['NYC', 'LA'] },
-  { id: 'nyc-6', name: 'Sales Tax Certificate of Authority', agency: 'NY Dept. of Taxation', cities: ['NYC', 'LA'] },
-  { id: 'nyc-7', name: 'EIN (Federal)', agency: 'IRS', cities: ['NYC', 'LA'] },
+/* ─── Real permit data (Hero animation — Delhi NCR restaurant example) ─── */
+const INDIA_HERO_CHECKLIST = [
+  { id: 'ind-1', name: 'FSSAI Food License (State / FoSCoS)', agency: 'FSSAI / FoSCoS Portal', cities: ['Delhi'] },
+  { id: 'ind-2', name: 'GST Registration (Active GSTIN)', agency: 'GST Council of India / CBIC', cities: ['Delhi'] },
+  { id: 'ind-3', name: 'MCD Health Trade License', agency: 'Municipal Corporation of Delhi', cities: ['Delhi'] },
+  { id: 'ind-4', name: 'Delhi Police Eating House Registration', agency: 'Delhi Police Licensing Branch', cities: ['Delhi'] },
+  { id: 'ind-5', name: 'Delhi Fire Services Clearance (NOC)', agency: 'Delhi Fire Services (DFS)', cities: ['Delhi'] },
+  { id: 'ind-6', name: 'Delhi Shop & Establishment Act', agency: 'Delhi Labour Department', cities: ['Delhi'] },
+  { id: 'ind-7', name: 'Signage & Facade Nameboard Permit', agency: 'MCD Advertisement Dept', cities: ['Delhi'] },
 ];
 
-/* ─── Smart-Diff demo data (neutral / international) ─── */
+/* ─── Smart-Diff demo data (India Multi-City Expansion: Delhi -> Chandigarh) ─── */
 const DIFF_CITY_A_ITEMS = [
-  { id: 'a-1', name: 'Health Permit', agency: 'City health authority', cities: ['City 1'] },
-  { id: 'a-2', name: 'Fire Safety Certificate', agency: 'Fire department', cities: ['City 1'] },
-  { id: 'a-3', name: 'Commissary Agreement', agency: 'Health dept. requirement', cities: ['City 1'] },
-  { id: 'a-4', name: 'Mobile Vendor License', agency: 'Municipal licensing', cities: ['City 1'] },
-  { id: 'a-5', name: 'Food Safety Certification', agency: 'Health authority', cities: ['City 1', 'City 2'] },
-  { id: 'a-6', name: 'Sales Tax Registration', agency: 'Tax authority', cities: ['City 1', 'City 2'] },
-  { id: 'a-7', name: 'Business Registration', agency: 'Government registry', cities: ['City 1', 'City 2'] },
+  { id: 'delhi-1', name: 'MCD Health Trade License', agency: 'Municipal Corporation of Delhi', cities: ['Delhi'] },
+  { id: 'delhi-2', name: 'Delhi Police Eating House License', agency: 'Delhi Police (Licensing Branch)', cities: ['Delhi'] },
+  { id: 'delhi-3', name: 'Delhi Fire Services NOC', agency: 'Delhi Fire Services', cities: ['Delhi'] },
+  { id: 'delhi-4', name: 'Delhi Shop & Establishment Act', agency: 'Delhi Labour Department', cities: ['Delhi'] },
+  { id: 'delhi-5', name: 'FSSAI Food License (FoSCoS)', agency: 'FSSAI (Central / State)', cities: ['Delhi', 'Chandigarh'] },
+  { id: 'delhi-6', name: 'GST Registration', agency: 'GST Council of India', cities: ['Delhi', 'Chandigarh'] },
+  { id: 'delhi-7', name: 'Permanent Account Number (PAN)', agency: 'Income Tax Department (India)', cities: ['Delhi', 'Chandigarh'] },
 ];
 
 const DIFF_CITY_B_ITEMS = [
-  { id: 'b-1', name: 'County Health Permit', agency: 'County environmental health', cities: ['City 2'] },
-  { id: 'b-2', name: 'Local Trade License', agency: 'Municipal corporation', cities: ['City 2'] },
-  { id: 'b-3', name: 'Zoning Clearance', agency: 'City planning dept.', cities: ['City 2'] },
-  { id: 'b-4', name: 'Fire Clearance (Local)', agency: 'Local fire authority', cities: ['City 2'] },
+  { id: 'chd-1', name: 'MCC Municipal Trade License', agency: 'Municipal Corporation Chandigarh', cities: ['Chandigarh'] },
+  { id: 'chd-2', name: 'Chandigarh Health / Eating House Lic.', agency: 'MCC Health Dept (MOH)', cities: ['Chandigarh'] },
+  { id: 'chd-3', name: 'Chandigarh Fire Safety Certificate / NOC', agency: 'Chandigarh Fire & Emergency Services', cities: ['Chandigarh'] },
+  { id: 'chd-4', name: 'Punjab Shop & Commercial Reg.', agency: 'Chandigarh Labour Department', cities: ['Chandigarh'] },
 ];
 
-const DIFF_SHARED_IDS = ['a-5', 'a-6', 'a-7'];
-
-
+const DIFF_SHARED_IDS = ['delhi-5', 'delhi-6', 'delhi-7'];
 
 /* ─── City tag pill ─── */
 function CityTag({ city }) {
   const colors = {
-    NYC: 'bg-ink/8 text-ink-muted',
-    LA: 'bg-accent/10 text-accent-dark',
-    'City 1': 'bg-ink/8 text-ink-muted',
-    'City 2': 'bg-accent/10 text-accent-dark',
+    Delhi: 'bg-ink/8 text-ink-muted',
+    Chandigarh: 'bg-accent/10 text-accent-dark',
+    'New Delhi': 'bg-ink/8 text-ink-muted',
     Both: 'bg-settled/15 text-settled',
   };
   return (
-    <span className={`text-[11px] font-display font-semibold px-2 py-0.5 rounded-full ${colors[city] || colors['City 1']}`}>
+    <span className={`text-[11px] font-display font-semibold px-2 py-0.5 rounded-full ${colors[city] || 'bg-ink/8 text-ink-muted'}`}>
       {city}
     </span>
   );
@@ -62,11 +60,6 @@ function ChecklistItem({ item, state = 'default', showCity = false }) {
     default: 'border-l-2 border-transparent',
     covered: 'border-l-2 border-settled bg-settled-light/50',
     new: 'border-l-2 border-accent bg-accent-light/40',
-  };
-  const checkColor = {
-    default: 'text-ink-faint',
-    covered: 'text-settled',
-    new: 'text-accent',
   };
 
   return (
@@ -104,10 +97,10 @@ function HeroChecklist() {
 
   // Auto-check items sequentially after mount
   useEffect(() => {
-    const timers = NYC_CHECKLIST.map((item, i) =>
+    const timers = INDIA_HERO_CHECKLIST.map((item, i) =>
       setTimeout(() => {
         setCheckedItems((prev) => [...prev, item.id]);
-      }, 1200 + i * 600)
+      }, 1000 + i * 500)
     );
     return () => timers.forEach(clearTimeout);
   }, []);
@@ -121,7 +114,7 @@ function HeroChecklist() {
     setMousePos({ x, y });
   }, []);
 
-  const progress = (checkedItems.length / NYC_CHECKLIST.length) * 100;
+  const progress = (checkedItems.length / INDIA_HERO_CHECKLIST.length) * 100;
 
   const tiltStyle = isHovered
     ? {
@@ -158,10 +151,10 @@ function HeroChecklist() {
           <div className="flex items-center justify-between mb-1">
             <div className="flex items-center gap-2">
               <div className="w-2.5 h-2.5 rounded-full bg-accent" />
-              <span className="text-sm font-display font-bold text-ink">NYC food truck</span>
+              <span className="text-sm font-display font-bold text-ink">Delhi NCR Restaurant</span>
             </div>
             <span className="text-xs font-display text-ink-faint">
-              {checkedItems.length}/{NYC_CHECKLIST.length}
+              {checkedItems.length}/{INDIA_HERO_CHECKLIST.length}
             </span>
           </div>
           {/* Progress bar */}
@@ -177,14 +170,14 @@ function HeroChecklist() {
 
         {/* Checklist items with staggered reveal + auto-check */}
         <div className="px-1 py-2">
-          {NYC_CHECKLIST.map((item, i) => {
+          {INDIA_HERO_CHECKLIST.map((item, i) => {
             const isChecked = checkedItems.includes(item.id);
             return (
               <motion.div
                 key={item.id}
                 initial={{ opacity: 0, x: -16 }}
                 animate={{ opacity: 1, x: 0 }}
-                transition={{ delay: 0.5 + i * 0.08, duration: 0.35, ease: 'easeOut' }}
+                transition={{ delay: 0.4 + i * 0.07, duration: 0.35, ease: 'easeOut' }}
                 className="flex items-center gap-2.5 px-3 py-2 rounded-lg hover:bg-base-dark/40 transition-colors group"
               >
                 {/* Checkbox with animation */}
@@ -226,7 +219,7 @@ function HeroChecklist() {
         {/* Bottom status */}
         <div className="px-4 py-3 bg-base-dark/30 border-t border-rule/40">
           <AnimatePresence mode="wait">
-            {checkedItems.length === NYC_CHECKLIST.length ? (
+            {checkedItems.length === INDIA_HERO_CHECKLIST.length ? (
               <motion.div
                 key="complete"
                 initial={{ opacity: 0, y: 6 }}
@@ -238,7 +231,7 @@ function HeroChecklist() {
                   <Check size={12} className="text-white" strokeWidth={3} />
                 </div>
                 <span className="text-xs font-display font-semibold text-settled">
-                  Checklist complete — ready to operate
+                  Statutory checklist complete — ready to launch
                 </span>
               </motion.div>
             ) : (
@@ -249,7 +242,7 @@ function HeroChecklist() {
                 exit={{ opacity: 0, y: -6 }}
                 className="text-xs text-ink-faint"
               >
-                Verifying requirements…
+                Verifying central &amp; municipal requirements…
               </motion.div>
             )}
           </AnimatePresence>
@@ -259,7 +252,7 @@ function HeroChecklist() {
   );
 }
 
-/* ─── Smart-diff demo (the hero feature) ─── */
+/* ─── Smart-diff demo (India Multi-City Expansion) ─── */
 function SmartDiffDemo() {
   const [showCityB, setShowCityB] = useState(false);
   const diffRef = useRef(null);
@@ -290,12 +283,12 @@ function SmartDiffDemo() {
           <div className="w-7 h-7 rounded-lg bg-ink flex items-center justify-center">
             <span className="text-xs font-display font-bold text-base">1</span>
           </div>
-          <span className="text-sm font-display font-semibold text-ink">Your city</span>
+          <span className="text-sm font-display font-semibold text-ink">New Delhi (Primary)</span>
         </div>
         <div className="h-px flex-1 bg-rule" />
         <button
           onClick={() => setShowCityB(!showCityB)}
-          className={`flex items-center gap-2 transition-all duration-300 ${
+          className={`flex items-center gap-2 transition-all duration-300 cursor-pointer ${
             showCityB ? '' : 'animate-pulse'
           }`}
         >
@@ -307,7 +300,7 @@ function SmartDiffDemo() {
           <span className={`text-sm font-display font-semibold transition-colors duration-300 ${
             showCityB ? 'text-accent' : 'text-ink-faint'
           }`}>
-            {showCityB ? 'City added' : '+ Add a city'}
+            {showCityB ? '+ Chandigarh Added' : '+ Add Chandigarh'}
           </span>
         </button>
       </div>
@@ -317,8 +310,8 @@ function SmartDiffDemo() {
         {/* Header */}
         <div className="px-4 py-3 border-b border-rule flex items-center justify-between">
           <div className="flex items-center gap-2">
-            <span className="text-sm font-display font-bold text-ink">Your checklist</span>
-            <CityTag city="City 1" />
+            <span className="text-sm font-display font-bold text-ink">Expansion Checklist</span>
+            <CityTag city="Delhi" />
             <AnimatePresence>
               {showCityB && (
                 <motion.span
@@ -326,13 +319,13 @@ function SmartDiffDemo() {
                   animate={{ opacity: 1, scale: 1 }}
                   exit={{ opacity: 0, scale: 0.8 }}
                 >
-                  <CityTag city="City 2" />
+                  <CityTag city="Chandigarh" />
                 </motion.span>
               )}
             </AnimatePresence>
           </div>
           <span className="text-xs text-ink-faint font-display">
-            {showCityB ? `${DIFF_CITY_A_ITEMS.length + DIFF_CITY_B_ITEMS.length - coveredItems.length} items` : `${DIFF_CITY_A_ITEMS.length} items`}
+            {showCityB ? `${DIFF_CITY_A_ITEMS.length + DIFF_CITY_B_ITEMS.length - coveredItems.length} active licenses` : `${DIFF_CITY_A_ITEMS.length} licenses`}
           </span>
         </div>
 
@@ -357,7 +350,7 @@ function SmartDiffDemo() {
                 </motion.div>
               ))}
 
-              {/* Already covered group */}
+              {/* Already covered group (National / Central Law) */}
               <motion.div
                 initial={{ opacity: 0, height: 0 }}
                 animate={{ opacity: 1, height: 'auto' }}
@@ -367,7 +360,7 @@ function SmartDiffDemo() {
                 <div className="px-4 py-2 flex items-center gap-2">
                   <Check size={14} className="text-settled" strokeWidth={3} />
                   <span className="text-xs font-display font-bold text-settled uppercase tracking-wide">
-                    Already covered
+                    Already Covered Across India (National)
                   </span>
                 </div>
                 {coveredItems.map((item, i) => (
@@ -382,7 +375,7 @@ function SmartDiffDemo() {
                 ))}
               </motion.div>
 
-              {/* New for City B group */}
+              {/* New for City B group (Local Municipal / UT Permits) */}
               <motion.div
                 initial={{ opacity: 0, height: 0 }}
                 animate={{ opacity: 1, height: 'auto' }}
@@ -392,7 +385,7 @@ function SmartDiffDemo() {
                 <div className="px-4 py-2 flex items-center gap-2">
                   <Plus size={14} className="text-accent" strokeWidth={3} />
                   <span className="text-xs font-display font-bold text-accent uppercase tracking-wide">
-                    New for this city
+                    New For Chandigarh (UT &amp; Municipal Delta)
                   </span>
                 </div>
                 {DIFF_CITY_B_ITEMS.map((item, i) => (
@@ -415,67 +408,99 @@ function SmartDiffDemo() {
 }
 
 /* ════════════════════════════════════════════════════════════════
-   LANDING PAGE
+   INDIA COMPLIANCE RISK & PENALTY CALCULATOR
    ════════════════════════════════════════════════════════════════ */
-/* ─── Compliance Risk Calculator Data ─── */
 const CALCULATOR_DATA = {
-  food_truck: {
-    name: 'Food Truck / Cart',
+  restaurant: {
+    name: 'Restaurant / Dine-in Cafe',
     cities: {
-      'New York, NY': {
-        time: '30-45 Days',
-        startupCost: '$300 - $800',
+      'New Delhi, Delhi': {
+        time: '30–60 Days',
+        startupCost: '₹15,000 – ₹45,000',
         violations: [
-          { name: 'Operating without Health Permit (DOHMH)', penalty: '$1,000 per day', law: 'NYC Health Code § 81.05' },
-          { name: 'Uncertified Food Protection Manager', penalty: '$250 - $500', law: 'NYC Health Code § 81.15' },
-          { name: 'Missing Fire Safety Certificate (FDNY)', penalty: '$1,000 per check', law: 'FC § 105.6' }
+          { name: 'Operating without FSSAI Food License', penalty: 'Up to ₹5,00,000 / 6 mos imprisonment', law: 'FSS Act 2006 § 63' },
+          { name: 'Missing MCD Health Trade License', penalty: '₹5,000 – ₹20,000 + Premise Sealing', law: 'DMC Act 1957 § 417/421' },
+          { name: 'Unlicensed Eating House (Delhi Police)', penalty: 'Immediate Closure Notice', law: 'Delhi Police Act § 28/112' },
+          { name: 'Operating without Delhi Fire DFS NOC', penalty: 'Utility Cutoff + Seal Notice', law: 'Delhi Fire Safety Act § 3' }
         ]
       },
-      'Los Angeles, CA': {
-        time: '45-60 Days',
-        startupCost: '$500 - $1,200',
+      'Chandigarh': {
+        time: '25–45 Days',
+        startupCost: '₹12,000 – ₹35,000',
         violations: [
-          { name: 'Operating without Health Permit (LACDPH)', penalty: '$500 + shut down', law: 'LA County Code § 8.04.140' },
-          { name: 'No CA Sales Tax Certificate (CDTFA)', penalty: '$1,000 - $5,000', law: 'CA Rev & Tax Code § 6071' },
-          { name: 'Missing BTRC Registration', penalty: '$250 fine + back taxes', law: 'LAMC § 21.03' }
+          { name: 'Operating without FSSAI License', penalty: 'Up to ₹5,00,000 fine', law: 'Food Safety & Standards Act § 63' },
+          { name: 'Missing MCC Municipal Trade License', penalty: '₹5,000 + Sealing notice', law: 'Punjab Municipal Corp Act § 343' },
+          { name: 'No Punjab Shop & Commercial Reg.', penalty: '₹2,000 – ₹5,000 fine', law: 'Punjab Shops Act 1958 § 13' },
+          { name: 'Fire Safety Non-Compliance', penalty: 'Immediate Premise Sealing', law: 'UT Fire Safety Guidelines' }
         ]
       },
       'Mumbai, Maharashtra': {
-        time: '15-30 Days',
-        startupCost: '₹8,000 - ₹25,000',
+        time: '45–75 Days',
+        startupCost: '₹25,000 – ₹60,000',
         violations: [
-          { name: 'Missing FSSAI License', penalty: 'Up to ₹5,00,000 / 6 months jail', law: 'Food Safety Act § 63' },
-          { name: 'Operating without Shop & Establishment Act', penalty: '₹2,000 - ₹10,000', law: 'Maharashtra Shops Act § 35' },
-          { name: 'Missing BMC Trade License', penalty: '₹5,000 + confiscation', law: 'MMC Act § 394' }
+          { name: 'Missing BMC Health Trade License', penalty: '₹10,000 + Goods Seizure', law: 'MMC Act 1888 § 394' },
+          { name: 'Missing Mumbai Police Eating House Lic.', penalty: '₹10,000 + Closure', law: 'Mumbai Police Act § 33' },
+          { name: 'Operating without FSSAI Food License', penalty: 'Up to ₹5,00,000 penalty', law: 'FSS Act § 63' }
         ]
       }
     }
   },
-  restaurant: {
-    name: 'Restaurant / Cafe',
+  cloud_kitchen: {
+    name: 'Cloud Kitchen / QSR',
     cities: {
-      'New York, NY': {
-        time: '60-90 Days',
-        startupCost: '$1,500 - $4,000',
+      'New Delhi, Delhi': {
+        time: '15–30 Days',
+        startupCost: '₹8,000 – ₹20,000',
         violations: [
-          { name: 'Operating without Health Permit (DOHMH)', penalty: '$2,000 per day', law: 'NYC Health Code § 81.05' },
-          { name: 'Failure to Display Grade Card', penalty: '$1,000 flat fine', law: 'NYC Health Code § 81.51' }
+          { name: 'Missing FSSAI Food License (State/Basic)', penalty: 'Up to ₹5,00,000 penalty', law: 'Food Safety Act § 63' },
+          { name: 'Missing GST Registration (>₹20L turnover)', penalty: '100% Tax penalty + Interest', law: 'CGST Act § 122' },
+          { name: 'Missing Delhi Shop & Establishment', penalty: '₹2,000 – ₹10,000 fine', law: 'Delhi Shops Act § 35' }
         ]
       },
-      'Los Angeles, CA': {
-        time: '90-120 Days',
-        startupCost: '$2,000 - $5,000',
+      'Chandigarh': {
+        time: '14–28 Days',
+        startupCost: '₹6,000 – ₹18,000',
         violations: [
-          { name: 'Operating without Health Permit (LACDPH)', penalty: '$1,000 per day', law: 'LA County Code § 8.04.140' },
-          { name: 'Missing liquor license compliance', penalty: 'Shut down + $5,000 fine', law: 'CA ABC Act § 23300' }
+          { name: 'Missing FSSAI Food License', penalty: 'Up to ₹5,00,000 penalty', law: 'FSS Act § 63' },
+          { name: 'Missing MCC Trade License', penalty: '₹5,000 fine + Sealing', law: 'MCC Bylaws § 12' },
+          { name: 'Unregistered Commercial Establishment', penalty: '₹2,000 – ₹5,000 fine', law: 'Punjab Shops Act § 13' }
         ]
       },
       'Mumbai, Maharashtra': {
-        time: '45-75 Days',
-        startupCost: '₹30,000 - ₹1,20,000',
+        time: '20–40 Days',
+        startupCost: '₹10,000 – ₹25,000',
         violations: [
-          { name: 'Missing Eating House License (Mumbai Police)', penalty: '₹10,000 + shut down', law: 'Mumbai Police Act § 33' },
-          { name: 'Missing fire clearance / NOC', penalty: '₹50,000 + electricity cutoff', law: 'Maharashtra Fire Act § 3' }
+          { name: 'Missing FSSAI Food License', penalty: 'Up to ₹5,00,000', law: 'FSS Act § 63' },
+          { name: 'Operating without Gumasta (Shop Act)', penalty: '₹5,00,000 / Notice', law: 'Maha Shops Act 2017' }
+        ]
+      }
+    }
+  },
+  food_truck: {
+    name: 'Food Truck / Kiosk',
+    cities: {
+      'New Delhi, Delhi': {
+        time: '20–35 Days',
+        startupCost: '₹10,000 – ₹25,000',
+        violations: [
+          { name: 'Operating without FSSAI Food Safety Lic.', penalty: 'Up to ₹5,00,000 / Seizure', law: 'Food Safety Act § 63' },
+          { name: 'Missing MCD Vending / Health NOC', penalty: 'Impounding of Vehicle + ₹5,000', law: 'MCD Street Vending Bylaws' }
+        ]
+      },
+      'Chandigarh': {
+        time: '15–30 Days',
+        startupCost: '₹8,000 – ₹20,000',
+        violations: [
+          { name: 'Operating without FSSAI Registration', penalty: 'Up to ₹5,00,000 fine', law: 'FSS Act § 63' },
+          { name: 'Unauthorized Vending in UT Zones', penalty: 'Vehicle Confiscation', law: 'UT Street Vendors Act' }
+        ]
+      },
+      'Mumbai, Maharashtra': {
+        time: '25–45 Days',
+        startupCost: '₹12,000 – ₹30,000',
+        violations: [
+          { name: 'Operating without FSSAI License', penalty: 'Up to ₹5,00,000', law: 'Food Safety Act § 63' },
+          { name: 'Missing BMC Mobile Vending Permission', penalty: 'Tow away + ₹5,000 fine', law: 'MMC Act § 313' }
         ]
       }
     }
@@ -483,39 +508,39 @@ const CALCULATOR_DATA = {
 };
 
 function ComplianceRiskCalculator() {
-  const [bizType, setBizType] = useState('food_truck');
-  const [city, setCity] = useState('New York, NY');
+  const [bizType, setBizType] = useState('restaurant');
+  const [city, setCity] = useState('New Delhi, Delhi');
   
   const bizData = CALCULATOR_DATA[bizType];
-  const cityConfig = bizData?.cities[city] || bizData?.cities['New York, NY'];
+  const cityConfig = bizData?.cities[city] || bizData?.cities['New Delhi, Delhi'];
 
   return (
     <div className="bg-surface rounded-3xl border border-rule p-6 md:p-8 max-w-3xl mx-auto shadow-card">
       <div className="text-center max-w-md mx-auto mb-6">
-        <span className="text-xs font-bold font-display text-accent uppercase tracking-wider">Interactive tool</span>
-        <h3 className="text-xl font-bold font-display text-ink mt-1">Compliance &amp; Penalty Risk Calculator</h3>
-        <p className="text-xs text-ink-faint mt-1">Estimate setup timelines, costs, and penalty risks for your city.</p>
+        <span className="text-xs font-bold font-display text-accent uppercase tracking-wider">Statutory Intelligence Tool</span>
+        <h3 className="text-xl font-bold font-display text-ink mt-1">India Compliance &amp; Penalty Risk Estimator</h3>
+        <p className="text-xs text-ink-faint mt-1">Estimate processing times, official government fees, and statutory penalty risks for Indian cities.</p>
       </div>
 
       <div className="grid sm:grid-cols-2 gap-4 mb-6">
         <div>
-          <label className="text-xs font-bold font-display text-ink-muted uppercase tracking-wide block mb-1.5">Business Type</label>
+          <label className="text-xs font-bold font-display text-ink-muted uppercase tracking-wide block mb-1.5">Business Category</label>
           <div className="flex gap-2">
             {Object.entries(CALCULATOR_DATA).map(([key, data]) => (
               <button key={key} onClick={() => setBizType(key)}
-                className={`flex-1 py-2 px-3 text-xs font-bold font-display rounded-xl border transition-all ${bizType === key ? 'bg-accent border-accent text-white' : 'bg-surface border-rule text-ink-muted hover:bg-base'}`}>
-                {data.name}
+                className={`flex-1 py-2 px-2.5 text-xs font-bold font-display rounded-xl border transition-all cursor-pointer ${bizType === key ? 'bg-accent border-accent text-white' : 'bg-surface border-rule text-ink-muted hover:bg-base'}`}>
+                {data.name.split(' / ')[0]}
               </button>
             ))}
           </div>
         </div>
 
         <div>
-          <label className="text-xs font-bold font-display text-ink-muted uppercase tracking-wide block mb-1.5">Operating City</label>
+          <label className="text-xs font-bold font-display text-ink-muted uppercase tracking-wide block mb-1.5">Target Indian City</label>
           <select value={city} onChange={(e) => setCity(e.target.value)}
-            className="w-full input text-xs font-bold font-display py-2.5">
-            <option value="New York, NY">New York, NY</option>
-            <option value="Los Angeles, CA">Los Angeles, CA</option>
+            className="w-full input text-xs font-bold font-display py-2.5 cursor-pointer">
+            <option value="New Delhi, Delhi">New Delhi, Delhi</option>
+            <option value="Chandigarh">Chandigarh (UT)</option>
             <option value="Mumbai, Maharashtra">Mumbai, Maharashtra</option>
           </select>
         </div>
@@ -529,13 +554,13 @@ function ComplianceRiskCalculator() {
               <div className="text-lg font-black font-display text-ink mt-1">{cityConfig.time}</div>
             </div>
             <div className="bg-base/30 rounded-2xl p-4 border border-rule/30 text-center">
-              <span className="text-[10px] font-bold font-display text-ink-faint uppercase tracking-wider">Permit Fees</span>
+              <span className="text-[10px] font-bold font-display text-ink-faint uppercase tracking-wider">Govt. License Fees</span>
               <div className="text-lg font-black font-display text-accent mt-1">{cityConfig.startupCost}</div>
             </div>
           </div>
 
           <div className="space-y-3">
-            <span className="text-xs font-bold font-display text-ink-muted uppercase tracking-wide block">Violations &amp; Fine Risks</span>
+            <span className="text-xs font-bold font-display text-ink-muted uppercase tracking-wide block">Statutory Non-Compliance Penalties</span>
             <div className="space-y-2">
               {cityConfig.violations.map((v, i) => (
                 <div key={i} className="flex flex-col sm:flex-row sm:items-center sm:justify-between p-3.5 bg-surface rounded-xl border border-rule hover:border-rule-dark transition-all gap-1.5">
@@ -562,22 +587,22 @@ const PAIN_POINTS = [
     icon: Building2,
     iconBg: 'bg-ink/8',
     iconColor: 'text-ink-muted',
-    headline: '4–7 agencies. Zero coordination.',
-    body: 'A single food truck in NYC needs clearances from DCWP, DOHMH, FDNY, and NY Dept of Taxation. None of them share your file — you track it all yourself.',
+    headline: '5–8 government portals. Zero coordination.',
+    body: 'A single restaurant in Delhi or Chandigarh must navigate FoSCoS for FSSAI, the Labour portal for Shop & Establishment, MCD/MCC for Trade Licenses, plus Fire and Police clearances independently.',
   },
   {
     icon: AlertTriangle,
     iconBg: 'bg-accent/10',
     iconColor: 'text-accent',
-    headline: '$1,000/day fines. No warning.',
-    body: 'Missing a single permit — even one you didn\'t know existed — can mean daily fines, forced closure, or equipment confiscation on the spot.',
+    headline: 'Up to ₹5 Lakh fines & sealing risk.',
+    body: 'Operating without an FSSAI license attracts penalties up to ₹5,00,000 under FSS Act § 63. Unlicensed eating houses face immediate police closure and municipal sealing without advance notice.',
   },
   {
     icon: MapPin,
     iconBg: 'bg-caution/10',
     iconColor: 'text-caution',
-    headline: 'New city = start from scratch?',
-    body: 'Expanding to LA or catering a festival across county lines means re-researching every requirement from zero. There\'s no carry-over between jurisdictions.',
+    headline: 'Multi-city expansion friction.',
+    body: 'Opening a second outlet in Chandigarh or Mumbai after Delhi means re-learning distinct municipal bylaws, local health codes, and state labour registrations from scratch.',
   },
 ];
 
@@ -585,23 +610,23 @@ const PAIN_POINTS = [
 const FEATURES = [
   {
     icon: ClipboardCheck,
-    title: 'Unified Checklist',
-    description: 'City, county, and state requirements merged into one prioritized list. No cross-referencing across 5 PDFs.',
+    title: 'Unified India Compliance Roadmap',
+    description: 'Central FSSAI, GST, state labour laws, and local municipal trade licenses synthesized into one prioritized checklist.',
   },
   {
     icon: MessageSquare,
     title: 'AI Compliance Assistant',
-    description: 'Ask about generator decibel limits, commissary distance rules, or weekend parking restrictions. Get answers with statute references.',
+    description: 'Ask about FSSAI turnover thresholds (Basic vs State vs Central), outdoor signage taxes, kitchen grease-trap requirements, or fire NOC exemptions in plain English or Hindi.',
   },
   {
     icon: Clock,
-    title: 'Renewal Alerts',
-    description: 'Get notified before permits expire. Upload documents and track expiration dates in one vault.',
+    title: 'Automated Expiry & Renewal Vault',
+    description: 'Stay ahead of annual FSSAI and municipal trade license renewals with automated 60, 30, and 7-day milestone email notifications.',
   },
   {
     icon: Map,
-    title: 'Zone & Location Map',
-    description: 'See where you can legally operate, commissary proximity, and restricted zones — visually.',
+    title: 'Designated Ward & Office Locator',
+    description: 'Locate your regional FSSAI FoSCoS office, local municipal ward (MCD/MCC/BMC), and designated licensing police station on an interactive map.',
   },
 ];
 
@@ -624,19 +649,17 @@ export default function Landing() {
       {/* ─── Navbar ─── */}
       <nav className="fixed top-0 left-0 right-0 z-50 bg-base/90 backdrop-blur-md border-b border-rule">
         <div className="max-w-5xl mx-auto px-4 h-14 flex items-center justify-between">
-          <span className="font-display font-bold text-ink text-lg tracking-tight">
-            Dock<span className="text-accent">It</span>
-          </span>
+          <DockItLogo size="sm" />
           <div className="flex items-center gap-3">
             <button
               onClick={handleDemo}
-              className="text-sm text-ink-muted hover:text-accent font-display font-medium transition-colors px-3 py-2"
+              className="inline-flex items-center justify-center h-9 text-sm text-ink-muted hover:text-accent font-display font-medium transition-colors px-3 rounded-xl leading-none cursor-pointer"
             >
               Demo
             </button>
             <button
               onClick={handleGetStarted}
-              className="btn-primary text-sm py-2 px-4"
+              className="btn-primary text-sm py-0 h-9 px-4 leading-none cursor-pointer"
             >
               Get started
             </button>
@@ -664,13 +687,13 @@ export default function Landing() {
                 />
               </h1>
               <p className="text-ink-muted text-base md:text-lg leading-relaxed mb-8 max-w-lg">
-                DockIt tells food truck owners exactly which licenses, permits, and inspections they need — city by city, agency by agency.
+                DockIt guides Indian restaurant, cafe, and cloud kitchen founders through every mandatory license — from FSSAI and GST to MCD trade permits, fire NOCs, and police eating house registrations.
               </p>
               <div className="flex flex-col sm:flex-row gap-3">
-                <button onClick={handleGetStarted} className="btn-primary text-base px-7 py-3.5">
+                <button onClick={handleGetStarted} className="btn-primary text-base px-7 py-3.5 leading-none cursor-pointer">
                   Build your checklist <ArrowRight size={18} />
                 </button>
-                <button onClick={handleDemo} className="text-sm text-ink-muted hover:text-accent font-display font-semibold transition-colors px-5 py-3.5 rounded-xl border border-rule hover:border-rule-dark">
+                <button onClick={handleDemo} className="inline-flex items-center justify-center text-sm text-ink-muted hover:text-accent font-display font-semibold transition-colors px-5 py-3.5 rounded-xl border border-rule hover:border-rule-dark bg-surface leading-none cursor-pointer">
                   Try the demo
                 </button>
               </div>
@@ -685,12 +708,14 @@ export default function Landing() {
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             transition={{ delay: 0.8, duration: 0.5 }}
-            className="flex items-center justify-center gap-6 mt-12 md:mt-16 pt-6 border-t border-rule/50"
+            className="flex flex-wrap items-center justify-center gap-6 mt-12 md:mt-16 pt-6 border-t border-rule/50"
           >
-            {['NYC', 'Los Angeles', 'Mumbai'].map((city) => (
-              <div key={city} className="flex items-center gap-2">
-                <div className="w-1.5 h-1.5 rounded-full bg-settled" />
-                <span className="text-xs font-display font-semibold text-ink-faint uppercase tracking-wide">{city}</span>
+            {['New Delhi', 'Chandigarh', 'Mumbai', 'Bengaluru'].map((city) => (
+              <div key={city} className="inline-flex items-center gap-2">
+                <span className="w-1.5 h-1.5 rounded-full bg-settled shrink-0" />
+                <span className="text-xs font-display font-semibold text-ink-faint uppercase tracking-wider leading-none select-none">
+                  {city}
+                </span>
               </div>
             ))}
           </motion.div>
@@ -721,7 +746,7 @@ export default function Landing() {
               What happens without a system.
             </ScrollFloat>
             <p className="text-ink-muted text-[15px] leading-relaxed mt-4 max-w-xl">
-              Food truck licensing isn't hard because the rules are complex — it's hard because the rules are scattered across agencies that don't talk to each other.
+              Food business licensing in India isn't difficult because the food is complex — it's difficult because the rules are fragmented across central portals (FoSCoS, GSTN), state departments (Labour, Fire Services), and local municipal bodies (MCD, MCC, BMC) that don't talk to each other.
             </p>
           </motion.div>
 
@@ -753,7 +778,7 @@ export default function Landing() {
             transition={{ duration: 0.5 }}
           >
             <p className="text-center text-sm font-display font-semibold text-ink-faint uppercase tracking-wider mb-6">
-              See it for yourself — pick your city and business type
+              Estimate statutory requirements &amp; non-compliance risks
             </p>
             <ComplianceRiskCalculator />
           </motion.div>
@@ -783,22 +808,20 @@ export default function Landing() {
 
               <div className="space-y-4 text-ink-muted text-[15px] leading-relaxed mt-6">
                 <p>
-                  When you expand to a new city, DockIt doesn't start over.
-                  It shows you what's already covered from your existing permits and
-                  surfaces only the genuinely new requirements for that jurisdiction.
+                  When expanding your restaurant or cloud kitchen brand to a new Indian city, DockIt doesn't start over.
+                  Your central FSSAI registration and GST numbers carry over seamlessly.
                 </p>
                 <p className="text-sm text-ink-faint">
-                  No blank-page reload. No re-entering information.
-                  Just the delta.
+                  DockIt isolates the exact municipal health trade licenses, local fire NOCs, and UT police registrations required for the new outlet — with zero duplicate research.
                 </p>
               </div>
 
               {/* Step markers */}
               <div className="mt-8 space-y-3">
                 {[
-                  { n: '1', label: 'Pick your business type + city' },
-                  { n: '2', label: 'Get your city-specific checklist' },
-                  { n: '3', label: 'Add another city — see the smart diff' },
+                  { n: '1', label: 'Select your food business category + city' },
+                  { n: '2', label: 'Get your comprehensive statutory checklist' },
+                  { n: '3', label: 'Add expansion city — instantly see the delta' },
                 ].map((step) => (
                   <div key={step.n} className="flex items-center gap-3">
                     <div className="w-6 h-6 rounded-md bg-ink/8 flex items-center justify-center flex-shrink-0">
@@ -830,10 +853,10 @@ export default function Landing() {
           >
             <div className="text-center mb-10">
               <h2 className="font-display font-bold text-ink text-2xl md:text-3xl tracking-tight">
-                Everything you need to launch and stay compliant.
+                Everything required to launch and stay compliant in India.
               </h2>
               <p className="text-ink-muted text-[15px] mt-3 max-w-lg mx-auto">
-                From your first permit application to ongoing renewals — one platform, every jurisdiction.
+                From your initial FSSAI FoSCoS filing to municipal renewals — one unified intelligence platform.
               </p>
             </div>
 
@@ -884,9 +907,9 @@ export default function Landing() {
               Find out what you actually need.
             </ScrollFloat>
             <p className="text-ink-muted text-[15px] mb-8 max-w-md mx-auto">
-              Build your permit checklist in under a minute. Free to start.
+              Build your complete Indian food business compliance checklist in under 60 seconds.
             </p>
-            <button onClick={handleGetStarted} className="btn-primary text-base px-8 py-4">
+            <button onClick={handleGetStarted} className="btn-primary text-base px-8 py-4 cursor-pointer">
               Build your checklist <ArrowRight size={18} />
             </button>
           </motion.div>
@@ -902,24 +925,26 @@ export default function Landing() {
                 Dock<span className="text-accent">It</span>
               </span>
               <p className="text-sm text-white/40 mt-1">
-                Compliance discovery for small businesses.
+                Statutory compliance discovery for Indian food businesses and restaurants.
               </p>
             </div>
             
-            <div className="flex items-center gap-4">
-              {['NYC', 'Los Angeles', 'Mumbai'].map((city) => (
-                <div key={city} className="flex items-center gap-1.5">
-                  <div className="w-1.5 h-1.5 rounded-full bg-settled" />
-                  <span className="text-xs text-white/40 font-display font-semibold uppercase tracking-wider">{city}</span>
+            <div className="flex flex-wrap items-center gap-4 sm:gap-5">
+              {['New Delhi', 'Chandigarh', 'Mumbai', 'Bengaluru'].map((city) => (
+                <div key={city} className="inline-flex items-center gap-2">
+                  <span className="w-1.5 h-1.5 rounded-full bg-settled shrink-0" />
+                  <span className="text-xs text-white/40 font-display font-semibold uppercase tracking-wider leading-none select-none">
+                    {city}
+                  </span>
                 </div>
               ))}
             </div>
           </div>
 
           <div className="flex flex-col sm:flex-row items-center justify-between gap-3 text-xs text-white/30">
-            <p>&copy; {new Date().getFullYear()} DockIt. All rights reserved.</p>
+            <p>&copy; {new Date().getFullYear()} DockIt India. All rights reserved.</p>
             <p className="text-center sm:text-right">
-              DockIt provides regulatory discovery tools. It is not a law firm and does not constitute legal advice.
+              DockIt provides regulatory discovery tools. It is not a government body or law firm and does not constitute legal advice.
             </p>
           </div>
         </div>

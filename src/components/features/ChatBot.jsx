@@ -1,6 +1,6 @@
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { MessageCircle, X, Send, Shield, Minus } from 'lucide-react';
+import { MessageCircle, X, Send, Shield, Minus, Sparkles } from 'lucide-react';
 import { useDemo } from '../../context/DemoContext';
 import { streamChatResponse } from '../../services/geminiService';
 
@@ -120,21 +120,15 @@ async function streamChatClient(message, chatHistory, businessContext, onChunk) 
   try {
     const country = businessContext?.country || 'USA';
     const currencySymbol = country === 'India' ? 'INR (₹)' : 'USD ($)';
-    const systemInstruction = `You are DockIt's helpful assistant for small business owners.
-You specialize in business compliance, government licenses, penalties, and renewal procedures specifically for ${country === 'India' ? 'India' : 'the USA'} (city: ${businessContext?.city || 'New York'}).
-
-Core rules:
-- Always use ${currencySymbol} for money amounts
-- Be concise, practical, and action-oriented
-- Cite specific laws, regulations, or ordinances when discussing penalties
-- Give exact portal URLs when relevant
-- Use bullet points for lists of steps or documents
+    const systemInstruction = `You are DockIt's Evidence-First Compliance Assistant for small business owners.
+You specialize in business compliance, government licenses, statutory penalties, and renewal procedures specifically for ${country === 'India' ? 'India' : 'the USA'} (operating in ${Array.isArray(businessContext?.cities) ? businessContext.cities.join(', ') : businessContext?.city || 'All'}).
+Every compliance statement or requirement recommendation must explicitly cite:
+- Always cite verified catalog evidence fields (issuing authority, official source, last verified date)
+- Be concise, direct, and action-oriented
 - Keep responses under 200 words unless the user explicitly asks for detail.`;
 
     const success = await streamChatResponse({
       apiKey,
-      message,
-      chatHistory,
       systemInstruction,
       onChunk,
     });
@@ -205,6 +199,15 @@ export default function ChatBot() {
   const [streaming, setStreaming] = useState(false);
   const [unread, setUnread] = useState(true);
   const { demoBusiness, isDemo } = useDemo();
+
+  useEffect(() => {
+    const handleOpen = () => {
+      setOpen(true);
+      setUnread(false);
+    };
+    window.addEventListener('dockit:open-chat', handleOpen);
+    return () => window.removeEventListener('dockit:open-chat', handleOpen);
+  }, []);
 
   const sendMessage = useCallback(async (text) => {
     if (!text.trim() || streaming) return;

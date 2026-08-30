@@ -23,7 +23,8 @@ const US_STATE_CODES = {
 
 const INDIA_STATES = [
   'maharashtra', 'delhi', 'nct', 'karnataka', 'tamil nadu', 'west bengal', 'telangana',
-  'gujarat', 'rajasthan', 'uttar pradesh', 'kerala', 'punjab', 'haryana', 'bihar', 'odisha'
+  'gujarat', 'rajasthan', 'uttar pradesh', 'kerala', 'punjab', 'haryana', 'bihar', 'odisha',
+  'chandigarh'
 ];
 
 /**
@@ -46,10 +47,22 @@ export function parseJurisdiction(cityStr) {
 
   if (isIndia) {
     const parts = raw.split(',').map(s => s.trim());
+    let stateName = parts[1] || '';
+    if (!stateName) {
+      if (lower.includes('delhi')) stateName = 'Delhi';
+      else if (lower.includes('chandigarh')) stateName = 'Chandigarh';
+      else if (lower.includes('mumbai') || lower.includes('pune')) stateName = 'Maharashtra';
+      else if (lower.includes('chennai')) stateName = 'Tamil Nadu';
+      else if (lower.includes('kolkata')) stateName = 'West Bengal';
+      else if (lower.includes('hyderabad')) stateName = 'Telangana';
+      else if (lower.includes('bangalore') || lower.includes('bengaluru')) stateName = 'Karnataka';
+      else if (lower.includes('ahmedabad')) stateName = 'Gujarat';
+      else stateName = 'Maharashtra';
+    }
     return {
       city: parts[0] || raw,
-      state: parts[1] || 'MH',
-      stateName: parts[1] || 'Maharashtra',
+      state: stateName,
+      stateName: stateName,
       country: 'India'
     };
   }
@@ -127,9 +140,14 @@ export function isRequirementApplicable(req, operatingCities = [], businessType 
   // 2. Federal Level
   if (level === 'federal' || (req.city && req.city.toLowerCase().includes('federal'))) {
     // Country must match
-    const reqIsIndia = (req.city || '').toLowerCase().includes('mumbai') ||
+    const reqIsIndia = req.country === 'India' ||
+      (req.city || '').toLowerCase().includes('mumbai') ||
       (req.city || '').toLowerCase().includes('india') ||
       (req.issuing_agency || '').toLowerCase().includes('india') ||
+      (req.issuing_agency || '').toLowerCase().includes('iprs') ||
+      (req.issuing_agency || '').toLowerCase().includes('ppl') ||
+      (req.issuing_agency || '').toLowerCase().includes('gst') ||
+      (req.requirement_name || '').toLowerCase().includes('pan') ||
       reqJurisdiction.country === 'India';
     return (primaryCountry === 'India') === reqIsIndia;
   }
@@ -219,17 +237,17 @@ export function synthesizeCityRequirements(cityStr, businessType = 'restaurant')
     if (domain === 'food_service') {
       list.push(
         {
-          id: `synth-in-fed-fssai`,
+          id: `synth-in-state-fssai-${state}`,
           business_type: businessType,
-          city: 'Federal / All Cities',
-          jurisdiction_level: 'federal',
-          requirement_name: 'FSSAI Food Safety License',
-          issuing_agency: 'Food Safety and Standards Authority of India (FSSAI)',
+          city: `${city}, ${stateName}`,
+          jurisdiction_level: 'state',
+          requirement_name: `${stateName} FSSAI Food Safety License / Registration`,
+          issuing_agency: `Food Safety and Standards Authority of India (${stateName} State / FoSCoS)`,
           fee_min: 2000,
           fee_max: 7500,
           renewal_cycle_months: 12,
           processing_time: '7-14 business days',
-          description: 'Mandatory food safety license for food storage, preparation, and sale.',
+          description: `Premises-specific food safety license for operating units in ${stateName}.`,
           source_url: 'https://foscos.fssai.gov.in'
         },
         {

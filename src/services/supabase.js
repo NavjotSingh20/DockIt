@@ -1,5 +1,6 @@
 import { createClient } from '@supabase/supabase-js';
 import { isRequirementApplicable, synthesizeCityRequirements } from '../utils/jurisdictionEngine';
+import { enrichRequirements } from './requirementsFetcher';
 
 const rawUrl = import.meta.env.VITE_SUPABASE_URL || '';
 const rawKey = import.meta.env.VITE_SUPABASE_ANON_KEY || '';
@@ -61,15 +62,46 @@ function mapBusiness(biz) {
     ...biz,
     city: parts[0] || '',
     state: parts[1] || '',
-    country: localStorage.getItem('country') || 'USA'
+    country: localStorage.getItem('country') || 'USA',
+    email_reminders_enabled: biz.email_reminders_enabled ?? true,
+    reminder_days: biz.reminder_days ?? [60, 30, 7],
   };
 }
 
 // ── Businesses ───────────────────────────────────────────────────────
 export async function createBusiness(data) {
-  const { data: biz, error } = await supabase.from('businesses').insert([data]).select().single();
-  if (error) throw error;
-  return mapBusiness(biz);
+  const payload = { ...data };
+  if (!payload.cities && payload.city) {
+    payload.cities = [`${payload.city}${payload.state ? `, ${payload.state}` : ''}`];
+  }
+
+  try {
+    const { data: biz, error } = await supabase.from('businesses').insert([payload]).select().single();
+    if (!error) return mapBusiness(biz);
+
+    // If PostgREST schema cache complains about city/state/country, fallback to cities array only
+    if (error.message && (error.message.includes('city') || error.message.includes('column') || error.message.includes('schema cache'))) {
+      const cleanPayload = { ...payload };
+      delete cleanPayload.city;
+      delete cleanPayload.state;
+      delete cleanPayload.country;
+      const { data: fallbackBiz, error: fallbackErr } = await supabase.from('businesses').insert([cleanPayload]).select().single();
+      if (fallbackErr) throw fallbackErr;
+      return mapBusiness(fallbackBiz);
+    }
+    throw error;
+  } catch (err) {
+    if (err.message && (err.message.includes('city') || err.message.includes('column') || err.message.includes('schema cache'))) {
+      const cleanPayload = { ...payload };
+      delete cleanPayload.city;
+      delete cleanPayload.state;
+      delete cleanPayload.country;
+      const { data: fallbackBiz, error: fallbackErr } = await supabase.from('businesses').insert([cleanPayload]).select().single();
+      if (fallbackErr) throw fallbackErr;
+      return mapBusiness(fallbackBiz);
+    }
+    throw err;
+  }
 }
 
 export async function getBusiness(userId) {
@@ -86,9 +118,33 @@ export async function getBusiness(userId) {
 }
 
 export async function updateBusiness(id, updates) {
-  const { data, error } = await supabase.from('businesses').update(updates).eq('id', id).select().single();
-  if (error) throw error;
-  return mapBusiness(data);
+  const payload = { ...updates };
+  try {
+    const { data, error } = await supabase.from('businesses').update(payload).eq('id', id).select().single();
+    if (!error) return mapBusiness(data);
+
+    if (error.message && (error.message.includes('city') || error.message.includes('column') || error.message.includes('schema cache'))) {
+      const cleanPayload = { ...payload };
+      delete cleanPayload.city;
+      delete cleanPayload.state;
+      delete cleanPayload.country;
+      const { data: fallbackData, error: fallbackErr } = await supabase.from('businesses').update(cleanPayload).eq('id', id).select().single();
+      if (fallbackErr) throw fallbackErr;
+      return mapBusiness(fallbackData);
+    }
+    throw error;
+  } catch (err) {
+    if (err.message && (err.message.includes('city') || err.message.includes('column') || err.message.includes('schema cache'))) {
+      const cleanPayload = { ...payload };
+      delete cleanPayload.city;
+      delete cleanPayload.state;
+      delete cleanPayload.country;
+      const { data: fallbackData, error: fallbackErr } = await supabase.from('businesses').update(cleanPayload).eq('id', id).select().single();
+      if (fallbackErr) throw fallbackErr;
+      return mapBusiness(fallbackData);
+    }
+    throw err;
+  }
 }
 
 export async function getRequirements(businessType, cities = []) {
@@ -101,30 +157,42 @@ export async function getRequirements(businessType, cities = []) {
   if (error) throw error;
 
   const catalog = data || [];
+  let finalRequirements;
+
   if (!cities || cities.length === 0) {
-    return catalog;
-  }
+    finalRequirements = catalog;
+  } else {
+    const matched = catalog.filter(r => isRequirementApplicable(r, cities, businessType));
 
-  const matched = catalog.filter(r => isRequirementApplicable(r, cities, businessType));
+    // Deduplicate by requirement_name and city/jurisdiction
+    const seenKeys = new Set();
+    const deduplicated = [];
+    for (const r of matched) {
+      const key = `${r.requirement_name?.toLowerCase().trim()}_${(r.city || '').toLowerCase().trim()}`;
+      if (!seenKeys.has(key)) { seenKeys.add(key); deduplicated.push(r); }
+    }
 
-  // Deduplicate by requirement_name and city/jurisdiction to prevent duplicate catalog entries
-  const seenKeys = new Set();
-  const deduplicated = [];
-  for (const r of matched) {
-    const key = `${r.requirement_name?.toLowerCase().trim()}_${(r.city || '').toLowerCase().trim()}`;
-    if (!seenKeys.has(key)) {
-      seenKeys.add(key);
-      deduplicated.push(r);
+    // If specific cities have no matched catalog rows in DB, synthesize statutory defaults
+    if (deduplicated.length === 0 && cities.length > 0) {
+      finalRequirements = cities.flatMap(c => synthesizeCityRequirements(c, businessType));
+    } else {
+      finalRequirements = deduplicated;
     }
   }
 
-  // If specific cities have no matched catalog rows in DB, synthesize statutory defaults
-  if (deduplicated.length === 0 && cities.length > 0) {
-    const allSynthesized = cities.flatMap(c => synthesizeCityRequirements(c, businessType));
-    return allSynthesized;
+  // ── Live-Scrape Enrichment (with transparent Supabase fallback) ────────
+  // enrichRequirements calls /api/requirements/batch-fetch server-side.
+  // On any failure (timeout, CORS, non-2xx, parse error) it silently
+  // returns the stored Supabase data unchanged — the UI is never broken.
+  try {
+    const enriched = await enrichRequirements(finalRequirements);
+    return enriched;
+  } catch (enrichErr) {
+    // Absolute last-resort: enrichRequirements itself should never throw,
+    // but if it does, return the raw Supabase data as-is.
+    console.warn('[getRequirements] enrichRequirements threw unexpectedly:', enrichErr);
+    return finalRequirements;
   }
-
-  return deduplicated;
 }
 
 

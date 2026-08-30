@@ -80,6 +80,26 @@ export const LICENSE_TYPES = [
     renewal_days_advance: 60, 
     documents_required: ['Previous drug license', 'Registered pharmacist certificate', 'Premises proof', 'Storage facility photos'] 
   },
+  { 
+    id: 'LIQUOR_LICENSE', 
+    country: 'India', 
+    name: 'Excise Liquor / Bar License (L-4 / L-5)', 
+    icon: 'Coffee', 
+    issuing_authority: 'State / UT Excise Department', 
+    renewal_portal: 'https://excise.gov.in', 
+    renewal_days_advance: 45, 
+    documents_required: ['FSSAI License', 'Fire NOC', 'Eating House License', 'Premises layout plan', 'Police clearance certificate', 'Ownership / lease deed'] 
+  },
+  { 
+    id: 'MUSIC_LICENSE', 
+    country: 'India', 
+    name: 'Music & Public Performance License (PPL & IPRS)', 
+    icon: 'Receipt', 
+    issuing_authority: 'Phonographic Performance Ltd & IPRS', 
+    renewal_portal: 'https://pplindia.org', 
+    renewal_days_advance: 30, 
+    documents_required: ['Business PAN/GST', 'Seating capacity details', 'Premises address proof', 'Sound setup declaration'] 
+  },
 
   // USA Licenses
   { 
@@ -166,4 +186,43 @@ export const BUSINESS_TYPES = [
   { id: 'coaching', label: 'Coaching Center', icon: 'GraduationCap', commonLicenses: ['TRADE_LICENSE', 'BUSINESS_LICENSE', 'SHOP_ESTABLISHMENT', 'SALES_TAX', 'FIRE_NOC', 'FIRE_PERMIT', 'GST'] },
   { id: 'manufacturing', label: 'Manufacturing', icon: 'Factory', commonLicenses: ['TRADE_LICENSE', 'BUSINESS_LICENSE', 'SHOP_ESTABLISHMENT', 'SALES_TAX', 'FIRE_NOC', 'FIRE_PERMIT', 'GST'] },
   { id: 'other', label: 'Other', icon: 'Briefcase', commonLicenses: ['TRADE_LICENSE', 'BUSINESS_LICENSE', 'SHOP_ESTABLISHMENT', 'SALES_TAX', 'GST'] },
+];
+
+export const SUPPORTED_CITIES = [
+  {
+    id: 'nyc',
+    city: 'New York',
+    state: 'NY',
+    label: 'New York, NY',
+    country: 'USA',
+    flag: '🇺🇸',
+    supportedBusinessTypes: ['food_truck', 'restaurant'],
+  },
+  {
+    id: 'la',
+    city: 'Los Angeles',
+    state: 'CA',
+    label: 'Los Angeles, CA',
+    country: 'USA',
+    flag: '🇺🇸',
+    supportedBusinessTypes: ['food_truck', 'restaurant'],
+  },
+  {
+    id: 'delhi',
+    city: 'New Delhi',
+    state: 'Delhi',
+    label: 'New Delhi, Delhi',
+    country: 'India',
+    flag: '🇮🇳',
+    supportedBusinessTypes: ['restaurant'],
+  },
+  {
+    id: 'chandigarh',
+    city: 'Chandigarh',
+    state: 'Chandigarh',
+    label: 'Chandigarh',
+    country: 'India',
+    flag: '🇮🇳',
+    supportedBusinessTypes: ['restaurant'],
+  },
 ];

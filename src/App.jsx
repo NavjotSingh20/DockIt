@@ -9,7 +9,7 @@ import MyRequirements from './pages/MyRequirements';
 import LicenseDetail from './pages/LicenseDetail';
 import Analytics from './pages/Analytics';
 import Settings from './pages/Settings';
-import JurisdictionMap from './pages/JurisdictionMap';
+import ComplianceAI from './pages/ComplianceAI';
 import NotFound from './pages/NotFound';
 
 function ProtectedRoute({ children }) {
@@ -41,9 +41,10 @@ export default function App() {
       }>
         <Route path="/dashboard" element={<Dashboard />} />
         <Route path="/requirements" element={<MyRequirements />} />
-        <Route path="/map" element={<JurisdictionMap />} />
         <Route path="/license/:id" element={<LicenseDetail />} />
         <Route path="/analytics" element={<Analytics />} />
+        <Route path="/ai" element={<ComplianceAI />} />
+        <Route path="/compliance-ai" element={<ComplianceAI />} />
         <Route path="/settings" element={<Settings />} />
       </Route>
       <Route path="*" element={<NotFound />} />

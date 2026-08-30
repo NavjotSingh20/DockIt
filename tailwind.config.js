@@ -49,16 +49,18 @@ export default {
         ring: '#D97706',
       },
       fontFamily: {
-        display: ['"Space Grotesk"', 'system-ui', 'sans-serif'],
-        sans: ['"DM Sans"', 'system-ui', 'sans-serif'],
+        display: ['"Space Grotesk"', '"Noto Sans Devanagari"', 'system-ui', 'sans-serif'],
+        sans: ['"DM Sans"', '"Noto Sans Devanagari"', 'system-ui', 'sans-serif'],
+        mono: ['"IBM Plex Mono"', 'ui-monospace', 'SFMono-Regular', 'Menlo', 'Monaco', 'Consolas', 'monospace'],
       },
       borderRadius: {
         '2xl': '1rem',
         '3xl': '1.5rem',
       },
       boxShadow: {
-        card: '0 1px 3px rgba(28,25,23,0.05), 0 1px 2px rgba(28,25,23,0.03)',
-        'card-hover': '0 8px 24px rgba(28,25,23,0.08)',
+        card: '0 1px 3px rgba(28,25,23,0.06), 0 1px 2px rgba(28,25,23,0.04)',
+        'card-hover': '0 4px 12px rgba(28,25,23,0.08)',
+        subtle: '0 1px 2px rgba(28,25,23,0.05)',
         glow: '0 0 20px rgba(217,119,6,0.2)',
       },
       animation: {

@@ -1,19 +1,23 @@
-import { createContext, useContext, useState } from 'react';
+import { createContext, useContext, useState, useEffect, useRef } from 'react';
 import {
   DEMO_BUSINESS, DEMO_REQUIREMENTS, DEMO_BUSINESS_REQUIREMENTS,
   DEMO_PROFILES, DEMO_BUSINESS_RICO, DEMO_BUSINESS_GRANDVIEW,
   DEMO_BUSINESS_REQUIREMENTS_RICO, DEMO_BUSINESS_REQUIREMENTS_GRANDVIEW
 } from '../utils/demoData';
 import { getDaysLeft } from '../utils/formatters';
+import { enrichDemoRequirements } from '../services/requirementsFetcher';
 
 const DemoContext = createContext(null);
 
 export function DemoProvider({ children }) {
   const [isDemo, setIsDemo] = useState(false);
-  const [activeProfileId, setActiveProfileId] = useState('rico'); // default to Rico's Curbside Kitchen for demo
+  const [activeProfileId, setActiveProfileId] = useState('rico');
   const [demoBusiness, setDemoBusiness] = useState(DEMO_BUSINESS_RICO);
   const [activeRawRequirements, setActiveRawRequirements] = useState(DEMO_BUSINESS_REQUIREMENTS_RICO);
   const [addedRequirements, setAddedRequirements] = useState([]);
+  // Holds live-enriched versions of the catalog requirements (source_url verified)
+  const [liveEnrichedReqs, setLiveEnrichedReqs] = useState({});
+  const enrichedProfileRef = useRef(null);
 
   // ── Per-profile city session persistence ─────────────────────────────
   // Stores any city changes the user makes per profile so switching back
@@ -23,6 +27,8 @@ export function DemoProvider({ children }) {
   // Enrich business requirements with computed daysLeft + backward-compat flat fields
   const baseDemoRequirements = activeRawRequirements.map((br) => {
     const req = br.requirement || DEMO_REQUIREMENTS.find(r => r.id === br.requirement_id) || {};
+    // Overlay any live-scraped data from the enrichment pass
+    const liveReq = liveEnrichedReqs[br.id] || {};
     return {
       ...br,
       daysLeft: getDaysLeft(br.expiry_date),
@@ -32,10 +38,44 @@ export function DemoProvider({ children }) {
       issue_date: null,
       confidence_score: br.extracted_via_ocr ? 90 : 0,
       renewal_portal_url: req.source_url || '',
+      // Merge live-enriched requirement data (e.g. updated description, verified date)
+      requirement: { ...req, ...liveReq },
+      _scrape: liveReq._scrape,
     };
   });
 
   const demoBusinessRequirements = [...baseDemoRequirements, ...addedRequirements];
+
+  // ── Live Enrichment Effect ────────────────────────────────────────────
+  // When in demo mode and the active profile changes, kick off a background
+  // live-scrape pass against the requirement catalog. Results are stored in
+  // liveEnrichedReqs keyed by BR id. On any failure, the stored demo data
+  // is used transparently — no UI errors, no visible change.
+  useEffect(() => {
+    if (!isDemo || activeRawRequirements.length === 0) return;
+    // Avoid redundant scrapes for the same profile in the same session
+    const profileKey = `${activeProfileId}-${activeRawRequirements.length}`;
+    if (enrichedProfileRef.current === profileKey) return;
+    enrichedProfileRef.current = profileKey;
+
+    let cancelled = false;
+    enrichDemoRequirements(activeRawRequirements).then(enriched => {
+      if (cancelled) return;
+      const map = {};
+      enriched.forEach(br => {
+        if (br._scrape || br.requirement?._scrape) {
+          // Store the enriched requirement fields keyed by BR id
+          map[br.id] = { ...br.requirement, _scrape: br._scrape };
+        }
+      });
+      setLiveEnrichedReqs(map);
+    }).catch(() => {
+      // Silent — demo data is already showing correctly without enrichment
+    });
+    return () => { cancelled = true; };
+  }, [isDemo, activeProfileId, activeRawRequirements]);
+
+
 
   const switchDemoProfile = (profileId) => {
     // Snapshot current profile's city state before switching away from it
@@ -136,6 +176,28 @@ export function DemoProvider({ children }) {
     });
   };
 
+  const updateDemoRequirement = (id, updates) => {
+    setAddedRequirements((prev) => {
+      const idx = prev.findIndex(r => r.id === id);
+      if (idx >= 0) {
+        const updated = [...prev];
+        updated[idx] = { ...updated[idx], ...updates };
+        return updated;
+      }
+      return prev;
+    });
+
+    setActiveRawRequirements((prev) => {
+      const idx = prev.findIndex(r => r.id === id);
+      if (idx >= 0) {
+        const updated = [...prev];
+        updated[idx] = { ...updated[idx], ...updates };
+        return updated;
+      }
+      return prev;
+    });
+  };
+
   const updateDemoBusiness = (updates) => {
     setDemoBusiness((prev) => {
       const next = { ...prev, ...updates };
@@ -167,6 +229,7 @@ export function DemoProvider({ children }) {
       demoProfiles: DEMO_PROFILES,
       addDemoRequirement,
       addScannedDemoLicense,
+      updateDemoRequirement,
       demoBusiness,
       updateDemoBusiness,
       demoRequirements: DEMO_REQUIREMENTS,

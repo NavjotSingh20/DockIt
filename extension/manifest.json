@@ -1,0 +1,69 @@
+{
+  "manifest_version": 3,
+  "name": "DockIt Government Portal Autofill",
+  "version": "1.0.0",
+  "description": "Autofill compliance applications on government portals directly from your DockIt business profile.",
+  "permissions": [
+    "storage",
+    "activeTab"
+  ],
+  "host_permissions": [
+    "http://localhost/*",
+    "https://*.dockit.in/*",
+    "https://*.fssai.gov.in/*",
+    "https://*.gst.gov.in/*",
+    "https://*.mahashramm.gov.in/*",
+    "https://*.mahaonline.gov.in/*",
+    "https://*.mumbaipolice.gov.in/*",
+    "https://*.mcgm.gov.in/*",
+    "https://*.mumbaimunicipal.gov.in/*",
+    "https://*.tax.ny.gov/*",
+    "https://*.businessexpress.ny.gov/*",
+    "https://*.ny.gov/*",
+    "https://*.lacity.gov/*",
+    "https://*.lacity.org/*",
+    "https://*.cdtfa.ca.gov/*",
+    "https://*.ca.gov/*"
+  ],
+  "background": {
+    "service_worker": "background.js"
+  },
+  "content_scripts": [
+    {
+      "matches": [
+        "http://localhost/*",
+        "https://*.dockit.in/*"
+      ],
+      "js": [
+        "bridge.js"
+      ],
+      "run_at": "document_idle"
+    },
+    {
+      "matches": [
+        "https://*.fssai.gov.in/*",
+        "https://*.gst.gov.in/*",
+        "https://*.mahashramm.gov.in/*",
+        "https://*.mahaonline.gov.in/*",
+        "https://*.mumbaipolice.gov.in/*",
+        "https://*.mcgm.gov.in/*",
+        "https://*.mumbaimunicipal.gov.in/*",
+        "https://*.tax.ny.gov/*",
+        "https://*.businessexpress.ny.gov/*",
+        "https://*.ny.gov/*",
+        "https://*.lacity.gov/*",
+        "https://*.lacity.org/*",
+        "https://*.cdtfa.ca.gov/*",
+        "https://*.ca.gov/*"
+      ],
+      "js": [
+        "content.js"
+      ],
+      "run_at": "document_idle"
+    }
+  ],
+  "action": {
+    "default_popup": "popup.html",
+    "default_title": "DockIt Autofill"
+  }
+}

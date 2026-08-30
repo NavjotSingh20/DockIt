@@ -4,11 +4,11 @@ import { useTranslation } from 'react-i18next';
 import { useAuth } from '../../hooks/useAuth';
 import { useDemo } from '../../context/DemoContext';
 import { signOut } from '../../services/supabase';
+import DockItLogo from '../ui/DockItLogo';
 
 const NAV = [
   { to: '/dashboard', icon: LayoutDashboard, key: 'nav.dashboard' },
   { to: '/requirements', icon: ClipboardList, key: 'nav.requirements' },
-  { to: '/map', icon: Map, key: 'nav.map' },
   { to: '/analytics', icon: BarChart2, key: 'nav.analytics' },
   { to: '/settings', icon: Settings, key: 'nav.settings' },
 ];
@@ -39,15 +39,9 @@ export default function Sidebar({ business }) {
     <aside className="hidden lg:flex flex-col w-64 min-h-screen bg-ink text-white fixed left-0 top-0 z-30">
       {/* Logo */}
       <div className="px-6 py-8 border-b border-white/10">
-        <div className="flex items-center gap-3">
-          <div className="w-9 h-9 bg-accent rounded-xl flex items-center justify-center">
-            <span className="text-white font-display font-bold text-sm">D</span>
-          </div>
-          <div>
-            <div className="font-display font-bold text-base tracking-tight">Dock<span className="text-accent">It</span></div>
-            <div className="text-accent/60 text-xs font-display">Compliance discovery</div>
-          </div>
-        </div>
+        <NavLink to="/dashboard" className="flex items-center">
+          <DockItLogo variant="light" size="md" />
+        </NavLink>
       </div>
 
       {/* Nav */}

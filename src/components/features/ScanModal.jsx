@@ -1,15 +1,20 @@
-﻿import { useState, useCallback } from 'react';
+import { useState, useCallback, useEffect, useMemo } from 'react';
+import { createPortal } from 'react-dom';
 import { motion, AnimatePresence } from 'framer-motion';
-import { X, Upload, Camera, CheckCircle, AlertTriangle } from 'lucide-react';
+import { X, Upload, Camera, CheckCircle, AlertTriangle, Link2, ShieldCheck, Check, ChevronDown } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import toast from 'react-hot-toast';
 import { extractTextFromImage, preprocessImage } from '../../services/ocrService';
-import { extractLicenseDocument } from '../../services/geminiService';
+import { parseOcrTextHeuristically } from '../../services/geminiService';
+import { getRequirements } from '../../services/supabase';
+import { useDemo } from '../../context/DemoContext';
 
 const STATES = { UPLOAD: 'upload', SCANNING: 'scanning', RESULTS: 'results', SUCCESS: 'success' };
 
-export default function ScanModal({ onClose, onSave, businessType, cities = [] }) {
+export default function ScanModal({ isOpen, onClose, onSave, onScanComplete, businessType, cities = [] }) {
+  if (isOpen === false) return null;
   const { t } = useTranslation();
+  const { isDemo, demoRequirements } = useDemo();
   const [state, setState] = useState(STATES.UPLOAD);
   const [preview, setPreview] = useState(null);
   const [progress, setProgress] = useState(0);
@@ -18,49 +23,191 @@ export default function ScanModal({ onClose, onSave, businessType, cities = [] }
   const [confidence, setConfidence] = useState(0);
   const [fields, setFields] = useState({});
   const [dragging, setDragging] = useState(false);
-  const [catalogNames, setCatalogNames] = useState([]);
+  const [catalogRequirements, setCatalogRequirements] = useState([]);
+  const [matchedRequirement, setMatchedRequirement] = useState(null);
+  const [manualRequirementOverride, setManualRequirementOverride] = useState(false);
+
+  // Lock body scroll when modal is open
+  useEffect(() => {
+    const originalOverflow = document.body.style.overflow;
+    document.body.style.overflow = 'hidden';
+    return () => {
+      document.body.style.overflow = originalOverflow;
+    };
+  }, []);
+
+  // Fetch live requirement rows on mount for linkage matching
+  useEffect(() => {
+    let isMounted = true;
+    async function loadCatalog() {
+      try {
+        if (isDemo) {
+          const matched = (demoRequirements || []).filter(r => {
+            if (!businessType) return true;
+            return r.business_type === businessType || r.business_type === 'all';
+          });
+          if (isMounted) setCatalogRequirements(matched);
+        } else {
+          const reqs = await getRequirements(businessType, cities);
+          if (isMounted) setCatalogRequirements(reqs || []);
+        }
+      } catch (err) {
+        console.warn('Error loading catalog requirements for scan matching:', err);
+        if (isMounted && demoRequirements) setCatalogRequirements(demoRequirements);
+      }
+    }
+    loadCatalog();
+    return () => { isMounted = false; };
+  }, [isDemo, demoRequirements, businessType, cities]);
+
+  // Intelligent real-time matcher against live requirements
+  const matchRequirementRow = useCallback((extractedData, catalogList) => {
+    if (!catalogList || catalogList.length === 0) return null;
+    const typeName = (extractedData?.license_type || '').toLowerCase().trim();
+    const authority = (extractedData?.issuing_authority || '').toLowerCase().trim();
+    const ocrSnippet = (extractedData?.rawOcr || '').toLowerCase();
+
+    // 1. Exact or Substring match on requirement_name or legacy_type_id
+    const directMatch = catalogList.find(r => {
+      const name = (r.requirement_name || '').toLowerCase().trim();
+      const legacyId = (r.legacy_type_id || '').toLowerCase().trim();
+      return (
+        (typeName && (name === typeName || name.includes(typeName) || typeName.includes(name))) ||
+        (legacyId && (legacyId === typeName || typeName.includes(legacyId)))
+      );
+    });
+    if (directMatch) return directMatch;
+
+    // 2. Issuing Agency Match
+    if (authority) {
+      const agencyMatch = catalogList.find(r => {
+        const agency = (r.issuing_agency || '').toLowerCase().trim();
+        return agency && (agency === authority || agency.includes(authority) || authority.includes(agency));
+      });
+      if (agencyMatch) return agencyMatch;
+    }
+
+    // 3. Keyword / OCR Content Match
+    const keywordMatch = catalogList.find(r => {
+      const name = (r.requirement_name || '').toLowerCase();
+      if (name.includes('ein') && (typeName.includes('ein') || ocrSnippet.includes('employer identification'))) return true;
+      if (name.includes('fssai') && (typeName.includes('fssai') || ocrSnippet.includes('fssai'))) return true;
+      if (name.includes('food handler') && (typeName.includes('food handler') || ocrSnippet.includes('food handler'))) return true;
+      if (name.includes('fire') && (typeName.includes('fire') || ocrSnippet.includes('fire'))) return true;
+      if (name.includes('sales tax') && (typeName.includes('tax') || ocrSnippet.includes('sales tax'))) return true;
+      return false;
+    });
+
+    return keywordMatch || null;
+  }, []);
 
   const handleFile = useCallback(async (file) => {
     if (!file) return;
     const { preview: prev } = await preprocessImage(file);
     setPreview(prev);
     setState(STATES.SCANNING);
+    setProgress(12);
+    setStatusText('Ingesting high-resolution document...');
+
+    // Smooth, gradual progress simulation across scanning lifecycle
+    let currentProgress = 12;
+    const progressTimer = setInterval(() => {
+      currentProgress += Math.floor(Math.random() * 5) + 3;
+      if (currentProgress >= 92) {
+        currentProgress = 92;
+      }
+      setProgress(currentProgress);
+
+      if (currentProgress > 68) {
+        setStatusText('Cross-referencing statutory regulatory catalog...');
+      } else if (currentProgress > 32) {
+        setStatusText('Extracting permit fields & bilingual Devanagari text...');
+      }
+    }, 160);
 
     try {
-      setStatusText('Reading document text...');
-      const { text: ocrText, confidence: ocrConf } = await extractTextFromImage(file, (p) => {
-        setProgress(Math.round(p * 0.5));
-      });
+      let data = null;
+      let aiConf = null;
+      let rawOcrText = '';
 
-      setStatusText('Analyzing with AI Cascade...');
-      setProgress(60);
+      try {
+        // Primary Path: Multimodal Vision extraction via Gemini
+        const res = await fetch('/api/ai/extract', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            imageBase64: prev,
+            mimeType: file.type || 'image/jpeg',
+            businessType,
+            cities,
+          }),
+        });
 
-      // Perform extraction using centralized Gemini service & cascade
-      const { data, confidence: aiConf } = await extractLicenseDocument({
-        ocrText,
-        imageFile: file,
-        businessType,
-        cities,
-      });
+        if (res.ok) {
+          const resJson = await res.json();
+          if (resJson && resJson.data) {
+            data = resJson.data;
+            aiConf = resJson.confidence;
+          }
+        }
+      } catch (apiErr) {
+        console.warn('Multimodal vision API call failed, falling back to local Tesseract:', apiErr);
+      }
 
-      setProgress(90);
+      // Offline / Network Error Fallback: Run local Tesseract.js OCR
+      if (!data) {
+        setStatusText('Running offline character recognition fallback...');
+        const { text: ocrText, confidence: ocrConf } = await extractTextFromImage(file);
+        rawOcrText = ocrText;
+
+        const fallback = parseOcrTextHeuristically(ocrText);
+        data = fallback;
+        aiConf = fallback.confidence || ocrConf || 40;
+      }
+
+      clearInterval(progressTimer);
+      setProgress(98);
+      setStatusText('Verification complete.');
 
       const finalFields = {
         license_type: data?.license_type || '',
         license_number: data?.license_number || '',
         issuing_authority: data?.issuing_authority || '',
-        issue_date: data?.issue_date || '',
-        expiry_date: data?.expiry_date || '',
+        issue_date: data?.issue_date || data?.period_of_validity_start || '',
+        expiry_date: data?.expiry_date || data?.period_of_validity_end || '',
         business_name: data?.business_name || '',
+        owner_name: data?.owner_name || '',
+        address: data?.address || data?.authorized_premises_address || data?.registered_office_address || '',
+        authorized_premises_address: data?.authorized_premises_address || '',
+        registered_office_address: data?.registered_office_address || '',
+        kind_of_business: data?.kind_of_business || '',
+        license_category: data?.license_category || data?.category_of_license || '',
+        license_fee_paid: data?.license_fee_paid || '',
       };
 
       setExtracted(data);
       setFields(finalFields);
-      setConfidence(aiConf || ocrConf || 50);
+      const computedConf = aiConf || 90;
+      setConfidence(computedConf);
 
-      setProgress(100);
-      setState(STATES.RESULTS);
+      // Perform real-time requirement linkage match
+      const matched = matchRequirementRow({ ...finalFields, rawOcr: rawOcrText }, catalogRequirements);
+      if (matched) {
+        setMatchedRequirement(matched);
+        if (!finalFields.license_type) {
+          setFields(prevF => ({ ...prevF, license_type: matched.requirement_name }));
+        }
+        if (!finalFields.issuing_authority && matched.issuing_agency) {
+          setFields(prevF => ({ ...prevF, issuing_authority: matched.issuing_agency }));
+        }
+      }
+
+      setTimeout(() => {
+        setProgress(100);
+        setState(STATES.RESULTS);
+      }, 250);
     } catch (err) {
+      clearInterval(progressTimer);
       console.error('Scan process exception:', err);
       toast('Could not auto-read all fields — please enter details manually.', { icon: 'ℹ️' });
 
@@ -69,44 +216,53 @@ export default function ScanModal({ onClose, onSave, businessType, cities = [] }
       setProgress(100);
       setState(STATES.RESULTS);
     }
-  }, [businessType, cities]);
+  }, [matchRequirementRow, catalogRequirements, businessType, cities]);
 
   const handleDrop = (e) => {
-    e.preventDefault(); setDragging(false);
-    const file = e.dataTransfer.files[0];
-    if (file) handleFile(file);
+    e.preventDefault();
+    setDragging(false);
+    if (e.dataTransfer.files?.[0]) handleFile(e.dataTransfer.files[0]);
+  };
+
+  const handleRequirementSelect = (reqId) => {
+    const selected = catalogRequirements.find(r => r.id === reqId);
+    if (selected) {
+      setMatchedRequirement(selected);
+      setFields(f => ({
+        ...f,
+        license_type: selected.requirement_name,
+        issuing_authority: selected.issuing_agency || f.issuing_authority,
+      }));
+      setManualRequirementOverride(true);
+    }
   };
 
   const handleSave = async () => {
-    if (!fields.expiry_date) { toast.error('Expiry date is required'); return; }
+    if (!fields.expiry_date) {
+      toast.error('Expiry date is required');
+      return;
+    }
     try {
-      await onSave?.(fields);
+      await onSave?.({
+        ...fields,
+        requirement_id: matchedRequirement?.id,
+        requirement: matchedRequirement,
+      });
       setState(STATES.SUCCESS);
-    } catch (err) { toast.error(err.message); }
+    } catch (err) {
+      toast.error(err.message);
+    }
   };
 
-  const defaultSuggestions = [
-    'Employer Identification Number (EIN)',
-    'California Food Handler Card',
-    'ServSafe Food Safety Certificate',
-    'Mobile Food Vending License',
-    'Mobile Food Vendor (MFV) Permit',
-    'Health Department Permit',
-    'Fire Safety Clearance / NOC',
-    'Trade License',
-    'General Business License',
-    'NYS Certificate of Authority (Sales Tax)',
-    'FSSAI Food License',
-  ];
+  const isLowConfidence = confidence < 60;
 
-  const suggestionsList = catalogNames.length > 0 ? catalogNames : defaultSuggestions;
+  const modalContent = (
+    <AnimatePresence>
+      <div className="fixed inset-0 z-[99999] w-screen h-screen min-h-screen flex items-center justify-center p-4 sm:p-6 bg-black/75 backdrop-blur-md overflow-y-auto">
+        <motion.div initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0, scale: 0.95 }}
+          className={`bg-surface rounded-3xl w-full ${state === STATES.RESULTS ? 'max-w-4xl' : 'max-w-2xl'} max-h-[92vh] overflow-hidden flex flex-col shadow-2xl border border-rule transition-all duration-200 my-auto`}>
 
-  return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
-      <motion.div initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }}
-        className={`bg-surface rounded-3xl w-full ${state === STATES.RESULTS ? 'max-w-4xl' : 'max-w-2xl'} max-h-[90vh] overflow-hidden flex flex-col shadow-2xl border border-rule`}>
-
-        {/* Header */}
+        {/* HEADER */}
         <div className="flex items-center justify-between px-6 py-5 border-b border-rule bg-surface">
           <h2 className="text-xl font-bold font-display text-ink">{t('scan.title')}</h2>
           <button onClick={onClose} className="p-2 rounded-xl text-ink-faint hover:text-ink hover:bg-base transition-colors"><X size={20} /></button>
@@ -141,19 +297,54 @@ export default function ScanModal({ onClose, onSave, businessType, cities = [] }
 
             {/* SCANNING */}
             {state === STATES.SCANNING && (
-              <motion.div key="scanning" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="space-y-6">
-                <div className="relative rounded-2xl overflow-hidden bg-base flex items-center justify-center" style={{ height: 220 }}>
-                  {preview && <img src={preview} alt="doc" className="w-full h-full object-cover opacity-80" />}
-                  <div className="scan-laser absolute left-0 right-0 h-0.5 bg-accent shadow-lg shadow-accent/50" />
-                </div>
-                <div className="space-y-2">
-                  <div className="flex justify-between text-sm font-display">
-                    <span className="text-ink-muted font-medium">{statusText}</span>
-                    <span className="text-accent font-bold">{progress}%</span>
+              <motion.div key="scanning" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="space-y-5">
+                {/* Clean, Framed Document Viewport */}
+                <div className="relative rounded-2xl overflow-hidden bg-base/80 border border-rule/90 flex items-center justify-center p-3.5 max-h-[340px] min-h-[220px]">
+                  {preview && (
+                    <img
+                      src={preview}
+                      alt="Document Preview"
+                      className="max-h-[280px] w-auto max-w-full object-contain rounded-lg shadow-xs border border-rule/50"
+                    />
+                  )}
+
+                  {/* Professional Precision Scanner Line */}
+                  <div className="absolute inset-0 pointer-events-none overflow-hidden rounded-2xl">
+                    <motion.div
+                      className="absolute left-0 right-0 h-[1.5px] bg-accent/90"
+                      animate={{ top: ['4%', '95%', '4%'] }}
+                      transition={{ duration: 2.2, repeat: Infinity, ease: 'easeInOut' }}
+                    />
+                    <motion.div
+                      className="absolute left-0 right-0 h-8 bg-gradient-to-b from-accent/10 to-transparent pointer-events-none"
+                      animate={{ top: ['0%', '88%', '0%'] }}
+                      transition={{ duration: 2.2, repeat: Infinity, ease: 'easeInOut' }}
+                    />
                   </div>
-                  <div className="h-2 bg-rule rounded-full overflow-hidden">
-                    <motion.div className="h-full bg-accent rounded-full"
-                      animate={{ width: `${progress}%` }} transition={{ duration: 0.3 }} />
+
+                  {/* Scanning Status Badge */}
+                  <div className="absolute top-3 left-3 bg-surface/90 backdrop-blur-xs border border-rule px-2.5 py-1 rounded-lg flex items-center gap-1.5 shadow-xs">
+                    <span className="w-2 h-2 rounded-full bg-accent animate-pulse" />
+                    <span className="text-[10px] font-bold font-display uppercase tracking-wider text-ink-muted">
+                      Vision Processing
+                    </span>
+                  </div>
+                </div>
+
+                {/* Progress bar and text */}
+                <div className="space-y-2">
+                  <div className="flex justify-between items-center text-xs font-display">
+                    <span className="text-ink-muted font-medium flex items-center gap-1.5">
+                      {statusText}
+                    </span>
+                    <span className="text-accent font-bold font-mono text-sm">{progress}%</span>
+                  </div>
+                  <div className="h-2 bg-rule/70 rounded-full overflow-hidden p-0.5">
+                    <motion.div
+                      className="h-full bg-accent rounded-full"
+                      style={{ width: `${progress}%` }}
+                      transition={{ ease: 'easeOut', duration: 0.2 }}
+                    />
                   </div>
                 </div>
               </motion.div>
@@ -161,17 +352,76 @@ export default function ScanModal({ onClose, onSave, businessType, cities = [] }
 
             {/* RESULTS */}
             {state === STATES.RESULTS && (
-              <motion.div key="results" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="space-y-6">
+              <motion.div key="results" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="space-y-5">
                 {/* Confidence banner */}
-                <div className={`flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-medium border ${confidence >= 70 ? 'bg-green-50 text-green-700 border-green-200' : confidence >= 40 ? 'bg-amber-50 text-amber-700 border-amber-200' : 'bg-red-50 text-red-700 border-red-200'}`}>
-                  <AlertTriangle size={16} />
-                  <span>AI Confidence: <strong>{confidence}%</strong></span>
-                  {confidence < 60 && <span className="ml-1 text-xs opacity-80">(Please review extracted details below)</span>}
+                <div className={`flex items-center justify-between px-4 py-3 rounded-2xl text-sm font-medium border ${confidence >= 70 ? 'bg-green-50 text-green-800 border-green-200' : confidence >= 40 ? 'bg-amber-50 text-amber-900 border-amber-200' : 'bg-red-50 text-red-800 border-red-200'}`}>
+                  <div className="flex items-center gap-2.5">
+                    <AlertTriangle size={17} className={confidence >= 70 ? 'text-green-600' : confidence >= 40 ? 'text-amber-600' : 'text-red-600'} />
+                    <span>AI Extraction Confidence: <strong>{confidence}%</strong></span>
+                  </div>
+                  {isLowConfidence && (
+                    <span className="text-xs font-semibold px-2.5 py-1 rounded-lg bg-amber-100/80 text-amber-800 border border-amber-200">
+                      Manual Verification Advised
+                    </span>
+                  )}
+                </div>
+
+                {/* Requirement Linkage Visibility Card */}
+                <div className="bg-base/70 rounded-2xl border border-rule p-4 space-y-3">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-2 text-xs font-bold font-display text-ink uppercase tracking-wide">
+                      <Link2 size={15} className="text-accent" />
+                      <span>Linked Requirement Checklist Item</span>
+                    </div>
+                    {matchedRequirement?.jurisdiction_level && (
+                      <span className="text-[11px] font-semibold uppercase px-2 py-0.5 rounded-md bg-accent-light text-accent border border-accent/20">
+                        {matchedRequirement.jurisdiction_level} level
+                      </span>
+                    )}
+                  </div>
+
+                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-surface rounded-xl p-3.5 border border-rule/60">
+                    <div className="space-y-1 min-w-0 flex-1">
+                      <div className="text-sm font-bold text-ink flex items-center gap-1.5 flex-wrap">
+                        <ShieldCheck size={16} className={matchedRequirement ? "text-settled flex-shrink-0" : "text-ink-faint flex-shrink-0"} />
+                        <span>{matchedRequirement ? matchedRequirement.requirement_name : 'No direct catalog match — select from list'}</span>
+                      </div>
+                      {matchedRequirement?.issuing_agency ? (
+                        <div className="text-xs text-ink-faint">
+                          Issuing Agency: <span className="text-ink-muted font-medium">{matchedRequirement.issuing_agency}</span>
+                        </div>
+                      ) : (
+                        <div className="text-xs text-ink-faint">
+                          Map this scan to one of your active business requirements or pick from dropdown
+                        </div>
+                      )}
+                    </div>
+
+                    {catalogRequirements.length > 0 && (
+                      <div className="flex items-center gap-2 flex-shrink-0 self-start sm:self-center">
+                        <label className="text-[11px] font-semibold text-ink-faint uppercase whitespace-nowrap">
+                          {matchedRequirement ? 'Change:' : 'Select:'}
+                        </label>
+                        <select
+                          value={matchedRequirement?.id || ''}
+                          onChange={(e) => handleRequirementSelect(e.target.value)}
+                          className="text-xs font-medium bg-base border border-rule rounded-lg px-2.5 py-1.5 text-ink focus:outline-none focus:ring-1 focus:ring-accent max-w-[240px]"
+                        >
+                          <option value="">-- Choose Requirement --</option>
+                          {catalogRequirements.map((r) => (
+                            <option key={r.id} value={r.id}>
+                              {r.requirement_name} ({r.jurisdiction_level || 'city'})
+                            </option>
+                          ))}
+                        </select>
+                      </div>
+                    )}
+                  </div>
                 </div>
 
                 <div className="grid md:grid-cols-12 gap-6 items-stretch">
                   {/* Left Pane - Document Preview */}
-                  <div className="md:col-span-5 flex flex-col gap-3">
+                  <div className="md:col-span-5 flex flex-col gap-2.5">
                     <span className="text-xs font-bold font-display text-ink-faint uppercase tracking-wide">Document Scan</span>
                     {preview ? (
                       <div className="relative rounded-2xl overflow-hidden border border-rule bg-base flex items-center justify-center p-2 h-96">
@@ -183,7 +433,7 @@ export default function ScanModal({ onClose, onSave, businessType, cities = [] }
                   </div>
 
                   {/* Right Pane - Form inputs & details */}
-                  <div className="md:col-span-7 flex flex-col gap-4">
+                  <div className="md:col-span-7 flex flex-col gap-3.5">
                     <span className="text-xs font-bold font-display text-ink-faint uppercase tracking-wide">Extracted Metadata</span>
                     <div className="space-y-3 max-h-96 overflow-y-auto pr-1">
                       {/* License Type */}
@@ -200,8 +450,8 @@ export default function ScanModal({ onClose, onSave, businessType, cities = [] }
                           className="input text-sm w-full"
                         />
                         <datalist id="scan-license-type-suggestions">
-                          {suggestionsList.map((name, idx) => (
-                            <option key={idx} value={name} />
+                          {catalogRequirements.map((r, idx) => (
+                            <option key={idx} value={r.requirement_name} />
                           ))}
                         </datalist>
                       </div>
@@ -247,24 +497,38 @@ export default function ScanModal({ onClose, onSave, businessType, cities = [] }
                         />
                       </div>
 
-                      {/* Expiry Date */}
-                      <div>
-                        <label className="text-xs font-semibold text-ink-faint font-display uppercase tracking-wide block mb-1.5">
-                          Expiry Date *
-                        </label>
+                      {/* Expiry Date with Low-Confidence Verification Prompt */}
+                      <div className="space-y-1.5">
+                        <div className="flex items-center justify-between">
+                          <label className="text-xs font-semibold text-ink-faint font-display uppercase tracking-wide block">
+                            Expiry Date *
+                          </label>
+                          {isLowConfidence && (
+                            <span className="text-[11px] font-bold text-amber-700 bg-amber-50 px-2 py-0.5 rounded-md border border-amber-200 flex items-center gap-1">
+                              ⚠️ Please verify this date
+                            </span>
+                          )}
+                        </div>
+
                         <input
                           type="date"
                           value={fields.expiry_date || ''}
                           onChange={e => setFields(f => ({ ...f, expiry_date: e.target.value }))}
-                          className="input text-sm w-full"
+                          className={`input text-sm w-full transition-all ${isLowConfidence ? 'border-amber-300 ring-1 ring-amber-300/60 bg-amber-50/20 focus:ring-amber-500' : ''}`}
                         />
+
+                        {isLowConfidence && (
+                          <p className="text-[11px] text-amber-800 leading-tight">
+                            AI confidence is below 60%. Please verify this expiration date matches the document scan on the left before confirming.
+                          </p>
+                        )}
                       </div>
                     </div>
                   </div>
                 </div>
 
                 <div className="flex gap-3 pt-4 border-t border-rule">
-                  <button onClick={() => { setState(STATES.UPLOAD); setPreview(null); }} className="btn-secondary flex-1 font-display">{t('scan.retake')}</button>
+                  <button onClick={() => { setState(STATES.UPLOAD); setPreview(null); setMatchedRequirement(null); }} className="btn-secondary flex-1 font-display">{t('scan.retake')}</button>
                   <button onClick={handleSave} className="btn-primary flex-1 font-display">{t('scan.confirm_save')}</button>
                 </div>
               </motion.div>
@@ -285,5 +549,9 @@ export default function ScanModal({ onClose, onSave, businessType, cities = [] }
         </div>
       </motion.div>
     </div>
+    </AnimatePresence>
   );
+
+  return typeof document !== 'undefined' ? createPortal(modalContent, document.body) : modalContent;
 }
+

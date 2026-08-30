@@ -5,7 +5,6 @@ import { useTranslation } from 'react-i18next';
 const NAV = [
   { to: '/dashboard', icon: LayoutDashboard, key: 'nav.dashboard' },
   { to: '/requirements', icon: ClipboardList, key: 'nav.requirements' },
-  { to: '/map', icon: Map, key: 'nav.map' },
   { to: '/analytics', icon: BarChart2, key: 'nav.analytics' },
   { to: '/settings', icon: Settings, key: 'nav.settings' },
 ];

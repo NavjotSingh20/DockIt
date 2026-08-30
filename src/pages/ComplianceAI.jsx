@@ -116,14 +116,69 @@ export default function ComplianceAI() {
   const { t } = useTranslation();
   const navigate = useNavigate();
   const { user } = useAuth();
-  const { isDemo, activeProfile, demoBusiness, demoRequirements, demoBusinessRequirements } = useDemo();
+  const { isDemo, activeProfile, activeProfileId, demoBusiness, demoRequirements, demoBusinessRequirements } = useDemo();
   const { business: outletBiz } = useOutletContext() || {};
 
-  const [messages, setMessages] = useState([]);
+  // Storage key for persisting chat history across page switches
+  const activeProfileKey = isDemo ? (activeProfile || activeProfileId || 'default') : null;
+  const storageKey = useMemo(() => {
+    if (isDemo) return `dockit_compliance_chat_demo_${activeProfileKey}`;
+    return `dockit_compliance_chat_user_${user?.id || outletBiz?.id || 'default'}`;
+  }, [isDemo, activeProfileKey, user?.id, outletBiz?.id]);
+
+  const [messages, setMessages] = useState(() => {
+    try {
+      const key = isDemo
+        ? `dockit_compliance_chat_demo_${activeProfileKey || 'default'}`
+        : `dockit_compliance_chat_user_${user?.id || outletBiz?.id || 'default'}`;
+      const saved = localStorage.getItem(key);
+      if (saved) {
+        const parsed = JSON.parse(saved);
+        if (Array.isArray(parsed)) {
+          return parsed.filter((m) => !m.loading);
+        }
+      }
+    } catch (e) {
+      console.warn('Failed to parse saved chat history:', e);
+    }
+    return [];
+  });
+
   const [input, setInput] = useState('');
   const [streaming, setStreaming] = useState(false);
   const [copiedIndex, setCopiedIndex] = useState(null);
   const messagesEndRef = useRef(null);
+
+  // Sync messages whenever storageKey changes (e.g. switching profile)
+  useEffect(() => {
+    try {
+      const saved = localStorage.getItem(storageKey);
+      if (saved) {
+        const parsed = JSON.parse(saved);
+        if (Array.isArray(parsed)) {
+          setMessages(parsed.filter((m) => !m.loading));
+          return;
+        }
+      }
+      setMessages([]);
+    } catch (e) {
+      setMessages([]);
+    }
+  }, [storageKey]);
+
+  // Persist messages to localStorage whenever they update (excluding unfinished loading states)
+  useEffect(() => {
+    try {
+      const valid = messages.filter((m) => !m.loading);
+      if (valid.length > 0) {
+        localStorage.setItem(storageKey, JSON.stringify(valid));
+      } else {
+        localStorage.removeItem(storageKey);
+      }
+    } catch (e) {
+      console.warn('Failed to save chat history:', e);
+    }
+  }, [messages, storageKey]);
 
   // Action Modals State
   const [showScanModal, setShowScanModal] = useState(false);
@@ -309,6 +364,10 @@ export default function ComplianceAI() {
   const handleClear = () => {
     if (streaming) return;
     setMessages([]);
+    try {
+      localStorage.removeItem(storageKey);
+    } catch (e) {}
+    toast.success('Chat history cleared');
   };
 
   return (

@@ -194,11 +194,31 @@ async function streamChat(message, businessContext, chatHistory, onChunk) {
 
 export default function ChatBot() {
   const [open, setOpen] = useState(false);
-  const [messages, setMessages] = useState([]);
+  const [messages, setMessages] = useState(() => {
+    try {
+      const saved = localStorage.getItem('dockit_floating_chat_history');
+      if (saved) {
+        const parsed = JSON.parse(saved);
+        if (Array.isArray(parsed)) return parsed.filter(m => m.content);
+      }
+    } catch (e) {}
+    return [];
+  });
   const [input, setInput] = useState('');
   const [streaming, setStreaming] = useState(false);
-  const [unread, setUnread] = useState(true);
+  const [unread, setUnread] = useState(false);
   const { demoBusiness, isDemo } = useDemo();
+
+  useEffect(() => {
+    try {
+      const valid = messages.filter(m => m.content);
+      if (valid.length > 0) {
+        localStorage.setItem('dockit_floating_chat_history', JSON.stringify(valid));
+      } else {
+        localStorage.removeItem('dockit_floating_chat_history');
+      }
+    } catch (e) {}
+  }, [messages]);
 
   useEffect(() => {
     const handleOpen = () => {

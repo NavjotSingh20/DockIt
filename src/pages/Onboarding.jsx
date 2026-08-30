@@ -202,13 +202,17 @@ export default function Onboarding() {
             </div>
             <span className="font-display font-bold text-2xl text-ink">Dock<span className="text-accent">It</span></span>
           </div>
-          {/* Progress */}
-          <div className="flex items-center gap-2 mt-4 mb-1 max-w-xs mx-auto">
-            {STEPS.map((s, i) => (
-              <div key={i} className={`flex-1 h-1.5 rounded-full transition-all duration-300 ${i <= step ? 'bg-accent' : 'bg-rule'}`} />
-            ))}
-          </div>
-          <div className="text-xs font-semibold font-display text-ink-muted">Step {step + 1} of {STEPS.length} — {STEPS[step]}</div>
+          {/* Progress — shown only during sign up & onboarding steps, hidden for login */}
+          {(step > 0 || isSignUp) && (
+            <>
+              <div className="flex items-center gap-2 mt-4 mb-1 max-w-xs mx-auto">
+                {STEPS.map((s, i) => (
+                  <div key={i} className={`flex-1 h-1.5 rounded-full transition-all duration-300 ${i <= step ? 'bg-accent' : 'bg-rule'}`} />
+                ))}
+              </div>
+              <div className="text-xs font-semibold font-display text-ink-muted">Step {step + 1} of {STEPS.length} — {STEPS[step]}</div>
+            </>
+          )}
         </div>
 
         <div className="bg-surface rounded-3xl shadow-card border border-rule p-6 sm:p-8">
@@ -314,7 +318,7 @@ export default function Onboarding() {
                         <button
                           type="button"
                           onClick={() => setUseOtp(!useOtp)}
-                          className="w-full text-center py-2.5 text-xs font-display font-semibold border border-rule hover:border-accent hover:text-accent rounded-xl text-ink-muted transition-all duration-200"
+                          className="w-full text-center py-2.5 px-4 text-sm font-display font-semibold border border-rule hover:border-accent hover:text-accent rounded-xl text-ink-muted transition-all duration-200"
                         >
                           {useOtp ? 'Sign in with password instead' : 'Use email magic link / OTP'}
                         </button>

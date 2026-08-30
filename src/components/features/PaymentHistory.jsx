@@ -95,12 +95,12 @@ export default function PaymentHistory({ business, licenses = [] }) {
   };
 
   return (
-    <div className="bg-surface rounded-2xl border border-rule p-6 space-y-6 shadow-sm">
+    <div className="bg-surface rounded-2xl border border-rule shadow-card p-6 space-y-6">
       {/* Header Summary */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-rule/60 pb-5">
         <div>
           <div className="flex items-center gap-2.5">
-            <div className="w-9 h-9 rounded-xl bg-accent/10 border border-accent/20 flex items-center justify-center text-accent">
+            <div className="w-9 h-9 rounded-xl bg-accent/10 border border-accent/20 flex items-center justify-center text-accent shrink-0">
               <Receipt size={18} />
             </div>
             <div>
@@ -112,16 +112,16 @@ export default function PaymentHistory({ business, licenses = [] }) {
           </div>
         </div>
 
-        <div className="flex items-center gap-3">
-          <div className="bg-base/70 border border-rule rounded-xl px-3.5 py-2 text-right">
-            <div className="text-[10px] font-bold font-display text-ink-faint uppercase tracking-wider">Total Paid</div>
-            <div className="text-base font-black font-mono text-accent">
+        <div className="flex items-center gap-2.5 sm:gap-3 shrink-0">
+          <div className="bg-base/70 border border-rule rounded-xl px-4 py-2.5 text-right min-w-[120px] flex flex-col justify-center">
+            <div className="text-[10px] font-bold font-display text-ink-faint uppercase tracking-wider whitespace-nowrap">Total Paid</div>
+            <div className="text-base font-bold font-mono text-ink mt-0.5">
               {formatCurrency(totalAmountPaid)}
             </div>
           </div>
-          <div className="bg-base/70 border border-rule rounded-xl px-3.5 py-2 text-right">
-            <div className="text-[10px] font-bold font-display text-ink-faint uppercase tracking-wider">Transactions</div>
-            <div className="text-base font-bold font-mono text-ink">
+          <div className="bg-base/70 border border-rule rounded-xl px-4 py-2.5 text-right min-w-[120px] flex flex-col justify-center">
+            <div className="text-[10px] font-bold font-display text-ink-faint uppercase tracking-wider whitespace-nowrap">Transactions</div>
+            <div className="text-base font-bold font-mono text-ink mt-0.5">
               {filteredHistory.length}
             </div>
           </div>
@@ -162,10 +162,12 @@ export default function PaymentHistory({ business, licenses = [] }) {
 
       {/* Transaction List */}
       {filteredHistory.length === 0 ? (
-        <div className="text-center py-10 px-4 rounded-xl border border-dashed border-rule bg-base/30 space-y-2">
-          <CreditCard size={32} className="mx-auto text-ink-faint" />
+        <div className="text-center py-10 px-4 rounded-2xl border border-dashed border-rule bg-base/30 space-y-2.5">
+          <div className="w-10 h-10 rounded-xl bg-accent/10 border border-accent/20 flex items-center justify-center text-accent mx-auto">
+            <CreditCard size={20} />
+          </div>
           <div className="text-sm font-bold font-display text-ink">No Statutory Payments Recorded Yet</div>
-          <p className="text-xs text-ink-muted max-w-sm mx-auto">
+          <p className="text-xs text-ink-muted max-w-sm mx-auto leading-relaxed">
             When you complete a government renewal or license fee payment in sandbox test mode, it will appear here with downloadable receipts.
           </p>
         </div>

@@ -29,7 +29,7 @@ const REMINDER_OPTIONS = [
 
 function Section({ title, children }) {
   return (
-    <div className="bg-surface rounded-2xl border border-rule p-6 space-y-4">
+    <div className="bg-surface rounded-2xl border border-rule shadow-card p-6 space-y-4">
       <h2 className="section-title border-b border-rule/50 pb-3">{title}</h2>
       {children}
     </div>
@@ -274,7 +274,7 @@ export default function Settings() {
       <motion.h1 initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="page-title">Settings</motion.h1>
 
       {/* Business Profile */}
-      <div className="bg-surface rounded-2xl border border-rule p-6 space-y-4">
+      <div className="bg-surface rounded-2xl border border-rule shadow-card p-6 space-y-4">
         <div className="flex items-center justify-between border-b border-rule/50 pb-3">
           <h2 className="section-title">Business Profile</h2>
           {!isEditing && (

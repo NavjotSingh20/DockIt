@@ -569,7 +569,7 @@ export default function LicenseDetail() {
       {/* Penalty Calculator */}
       {(isOverdue || daysLeft <= 60) && (
         <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.1 }}>
-          <PenaltyCalculator licenseType={license.license_type} daysOverdue={isOverdue ? Math.abs(daysLeft) : 0} />
+          <PenaltyCalculator licenseType={license.license_type} daysOverdue={isOverdue ? Math.abs(daysLeft) : 0} country={business?.country || license?.country || 'USA'} />
         </motion.div>
       )}
 

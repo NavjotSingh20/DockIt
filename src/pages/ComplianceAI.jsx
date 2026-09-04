@@ -189,13 +189,18 @@ export default function ComplianceAI() {
 
   // Active Business Resolution
   const activeBiz = useMemo(() => {
+    const currentCountry = localStorage.getItem('country') || outletBiz?.country || 'USA';
+    const defaultCity = currentCountry === 'India' ? 'Chandigarh' : 'New York, NY';
+    const defaultBizName = currentCountry === 'India' ? 'Urban Tadka Kitchen' : "Rico's Curbside Kitchen";
+    const defaultOwnerName = currentCountry === 'India' ? 'Rajesh Kumar' : 'Mara Rosas';
+
     return (isDemo ? demoBusiness : outletBiz) || {
-      business_name: user?.user_metadata?.business_name || 'My Business',
-      owner_name: user?.user_metadata?.full_name || 'Business Owner',
-      city: user?.user_metadata?.city || 'Chandigarh',
-      cities: user?.user_metadata?.cities || ['Chandigarh'],
-      country: localStorage.getItem('country') || outletBiz?.country || 'India',
-      business_type: outletBiz?.business_type || 'restaurant',
+      business_name: user?.user_metadata?.business_name || defaultBizName,
+      owner_name: user?.user_metadata?.full_name || defaultOwnerName,
+      city: user?.user_metadata?.city || defaultCity,
+      cities: user?.user_metadata?.cities || [defaultCity],
+      country: currentCountry,
+      business_type: outletBiz?.business_type || 'food_truck',
     };
   }, [isDemo, demoBusiness, outletBiz, user]);
 
@@ -214,19 +219,24 @@ export default function ComplianceAI() {
       completed,
       missing,
       expiring,
-      cities: activeBiz.cities || [activeBiz.city || 'Chandigarh'],
+      cities: activeBiz.cities || [activeBiz.city || (activeBiz.country === 'India' ? 'Chandigarh' : 'New York, NY')],
     };
   }, [isDemo, demoBusinessRequirements, activeBiz]);
 
   // Dynamic Prompt Chips based on Business Context
   const suggestedPrompts = useMemo(() => {
-    const cityName = activeBiz.city || 'Chandigarh';
+    const cityName = activeBiz.city || (activeBiz.country === 'India' ? 'Chandigarh' : 'New York, NY');
+    const isIndia = activeBiz.country === 'India';
     return [
       { label: 'What am I missing?', icon: AlertTriangle, query: 'What am I missing?' },
       { label: "What's expiring soon?", icon: Calendar, query: "What's expiring soon?" },
       { label: `What changed in ${cityName}?`, icon: Scale, query: `What changed when I added ${cityName}?` },
       { label: 'Give me my compliance brief', icon: FileCheck2, query: 'Give me my compliance brief.' },
-      { label: 'मेरे कौन से लाइसेंस बाकी हैं?', icon: HelpCircle, query: 'मेरे कौन से लाइसेंस अभी बाकी हैं?' },
+      {
+        label: isIndia ? 'मेरे कौन से लाइसेंस बाकी हैं?' : 'Check municipal permits',
+        icon: HelpCircle,
+        query: isIndia ? 'मेरे कौन से लाइसेंस अभी बाकी हैं?' : 'What municipal permits and health licenses do I still need?'
+      },
     ];
   }, [activeBiz]);
 
@@ -250,11 +260,19 @@ export default function ComplianceAI() {
       case 'OPEN_RENEWAL': {
         const reqId = action.requirement_id;
         const allReqs = demoRequirements || [];
-        const req = allReqs.find(r => r.id === reqId || r.requirement_id === reqId) || {
+        const isIndia = (activeBiz?.country || localStorage.getItem('country')) === 'India';
+        const defaultReq = isIndia ? {
           id: reqId || 'demo-req-fssai',
-          requirement_name: 'Statutory Business License',
+          requirement_name: 'FSSAI Food License (Form B)',
           fee_max: 2000,
+          country: 'India',
+        } : {
+          id: reqId || 'demo-req-nyc-1',
+          requirement_name: 'Mobile Food Vending License',
+          fee_max: 50,
+          country: 'USA',
         };
+        const req = allReqs.find(r => r.id === reqId || r.requirement_id === reqId) || defaultReq;
         setSelectedReqForPayment(req);
         setShowPaymentModal(true);
         break;
@@ -263,11 +281,19 @@ export default function ComplianceAI() {
       case 'DOWNLOAD_PACKET': {
         const reqId = action.requirement_id;
         const allReqs = demoRequirements || [];
-        const req = allReqs.find(r => r.id === reqId || r.requirement_id === reqId) || {
+        const isIndia = (activeBiz?.country || localStorage.getItem('country')) === 'India';
+        const defaultReq = isIndia ? {
           id: reqId || 'demo-req-fssai',
           requirement_name: 'FSSAI Food License (Form B)',
           issuing_agency: 'Food Safety and Standards Authority of India (FoSCoS)',
+          country: 'India',
+        } : {
+          id: reqId || 'demo-req-nyc-1',
+          requirement_name: 'Mobile Food Vending License',
+          issuing_agency: 'NYC Department of Consumer and Worker Protection (DCWP)',
+          country: 'USA',
         };
+        const req = allReqs.find(r => r.id === reqId || r.requirement_id === reqId) || defaultReq;
         setSelectedReqForAutofill(req);
         setShowAutofillModal(true);
         break;

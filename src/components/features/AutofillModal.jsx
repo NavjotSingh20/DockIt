@@ -14,20 +14,94 @@ import {
 } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import toast from 'react-hot-toast';
-import { fillOfficialForm, hasOfficialForm } from '../../utils/formFillEngine';
+import { fillOfficialForm, hasOfficialForm, detectCountry } from '../../utils/formFillEngine';
 
 export default function AutofillModal({ isOpen, onClose, requirement, business }) {
   const { t } = useTranslation();
   const [downloading, setDownloading] = useState(false);
 
+  const country = detectCountry(requirement, business);
   const reqName = (requirement?.requirement_name || '').toLowerCase();
-  const city = (requirement?.city || business?.city || 'Chandigarh');
-  const isFillable = hasOfficialForm(requirement);
+  const agency = (requirement?.issuing_agency || requirement?.issuing_authority || '').toLowerCase();
+  const city = (requirement?.city || business?.city || (country === 'India' ? 'Chandigarh' : 'New York, NY'));
+  const isFillable = hasOfficialForm(requirement, business);
 
-  // Derive official statutory form metadata
+  // Derive official statutory form metadata strictly isolated by jurisdiction
   const formMeta = useMemo(() => {
+    // ── USA JURISDICTIONS ──
+    if (country === 'USA') {
+      // 1. NYC DCWP Mobile Food Vendor License
+      if (
+        (city.toLowerCase().includes('new york') || agency.includes('dcwp') || agency.includes('consumer and worker') || agency.includes('dohmh')) &&
+        (reqName.includes('vending') || reqName.includes('vendor') || reqName.includes('food') || reqName.includes('mobile food'))
+      ) {
+        return {
+          formCode: 'FORM MFV-1',
+          formTitle: 'NYC Mobile Food Vendor License Application (Form MFV-1)',
+          actName: 'NYC Administrative Code § 17-307 & Rules of the City of New York Title 6',
+          authority: 'NYC Department of Consumer and Worker Protection (DCWP)',
+          portalUrl: 'https://www.nyc.gov/site/dca/businesses/licenses-apply.page',
+          tier: 'Mobile Food Vendor Full-Term License (2-Year Term)',
+          annualFee: `$${requirement?.fee_min ?? 50} USD`,
+          processingTime: '10-15 business days',
+        };
+      }
+
+      // 2. Federal EIN (IRS Form SS-4)
+      if (
+        reqName.includes('ein') ||
+        reqName.includes('ss-4') ||
+        reqName.includes('ss4') ||
+        reqName.includes('employer identification') ||
+        agency.includes('irs') ||
+        agency.includes('internal revenue')
+      ) {
+        return {
+          formCode: 'FORM SS-4',
+          formTitle: 'Application for Employer Identification Number (Form SS-4)',
+          actName: 'Internal Revenue Code § 6109 (26 U.S.C. § 6109)',
+          authority: 'Internal Revenue Service · US Department of the Treasury',
+          portalUrl: 'https://www.irs.gov/businesses/small-businesses-self-employed/apply-for-an-employer-identification-number-ein-online',
+          tier: 'Federal Tax Registration (Sole Proprietorship / LLC)',
+          annualFee: '$0 (No Statutory Fee Charged by IRS)',
+          processingTime: 'Instant Online / 4 business days',
+        };
+      }
+
+      // 3. LA County Public Health Mobile Food Facility Permit
+      if (
+        city.toLowerCase().includes('los angeles') ||
+        agency.includes('lacdph') ||
+        agency.includes('public health')
+      ) {
+        return {
+          formCode: 'MFF PERMIT',
+          formTitle: 'Mobile Food Facility (MFF) Public Health Permit Application',
+          actName: 'California Health & Safety Code (CALCODE) & LA County Code Title 8',
+          authority: 'County of Los Angeles Department of Public Health (LACDPH)',
+          portalUrl: 'http://publichealth.lacounty.gov/eh/business/mobile-food-facilities.htm',
+          tier: 'Category 4 (Full Food Preparation & Mobile Cooking)',
+          annualFee: `$${requirement?.fee_min ?? 200} USD / Year`,
+          processingTime: '14-21 business days',
+        };
+      }
+
+      // 4. Universal US Requirement
+      return {
+        formCode: 'OFFICIAL APP',
+        formTitle: `${requirement?.requirement_name || 'Statutory Permit Application'}`,
+        actName: requirement?.issuing_agency ? `Governed by ${requirement.issuing_agency}` : 'State & Municipal Commercial Regulations',
+        authority: requirement?.issuing_agency || 'Municipal Licensing Authority',
+        portalUrl: requirement?.source_url || 'https://www.usa.gov',
+        tier: 'Municipal Commercial Operating License',
+        annualFee: requirement?.fee_min ? `$${requirement.fee_min} USD` : (requirement?.fee_max ? `$${requirement.fee_max} USD` : 'Standard Regulatory Fee'),
+        processingTime: requirement?.processing_time || '7-14 business days',
+      };
+    }
+
+    // ── INDIA JURISDICTIONS ──
     // 1. FSSAI Form B
-    if (reqName.includes('fssai') || reqName.includes('food')) {
+    if (reqName.includes('fssai') || reqName.includes('food') || agency.includes('fssai') || agency.includes('foscos')) {
       return {
         formCode: 'FORM B',
         formTitle: 'FSSAI Application for License / Registration (Form B)',
@@ -68,7 +142,7 @@ export default function AutofillModal({ isOpen, onClose, requirement, business }
       };
     }
 
-    // 4. Online-only requirement (GST, PAN, IPRS, etc.)
+    // 4. Online-only requirement (GST, PAN, etc.)
     return {
       formCode: 'ONLINE PORTAL',
       formTitle: `${requirement?.requirement_name || 'Government Registration'}`,
@@ -79,7 +153,7 @@ export default function AutofillModal({ isOpen, onClose, requirement, business }
       annualFee: requirement?.fee_max ? `₹${requirement.fee_max}` : 'Portal Application Fee',
       processingTime: requirement?.processing_time || '3-7 business days',
     };
-  }, [reqName, city, requirement]);
+  }, [country, reqName, agency, city, requirement]);
 
   if (!isOpen || !requirement) return null;
 
@@ -110,13 +184,22 @@ export default function AutofillModal({ isOpen, onClose, requirement, business }
     }
   };
 
+  const defaultAddress = country === 'India'
+    ? (city.includes('Delhi') ? 'Connaught Place, New Delhi' : 'SCO 142-143, Sector 26, Chandigarh')
+    : (city.toLowerCase().includes('los angeles') ? '1100 S Grand Ave, Los Angeles, CA 90015' : '450 W 42nd St, New York, NY 10036');
+
+  const defaultPhone = country === 'India' ? '+91 98765 43210' : (city.toLowerCase().includes('los angeles') ? '+1 213 555 0144' : '+1 212 555 0199');
+  const defaultEmail = country === 'India' ? 'contact@business.in' : (city.toLowerCase().includes('los angeles') ? 'alex@grandviewgrill.com' : 'mara@ricoscurbside.com');
+  const defaultBizName = country === 'India' ? 'Urban Tadka Kitchen' : (city.toLowerCase().includes('los angeles') ? 'Grandview Grill' : "Rico's Curbside Kitchen");
+  const defaultOwnerName = country === 'India' ? 'Business Owner' : (city.toLowerCase().includes('los angeles') ? 'Alex Rivera' : 'Mara Rosas');
+
   const fields = [
-    { label: 'Establishment / Trade Name', value: business?.business_name || 'Urban Tadka Kitchen' },
-    { label: 'Applicant / Managing Operator', value: business?.owner_name || 'Business Owner' },
-    { label: 'Authorized Premises Address', value: business?.address || (city.includes('Delhi') ? 'Connaught Place, New Delhi' : 'SCO 142-143, Sector 26, Chandigarh') },
-    { label: 'Jurisdiction / City', value: `${city} (${business?.country || 'India'})` },
-    { label: 'Contact Phone & Email', value: `${business?.phone || '+91 98765 43210'} · ${business?.email || 'contact@business.in'}` },
-    { label: 'Category & Bylaw Code', value: `${formMeta.tier}` },
+    { label: 'Establishment / Trade Name', value: business?.business_name || defaultBizName },
+    { label: 'Applicant / Managing Operator', value: business?.owner_name || defaultOwnerName },
+    { label: 'Authorized Premises Address', value: business?.address || defaultAddress },
+    { label: 'Jurisdiction / City', value: `${city} (${country})` },
+    { label: 'Contact Phone & Email', value: `${business?.phone || defaultPhone} · ${business?.email || defaultEmail}` },
+    { label: 'Category & Regulatory Tier', value: `${formMeta.tier}` },
     { label: 'Prescribed Statutory Fee', value: `${formMeta.annualFee}` },
     { label: 'Target Authority', value: `${formMeta.authority}` },
   ];
@@ -204,7 +287,9 @@ export default function AutofillModal({ isOpen, onClose, requirement, business }
                   <span>No Offline / Fillable PDF Form Prescribed</span>
                 </div>
                 <p className="text-[11.5px] leading-relaxed text-amber-800">
-                  This statutory authority (e.g. <strong>{formMeta.authority}</strong>) requires direct online registration through their official electronic portal via Aadhaar OTP or Digital Signature (DSC). No manual or downloadable fillable form is accepted for this process.
+                  This statutory authority (e.g. <strong>{formMeta.authority}</strong>) {country === 'India'
+                    ? 'requires direct online registration through their official electronic portal via Aadhaar OTP or Digital Signature (DSC).'
+                    : 'requires direct online electronic filing and credentials through their official licensing web portal.'} No manual or downloadable fillable form is accepted for this process.
                 </p>
                 <div className="pt-1">
                   <a
@@ -213,7 +298,9 @@ export default function AutofillModal({ isOpen, onClose, requirement, business }
                     rel="noopener noreferrer"
                     className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-amber-600 hover:bg-amber-700 text-white font-display font-semibold text-xs shadow-xs"
                   >
-                    <span>Proceed to Official Registration Portal ({new URL(formMeta.portalUrl).hostname})</span>
+                    <span>Proceed to Official Registration Portal ({(() => {
+                      try { return new URL(formMeta.portalUrl).hostname; } catch (e) { return 'Government Portal'; }
+                    })()})</span>
                     <ExternalLink size={12} />
                   </a>
                 </div>

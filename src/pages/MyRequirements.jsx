@@ -487,10 +487,10 @@ export default function MyRequirements() {
                       <button
                         onClick={() => handleDownloadPacket(req)}
                         className="w-full flex items-center justify-between px-3 py-2 rounded-md bg-ink hover:bg-ink/90 text-white transition-colors shadow-subtle text-xs cursor-pointer"
-                        title={hasOfficialForm(req) ? "Pre-fill and download the official statutory government PDF" : "Online electronic portal registration (No manual PDF)"}
+                        title={hasOfficialForm(req, activeBiz) ? "Pre-fill and download the official statutory government PDF" : "Online electronic portal registration (No manual PDF)"}
                       >
                         <div className="flex items-center gap-2">
-                          {hasOfficialForm(req) ? (
+                          {hasOfficialForm(req, activeBiz) ? (
                             <>
                               <FileDown size={14} className="text-white/80" />
                               <span className="font-semibold font-display">Pre-fill Official Form</span>
@@ -602,10 +602,10 @@ export default function MyRequirements() {
                         <button
                           onClick={() => handleDownloadPacket(req)}
                           className="w-full inline-flex items-center justify-between px-3.5 h-9 rounded-md bg-ink hover:bg-ink/90 text-white transition-colors shadow-subtle text-xs leading-none select-none cursor-pointer"
-                          title={hasOfficialForm(req) ? "Pre-fill and download the official statutory government PDF" : "Online electronic portal registration (No manual PDF)"}
+                          title={hasOfficialForm(req, activeBiz) ? "Pre-fill and download the official statutory government PDF" : "Online electronic portal registration (No manual PDF)"}
                         >
                           <div className="flex items-center gap-2 leading-none">
-                            {hasOfficialForm(req) ? (
+                            {hasOfficialForm(req, activeBiz) ? (
                               <>
                                 <FileDown size={14} className="text-white/80 shrink-0" />
                                 <span className="font-semibold font-display leading-none">Pre-fill Official Form</span>

@@ -2,7 +2,7 @@ import { formatCurrency } from '../../utils/formatters';
 import { calculatePenalty } from '../../utils/penaltyRules';
 import { TrendingUp } from 'lucide-react';
 
-export default function PenaltyCalculator({ licenseType, daysOverdue = 0 }) {
+export default function PenaltyCalculator({ licenseType, daysOverdue = 0, country }) {
   const data = calculatePenalty(licenseType, daysOverdue);
   const isOverdue = daysOverdue > 0;
 
@@ -19,9 +19,9 @@ export default function PenaltyCalculator({ licenseType, daysOverdue = 0 }) {
       {isOverdue ? (
         <div className="bg-red-50 border-2 border-red-200 rounded-2xl p-5 text-center">
           <div className="text-xs font-bold text-red-500 uppercase tracking-wide mb-1">Current Fine</div>
-          <div className="text-4xl font-black text-red-600">{formatCurrency(data.currentFine)}</div>
+          <div className="text-4xl font-black text-red-600">{formatCurrency(data.currentFine, country)}</div>
           <div className="text-sm text-red-500 mt-1">{data.currentConsequence}</div>
-          <div className="text-xs text-red-400 mt-2">+{formatCurrency(data.dailyCost)}/day</div>
+          <div className="text-xs text-red-400 mt-2">+{formatCurrency(data.dailyCost, country)}/day</div>
         </div>
       ) : (
         <div className="bg-green-50 border border-green-200 rounded-xl p-4 text-sm text-green-700 font-medium">
@@ -37,7 +37,7 @@ export default function PenaltyCalculator({ licenseType, daysOverdue = 0 }) {
             <div className={`w-2.5 h-2.5 rounded-full flex-shrink-0 ${slabColors[i]}`} />
             <div className="flex-1 text-sm text-gray-700">In {p.days} days</div>
             <div className={`font-bold text-sm ${i === 0 ? 'text-orange-600' : i === 1 ? 'text-red-600' : 'text-red-800'}`}>
-              {formatCurrency(p.fine)}
+              {formatCurrency(p.fine, country)}
             </div>
           </div>
         ))}

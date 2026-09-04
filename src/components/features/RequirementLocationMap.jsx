@@ -132,8 +132,11 @@ export default function RequirementLocationMap({ license, requirement, business 
         }).addTo(map);
 
         // Marker with status color
+        const isIndia = (business?.country === 'India' || reqObj?.country === 'India' || cityStr?.toLowerCase().includes('chandigarh') || cityStr?.toLowerCase().includes('delhi'));
+        const currencySymbol = isIndia ? '₹' : '$';
+
         const icon = L.divIcon({
-          html: makeLocationPin(pinColor, status === 'satisfied' ? '✓' : status === 'payment_recorded' ? '₹' : '!'),
+          html: makeLocationPin(pinColor, status === 'satisfied' ? '✓' : status === 'payment_recorded' ? currencySymbol : '!'),
           className: '',
           iconSize: [34, 42],
           iconAnchor: [17, 42],

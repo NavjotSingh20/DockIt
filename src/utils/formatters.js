@@ -13,9 +13,9 @@ export function getDaysLeft(expiryDate) {
   return Math.round((exp - today) / (1000 * 60 * 60 * 24));
 }
 
-export function formatCurrency(amount) {
+export function formatCurrency(amount, explicitCountry) {
   if (!amount && amount !== 0) return '—';
-  const country = localStorage.getItem('country') || 'USA';
+  const country = explicitCountry || localStorage.getItem('country') || 'USA';
   if (country === 'India') {
     if (amount >= 100000) return `₹${(amount / 100000).toFixed(1)}L`;
     if (amount >= 1000) return `₹${(amount / 1000).toFixed(0)}K`;

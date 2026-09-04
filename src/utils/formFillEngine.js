@@ -16,6 +16,7 @@ export const FIELD_LABELS = {
   business_type: 'Business Type',
   city_state_zip: 'City, State & ZIP',
   county_state: 'County / State',
+  owner_name_title: 'Owner Name & Title',
   date: 'Application Date',
   requirement_name: 'Requirement Name',
   issuing_agency: 'Issuing Agency',
@@ -28,25 +29,74 @@ export const getProfileFieldValue = (keyName, business, requirement) => {
   const cityEntry = business?.cities?.[0] || '';
   const rawCity = business?.city || (cityEntry.includes(',') ? cityEntry.split(',')[0].trim() : cityEntry.trim()) || '';
   const rawState = business?.state || (cityEntry.includes(',') ? cityEntry.split(',')[1].trim() : '') || '';
-  const rawZip = business?.zip || '';
+  let rawZip = business?.zip || '';
+
+  // Smart address fallback: extract ZIP/postal code from address string if not separated
+  if (!rawZip && business?.address) {
+    const zipMatch = business.address.match(/\b\d{5}(?:-\d{4})?\b/) || business.address.match(/\b\d{6}\b/);
+    if (zipMatch) rawZip = zipMatch[0];
+  }
 
   switch (keyName) {
     case 'business_name':
       return business?.business_name || '';
     case 'owner_name':
-      return business?.owner_name || '';
-    case 'phone':
-      return business?.phone || '';
+    case 'owner_name_last_first': {
+      const name = (business?.owner_name || '').trim();
+      if (name.includes(',')) return name;
+      const parts = name.split(/\s+/);
+      if (parts.length >= 2) {
+        const last = parts.pop();
+        return `${last}, ${parts.join(' ')}`;
+      }
+      return name;
+    }
+    case 'owner_name_title':
+      return business?.owner_name ? `${business.owner_name}, Owner` : (business?.business_name || '');
+    case 'phone': {
+      const p = (business?.phone || '').trim();
+      const digits = p.replace(/\D/g, '');
+      if (digits.length === 11 && digits.startsWith('1')) {
+        return `(${digits.slice(1, 4)}) ${digits.slice(4, 7)}-${digits.slice(7)}`;
+      } else if (digits.length === 10) {
+        return `(${digits.slice(0, 3)}) ${digits.slice(3, 6)}-${digits.slice(6)}`;
+      }
+      return p;
+    }
     case 'email':
       return business?.email || '';
+    case 'building_number': {
+      const addr = (business?.address || '').trim();
+      const match = addr.match(/^([0-9]+[A-Za-z]?(?:-[0-9]+)?|[A-Za-z]+[- ]+[0-9]+(?:-[0-9]+)?)\s+(.*)$/);
+      return match ? match[1] : (addr.split(' ')[0] || '');
+    }
+    case 'street':
+    case 'street_name': {
+      const addr = (business?.address || '').trim();
+      const match = addr.match(/^([0-9]+[A-Za-z]?(?:-[0-9]+)?|[A-Za-z]+[- ]+[0-9]+(?:-[0-9]+)?)\s+(.*)$/);
+      let street = match ? match[2] : addr;
+      street = street.replace(/,\s*[A-Za-z\s]+,\s*[A-Z]{2}\s*\d{5}(?:-\d{4})?$/i, '');
+      street = street.replace(/,\s*[A-Za-z\s]+,\s*[A-Z]{2}$/i, '');
+      street = street.replace(/,\s*[A-Za-z\s]+$/i, '');
+      return street.trim();
+    }
     case 'address':
       return business?.address || '';
     case 'city':
       return rawCity;
-    case 'state':
-      return rawState;
+    case 'state': {
+      if (rawState) return rawState;
+      const stateMatch = (business?.address || '').match(/\b([A-Z]{2})\b/);
+      return stateMatch ? stateMatch[1] : '';
+    }
     case 'zip':
       return rawZip;
+    case 'date_month':
+      return format(new Date(), 'MM');
+    case 'date_day':
+      return format(new Date(), 'dd');
+    case 'date_year':
+      return format(new Date(), 'yyyy');
     case 'city_state_zip': {
       const parts = [rawCity, rawState, rawZip].filter(Boolean);
       const unique = parts.filter((item, idx) => parts.indexOf(item) === idx);
@@ -79,18 +129,14 @@ export const getProfileFieldValue = (keyName, business, requirement) => {
 
 /**
  * Check if the business profile has all required fields to fill the official government form.
- * Directly inspects the requirement's own form_field_map.
+ * Directly inspects the requirement's own form_field_map and mandatory statutory profile fields.
  *
  * @param {Object} requirement - Master or joined requirement object
  * @param {Object} business - Business profile object
- * @returns {Object} { hasOfficialForm, isReady, totalFields, readyFields, missingFields, readyList }
+ * @returns {Object} { hasOfficialForm, isReady, totalFields, readyFields, missingFields, readyList, readinessScore }
  */
 export function checkApplicationReadiness(requirement, business) {
-  const templateUrl = requirement?.template_url;
-  const fieldMap = requirement?.form_field_map;
-
-  // Case A: No real government form mapped yet
-  if (!templateUrl || !fieldMap) {
+  if (!requirement) {
     return {
       hasOfficialForm: false,
       isReady: true,
@@ -98,37 +144,62 @@ export function checkApplicationReadiness(requirement, business) {
       readyFields: 0,
       missingFields: [],
       readyList: [],
+      readinessScore: 100,
     };
   }
 
-  // Case B: Real government form is mapped via AcroForm or Coordinate Overlay
-  const fieldsConfig = fieldMap.fields || {};
+  const official = getOfficialTemplateAndMap(requirement, business);
+  const isFillable = hasOfficialForm(requirement, business);
+  const fieldMap = official?.fieldMap || requirement?.form_field_map;
+
   const dataKeys = new Set();
 
-  if (fieldMap.mode === 'acroform') {
-    Object.values(fieldsConfig).forEach(k => {
-      if (k && k !== 'checkbox_true') dataKeys.add(k);
-    });
-  } else if (fieldMap.mode === 'overlay') {
-    Object.keys(fieldsConfig).forEach(k => {
-      if (k) dataKeys.add(k);
-    });
+  if (fieldMap) {
+    const fieldsConfig = fieldMap.fields || {};
+    if (fieldMap.mode === 'acroform') {
+      Object.values(fieldsConfig).forEach(k => {
+        if (k && k !== 'checkbox_true') dataKeys.add(k);
+      });
+    } else if (fieldMap.mode === 'overlay') {
+      Object.keys(fieldsConfig).forEach(k => {
+        if (k) dataKeys.add(k);
+      });
+    }
+  }
+
+  // Ensure essential statutory business profile fields are validated for any official form
+  if (isFillable) {
+    dataKeys.add('business_name');
+    dataKeys.add('owner_name');
+    dataKeys.add('phone');
+    dataKeys.add('email');
+    dataKeys.add('address');
+    dataKeys.add('city');
+    dataKeys.add('zip');
   }
 
   const missingFields = [];
   const readyList = [];
 
   dataKeys.forEach(dataKey => {
-    // Skip auto-generated system fields like 'date', 'requirement_name', 'issuing_agency', 'fee'
-    if (['date', 'requirement_name', 'issuing_agency', 'fee'].includes(dataKey)) {
+    // Skip auto-generated system fields like 'date', 'date_month', 'date_day', 'date_year', 'requirement_name', 'issuing_agency', 'fee'
+    if (['date', 'date_month', 'date_day', 'date_year', 'requirement_name', 'issuing_agency', 'fee'].includes(dataKey)) {
       readyList.push({ key: dataKey, label: FIELD_LABELS[dataKey] || dataKey, value: getProfileFieldValue(dataKey, business, requirement) });
       return;
+    }
+
+    // building_number and street are automatically extracted from address
+    if (['building_number', 'street', 'street_name'].includes(dataKey)) {
+      if (business?.address) {
+        readyList.push({ key: dataKey, label: FIELD_LABELS[dataKey] || dataKey, value: getProfileFieldValue(dataKey, business, requirement) });
+        return;
+      }
     }
 
     const val = getProfileFieldValue(dataKey, business, requirement);
     const label = FIELD_LABELS[dataKey] || dataKey.replace(/_/g, ' ');
 
-    if (!val || String(val).trim().length === 0) {
+    if (!val || String(val).trim().length === 0 || String(val).toLowerCase() === 'undefined') {
       missingFields.push({ key: dataKey, label });
     } else {
       readyList.push({ key: dataKey, label, value: val });
@@ -137,15 +208,17 @@ export function checkApplicationReadiness(requirement, business) {
 
   const totalFields = readyList.length + missingFields.length;
   const readyFields = readyList.length;
-  const isReady = missingFields.length === 0;
+  const isReady = isFillable ? missingFields.length === 0 : true;
+  const readinessScore = totalFields > 0 ? Math.round((readyFields / totalFields) * 100) : 100;
 
   return {
-    hasOfficialForm: true,
+    hasOfficialForm: isFillable,
     isReady,
     totalFields,
     readyFields,
     missingFields,
     readyList,
+    readinessScore,
   };
 }
 
@@ -1001,23 +1074,154 @@ export function hasOfficialForm(requirement, business) {
  * @param {Object} business - Business profile object
  * @returns {Promise<Blob>} Filled PDF Blob ready for download/preview
  */
+/**
+ * Automatically discovers the authentic government template and field mapping
+ * for a requirement, whether specified in the requirement or inferred by jurisdiction & agency.
+ */
+export function getOfficialTemplateAndMap(requirement, business) {
+  if (requirement?.template_url && requirement?.form_field_map) {
+    return {
+      templateUrl: resolveTemplateUrl(requirement.template_url),
+      fieldMap: requirement.form_field_map,
+    };
+  }
+
+  const country = detectCountry(requirement, business);
+  const reqName = (requirement?.requirement_name || requirement?.name || '').toLowerCase();
+  const agency = (requirement?.issuing_agency || requirement?.issuing_authority || '').toLowerCase();
+  const city = (requirement?.city || business?.city || '').toLowerCase();
+
+  // Federal EIN (IRS Form SS-4)
+  if (
+    reqName.includes('ein') ||
+    reqName.includes('ss-4') ||
+    reqName.includes('ss4') ||
+    reqName.includes('employer identification') ||
+    agency.includes('irs') ||
+    agency.includes('internal revenue')
+  ) {
+    return {
+      templateUrl: '/templates/fss4.pdf',
+      fieldMap: {
+        mode: 'acroform',
+        fields: {
+          'topmostSubform[0].Page1[0].f1_2[0]': 'business_name',
+          'topmostSubform[0].Page1[0].f1_3[0]': 'business_name',
+          'topmostSubform[0].Page1[0].f1_4[0]': 'owner_name',
+          'topmostSubform[0].Page1[0].Line4ReadOrder[0].f1_5[0]': 'address',
+          'topmostSubform[0].Page1[0].Line4ReadOrder[0].f1_6[0]': 'city_state_zip',
+          'topmostSubform[0].Page1[0].f1_7[0]': 'address',
+          'topmostSubform[0].Page1[0].f1_8[0]': 'city_state_zip',
+          'topmostSubform[0].Page1[0].f1_9[0]': 'county_state',
+          'topmostSubform[0].Page1[0].f1_10[0]': 'owner_name',
+          'topmostSubform[0].Page1[0].f1_18[0]': 'business_type',
+          'topmostSubform[0].Page1[0].f1_40[0]': 'owner_name_title',
+          'topmostSubform[0].Page1[0].f1_41[0]': 'phone',
+          'topmostSubform[0].Page1[0].f1_45[0]': 'date',
+        }
+      }
+    };
+  }
+
+  // NYC Mobile Food / DOHMH Permit & License (Form 314C)
+  if (
+    country === 'USA' &&
+    (city.includes('new york') || agency.includes('dcwp') || agency.includes('dohmh') || agency.includes('consumer and worker')) &&
+    (reqName.includes('vending') || reqName.includes('vendor') || reqName.includes('mobile food') || reqName.includes('permit') || reqName.includes('food service') || reqName.includes('commissary'))
+  ) {
+    return {
+      templateUrl: '/templates/314c-standard-form.pdf',
+      fieldMap: {
+        mode: 'overlay',
+        fields: {
+          owner_name: { page: 0, x: 28, y: 435, fontSize: 9, minFontSize: 7, maxWidth: 325 },
+          phone: { page: 0, x: 418, y: 435, fontSize: 9, minFontSize: 7, maxWidth: 170 },
+          business_name: { page: 0, x: 28, y: 400, fontSize: 9, minFontSize: 7, maxWidth: 325 },
+          building_number: { page: 0, x: 28, y: 370, fontSize: 9, minFontSize: 7, maxWidth: 70 },
+          street: { page: 0, x: 116, y: 370, fontSize: 9, minFontSize: 7, maxWidth: 240 },
+          city: { page: 0, x: 28, y: 340, fontSize: 9, minFontSize: 7, maxWidth: 185 },
+          state: { page: 0, x: 236, y: 340, fontSize: 9, minFontSize: 7, maxWidth: 28 },
+          zip: { page: 0, x: 300, y: 340, fontSize: 9, minFontSize: 7, maxWidth: 60 },
+          email: { page: 0, x: 372, y: 340, fontSize: 8.5, minFontSize: 6.5, maxWidth: 215 },
+          requirement_name: { page: 0, x: 28, y: 560, fontSize: 9.5, minFontSize: 7.5, maxWidth: 550 },
+          date_month: { page: 0, x: 38, y: 624, fontSize: 8.5, minFontSize: 7, maxWidth: 25 },
+          date_day: { page: 0, x: 82, y: 624, fontSize: 8.5, minFontSize: 7, maxWidth: 25 },
+          date_year: { page: 0, x: 144, y: 624, fontSize: 8.5, minFontSize: 7, maxWidth: 50 }
+        }
+      }
+    };
+  }
+
+  // LA County Department of Public Health Permit Application
+  if (
+    country === 'USA' &&
+    (city.includes('los angeles') || agency.includes('lacdph') || agency.includes('public health')) &&
+    (reqName.includes('health') || reqName.includes('facility') || reqName.includes('permit') || reqName.includes('mff') || reqName.includes('commissary'))
+  ) {
+    return {
+      templateUrl: '/templates/Public-Health-Permit-License-Application.pdf',
+      fieldMap: {
+        mode: 'acroform',
+        fields: {
+          'LEGAL NAME OF BUSINESS DBA': 'business_name',
+          'Business Street AddressRow1': 'address',
+          'CityRow1': 'city',
+          'ZipRow1': 'zip',
+          'OWNER 1': 'owner_name',
+          'PhoneOWNER 1': 'phone',
+          'EmailOWNER 1': 'email',
+          'Print Name Title': 'owner_name_title',
+          'Date of Application': 'date',
+          'Signature Date': 'date',
+          'Mobile Food Facility': 'checkbox_true',
+          'New Business': 'checkbox_true'
+        }
+      }
+    };
+  }
+
+  return null;
+}
+
+/**
+ * Generic Form Fill Engine
+ * Loads and fills genuine government PDF templates (NYC DOHMH 314C, IRS Form SS-4, LA County Health)
+ * with pixel precision and AcroForm data binding.
+ *
+ * @param {Object} requirement - Requirement object from DB or demoData
+ * @param {Object} business - Business profile object
+ * @returns {Promise<Blob>} Filled PDF Blob ready for download/preview
+ */
 export async function fillOfficialForm(requirement, business) {
   const country = detectCountry(requirement, business);
   const reqName = (requirement?.requirement_name || '').toLowerCase();
   const agency = (requirement?.issuing_agency || '').toLowerCase();
   const city = (requirement?.city || business?.city || '').toLowerCase();
 
-  // 1. If an external template PDF URL is mapped, attempt overlay/acroform fill first
-  const templateUrl = requirement?.template_url;
-  const fieldMap = requirement?.form_field_map;
+  // ── 1. Priority Official Government Template PDF Engine ──
+  // If an authentic official government PDF template exists (NYC DOHMH 314C, IRS Form SS-4, LA County Health, etc.),
+  // load the genuine PDF and fill the user's business profile directly into the official form fields.
+  const official = getOfficialTemplateAndMap(requirement, business);
 
-  if (templateUrl && fieldMap) {
+  if (official?.templateUrl && official?.fieldMap) {
     try {
-      const fetchUrl = resolveTemplateUrl(templateUrl);
-      const response = await fetch(fetchUrl);
-      if (response.ok) {
-        const buffer = await response.arrayBuffer();
+      const fetchUrl = resolveTemplateUrl(official.templateUrl);
+      let buffer;
+      if (typeof window === 'undefined' && fetchUrl.startsWith('/templates/')) {
+        const reqFs = await (new Function('return import("fs")')());
+        const reqPath = await (new Function('return import("path")')());
+        const fullPath = reqPath.resolve(process.cwd(), 'public' + fetchUrl);
+        const nodeBuf = reqFs.readFileSync(fullPath);
+        buffer = nodeBuf.buffer.slice(nodeBuf.byteOffset, nodeBuf.byteOffset + nodeBuf.byteLength);
+      } else {
+        const response = await fetch(fetchUrl);
+        if (!response.ok) throw new Error(`HTTP ${response.status} loading ${fetchUrl}`);
+        buffer = await response.arrayBuffer();
+      }
+
+      if (buffer) {
         const pdfDoc = await PDFDocument.load(buffer, { ignoreEncryption: true });
+        const fieldMap = official.fieldMap;
 
         if (fieldMap.mode === 'acroform') {
           const form = pdfDoc.getForm();
@@ -1045,6 +1249,7 @@ export async function fillOfficialForm(requirement, business) {
         } else if (fieldMap.mode === 'overlay') {
           const pages = pdfDoc.getPages();
           const font = await pdfDoc.embedFont(StandardFonts.Helvetica);
+          const fontBold = await pdfDoc.embedFont(StandardFonts.HelveticaBold);
           const overlayFields = fieldMap.fields || {};
 
           Object.entries(overlayFields).forEach(([dataKey, pos]) => {
@@ -1057,23 +1262,24 @@ export async function fillOfficialForm(requirement, business) {
 
             const { width: pageWidth } = targetPage.getSize();
             const textStr = String(val);
-            const initialFontSize = pos.fontSize || 10;
+            const initialFontSize = pos.fontSize || 9;
             const minFontSize = pos.minFontSize || 6.5;
             const maxBoxWidth = pos.maxWidth || (pageWidth - pos.x - 36);
 
             let currentFontSize = initialFontSize;
             let renderedText = textStr;
-            let textWidth = font.widthOfTextAtSize(renderedText, currentFontSize);
+            const chosenFont = (dataKey === 'requirement_name' || dataKey === 'business_type') ? fontBold : font;
+            let textWidth = chosenFont.widthOfTextAtSize(renderedText, currentFontSize);
 
             while (textWidth > maxBoxWidth && currentFontSize > minFontSize) {
               currentFontSize = Math.max(minFontSize, currentFontSize - 0.5);
-              textWidth = font.widthOfTextAtSize(renderedText, currentFontSize);
+              textWidth = chosenFont.widthOfTextAtSize(renderedText, currentFontSize);
             }
 
             if (textWidth > maxBoxWidth) {
               while (textWidth > maxBoxWidth && renderedText.length > 3) {
                 renderedText = renderedText.slice(0, -1);
-                textWidth = font.widthOfTextAtSize(renderedText + '…', currentFontSize);
+                textWidth = chosenFont.widthOfTextAtSize(renderedText + '…', currentFontSize);
               }
               renderedText += '…';
             }
@@ -1082,8 +1288,8 @@ export async function fillOfficialForm(requirement, business) {
               x: pos.x,
               y: pos.y,
               size: currentFontSize,
-              font: font,
-              color: rgb(0, 0, 0),
+              font: chosenFont,
+              color: rgb(0, 0, 0.65), // Crisp navy/blue ink
             });
           });
         }
@@ -1092,53 +1298,25 @@ export async function fillOfficialForm(requirement, business) {
         return new Blob([pdfBytes], { type: 'application/pdf' });
       }
     } catch (err) {
-      console.warn('Could not load external template via proxy, dispatching to statutory generator:', err);
+      console.warn('Could not load official government template, falling back to statutory generator:', err);
     }
   }
 
-  // 2. USA Jurisdictions
-  if (country === 'USA') {
-    // Federal EIN (IRS Form SS-4)
-    if (reqName.includes('ein') || reqName.includes('ss-4') || reqName.includes('ss4') || reqName.includes('employer identification') || agency.includes('irs') || agency.includes('internal revenue')) {
-      return generateIRSSS4FormPDF(requirement, business);
-    }
-
-    // LA County Health Permit
-    if ((city.includes('los angeles') || agency.includes('lacdph') || agency.includes('los angeles')) &&
-        (reqName.includes('health') || reqName.includes('facility') || reqName.includes('public health'))) {
-      return generateLACDPHHealthPermitPDF(requirement, business);
-    }
-
-    // NYC DCWP Mobile Food Vendor License
-    if ((city.includes('new york') || agency.includes('dcwp') || agency.includes('consumer and worker') || agency.includes('dohmh')) ||
-        (reqName.includes('vending') || reqName.includes('vendor') || reqName.includes('mobile food'))) {
-      return generateNYCDCWPFormPDF(requirement, business);
-    }
-
-    // Universal US Regulatory Application fallback
-    return generateUSOfficialApplicationPDF(requirement, business);
-  }
-
-  // 3. India Jurisdictions
+  // ── 2. Fallback Dedicated Statutory Document Generators (India Portals / Specialized Forms) ──
   if (country === 'India') {
-    // FSSAI Food License / Registration (Form B)
     if (reqName.includes('fssai') || reqName.includes('food safety') || agency.includes('fssai') || reqName.includes('food license') || agency.includes('foscos')) {
       return generateFSSAIFormBPDF(requirement, business);
     }
-
-    // Delhi Shops & Establishments (Form A)
     if (reqName.includes('delhi') && (reqName.includes('shop') || reqName.includes('establishment') || reqName.includes('labour'))) {
       return generateDelhiShopEstFormAPDF(requirement, business);
     }
-
-    // Chandigarh Municipal Corporation (MCC) Trade / Eating House (Form 1)
     if ((city.includes('chandigarh') || reqName.includes('chandigarh')) && (reqName.includes('trade') || reqName.includes('eating house') || reqName.includes('mcc') || reqName.includes('health license'))) {
       return generateChandigarhTradeLicensePDF(requirement, business);
     }
-
     return generateFSSAIFormBPDF(requirement, business);
   }
 
+  // Fallback for any other US statutory filing
   return generateUSOfficialApplicationPDF(requirement, business);
 }
 

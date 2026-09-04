@@ -30,6 +30,8 @@ import toast from 'react-hot-toast';
 import { useAuth } from '../hooks/useAuth';
 import { useDemo } from '../context/DemoContext';
 import { sendCopilotMessage } from '../services/copilotService';
+import { fillOfficialForm, checkApplicationReadiness } from '../utils/formFillEngine';
+import { updateBusiness } from '../services/supabase';
 import ScanModal from '../components/features/ScanModal';
 import PaymentModal from '../components/features/PaymentModal';
 import AutofillModal from '../components/features/AutofillModal';
@@ -112,11 +114,105 @@ function renderMarkdown(text) {
   });
 }
 
+/**
+ * Intelligent parser to extract structured profile attributes from conversational user input
+ */
+function extractProfileFields(text, expectedMissing = []) {
+  const updates = {};
+  if (!text) return updates;
+
+  const trimmed = text.trim();
+  const missingKeys = expectedMissing.map((m) => (m.key || m || '').toLowerCase());
+
+  // 1. Email extraction
+  const emailMatch = trimmed.match(/\b[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}\b/);
+  if (emailMatch) {
+    updates.email = emailMatch[0];
+  }
+
+  // 2. Phone extraction (matches US or Indian standard phone formats)
+  const phoneMatch = trimmed.match(/(?:phone|call|tel|mobile|cell|number)?\s*(?:is|:)?\s*(\+?1?[\s.-]?\(?\d{3}\)?[\s.-]?\d{3}[\s.-]?\d{4}|\+?91[\s-]?[6-9]\d{9}|\b\d{10}\b)/i);
+  if (phoneMatch && phoneMatch[1]) {
+    const rawDigits = phoneMatch[1].replace(/\D/g, '');
+    if (rawDigits.length >= 10) {
+      updates.phone = phoneMatch[1].trim();
+    }
+  }
+
+  // 3. Address extraction (handles keyword prefix or standalone street pattern)
+  const kwAddrMatch = trimmed.match(/(?:address|location|premises|located at|located)\s*(?:is|:)?\s*([0-9]{1,5}\s+[A-Za-z0-9\s.,#-]+(?:Street|St|Avenue|Ave|Boulevard|Blvd|Road|Rd|Lane|Ln|Drive|Dr|Way|Place|Pl|Sector|Connaught|Broadway)[A-Za-z0-9\s.,#-]*)/i);
+  if (kwAddrMatch && kwAddrMatch[1]) {
+    updates.address = kwAddrMatch[1].trim().replace(/[.,]$/, '');
+  } else {
+    const standAddrMatch = trimmed.match(/\b([0-9]{1,5}\s+(?:[NSEW]\.?\s+)?[A-Za-z0-9\s.,#-]+(?:Street|St|Avenue|Ave|Boulevard|Blvd|Road|Rd|Lane|Ln|Drive|Dr|Way|Place|Pl|Sector|Connaught|Broadway)[A-Za-z0-9\s.,#-]*)/i);
+    if (standAddrMatch && standAddrMatch[1]) {
+      updates.address = standAddrMatch[1].trim().replace(/[.,]$/, '');
+    }
+  }
+
+  // 4. ZIP / Postal Code extraction (5-digit US or 6-digit Indian PIN)
+  const explicitZipMatch = trimmed.match(/(?:zip|postal|pin|code)\s*(?:is|:)?\s*(\b\d{5}(?:-\d{4})?\b|\b\d{6}\b)/i);
+  if (explicitZipMatch && explicitZipMatch[1]) {
+    updates.zip = explicitZipMatch[1];
+  } else {
+    const anyZipMatch = trimmed.match(/\b\d{5}(?:-\d{4})?\b/) || trimmed.match(/\b\d{6}\b/);
+    if (anyZipMatch) {
+      const isPhoneSub = updates.phone && updates.phone.replace(/\D/g, '').includes(anyZipMatch[0]);
+      if (!isPhoneSub || missingKeys.includes('zip')) {
+        updates.zip = anyZipMatch[0];
+      }
+    }
+  }
+
+  // If address has ZIP inside it (e.g. "450 W 42nd St, New York, NY 10036"), also extract ZIP!
+  if (updates.address && !updates.zip) {
+    const addrZip = updates.address.match(/\b\d{5}(?:-\d{4})?\b/) || updates.address.match(/\b\d{6}\b/);
+    if (addrZip) updates.zip = addrZip[0];
+  }
+
+  // 5. Owner / Applicant name extraction
+  const ownerMatch = trimmed.match(/(?:my name is|owner is|applicant is|name is|i am)\s+([A-Za-z]+(?:\s+[A-Za-z]+){1,3})/i);
+  if (ownerMatch && ownerMatch[1]) {
+    let candidate = ownerMatch[1].split(/\b(?:and|with|phone|email|address|call|at|zip)\b/i)[0].trim();
+    if (candidate.split(/\s+/).length >= 2) {
+      updates.owner_name = candidate;
+    }
+  }
+
+  // 6. Business / Trade name extraction
+  const bizMatch = trimmed.match(/(?:business name is|company is|truck name is|dba is|establishment is)\s+([A-Za-z0-9\s'&]+)/i);
+  if (bizMatch && bizMatch[1]) {
+    let candidate = bizMatch[1].split(/\b(?:and|with|phone|email|address|call|at|owned|zip)\b/i)[0].trim();
+    if (candidate.length > 2) {
+      updates.business_name = candidate;
+    }
+  }
+
+  // 7. Direct casual single-field matching (when user replies with just the answer)
+  if (missingKeys.length === 1) {
+    const targetKey = missingKeys[0];
+    if (targetKey === 'zip' && !updates.zip) {
+      const rawNum = trimmed.match(/\b\d{5}\b/) || trimmed.match(/\b\d{6}\b/);
+      if (rawNum) updates.zip = rawNum[0];
+    } else if (targetKey === 'phone' && !updates.phone && trimmed.replace(/\D/g, '').length >= 10) {
+      updates.phone = trimmed;
+    } else if (targetKey === 'email' && !updates.email && trimmed.includes('@')) {
+      updates.email = trimmed;
+    } else if (targetKey === 'owner_name' && !updates.owner_name && /^[A-Za-z\s.'-]+$/.test(trimmed) && trimmed.length > 2) {
+      updates.owner_name = trimmed;
+    } else if (targetKey === 'address' && !updates.address && /[0-9]/.test(trimmed) && trimmed.length > 5) {
+      updates.address = trimmed;
+    }
+  }
+
+  return updates;
+}
+
 export default function ComplianceAI() {
   const { t } = useTranslation();
   const navigate = useNavigate();
   const { user } = useAuth();
-  const { isDemo, activeProfile, activeProfileId, demoBusiness, demoRequirements, demoBusinessRequirements } = useDemo();
+  const { isDemo, activeProfile, activeProfileId, demoBusiness, updateDemoBusiness, demoRequirements, demoBusinessRequirements } = useDemo();
   const { business: outletBiz } = useOutletContext() || {};
 
   // Storage key for persisting chat history across page switches
@@ -186,6 +282,36 @@ export default function ComplianceAI() {
   const [selectedReqForPayment, setSelectedReqForPayment] = useState(null);
   const [showAutofillModal, setShowAutofillModal] = useState(false);
   const [selectedReqForAutofill, setSelectedReqForAutofill] = useState(null);
+
+  // Intake State for collecting missing form requirements via Compliance AI
+  const [intakeState, setIntakeState] = useState(null);
+
+  useEffect(() => {
+    try {
+      const raw = sessionStorage.getItem('dockit_ai_intake');
+      if (raw) {
+        sessionStorage.removeItem('dockit_ai_intake');
+        const intake = JSON.parse(raw);
+        if (intake && intake.requirementId) {
+          setIntakeState(intake);
+          const missingBullets = (intake.missingFields || [])
+            .map((f) => `• **${f.label}**`)
+            .join('\n');
+
+          const greetingMsg = {
+            role: 'model',
+            content: `👋 Hello! I'm here to help you complete and download your official statutory application for **${intake.requirementName || 'Statutory Permit'}** (${intake.formCode || 'Official Form'}).\n\nTo ensure your application is accepted by **${intake.issuingAgency || 'the licensing authority'}** with zero omissions or rejection risk, I just need a few missing details:\n\n${missingBullets}\n\n💬 *You can reply however you like—for example, simply type your ZIP code (e.g. \`10036\`) or answer naturally. I'll automatically save it to your business records and prepare your official form!*`,
+            timestamp: new Date(),
+            loading: false,
+          };
+
+          setMessages((prev) => [...prev, greetingMsg]);
+        }
+      }
+    } catch (e) {
+      console.warn('Error reading dockit_ai_intake:', e);
+    }
+  }, []);
 
   // Active Business Resolution
   const activeBiz = useMemo(() => {
@@ -299,6 +425,43 @@ export default function ComplianceAI() {
         break;
       }
 
+      case 'DOWNLOAD_OFFICIAL_FORM': {
+        const reqId = action.requirement_id;
+        const allReqs = demoRequirements || [];
+        const isIndia = (activeBiz?.country || localStorage.getItem('country')) === 'India';
+        const defaultReq = isIndia ? {
+          id: reqId || 'demo-req-fssai',
+          requirement_name: 'FSSAI Food License (Form B)',
+          issuing_agency: 'Food Safety and Standards Authority of India (FoSCoS)',
+          country: 'India',
+        } : {
+          id: reqId || 'demo-req-nyc-1',
+          requirement_name: 'Mobile Food Vending License',
+          issuing_agency: 'NYC Department of Consumer and Worker Protection (DCWP)',
+          country: 'USA',
+        };
+        const targetReq = allReqs.find(r => r.id === reqId || r.requirement_id === reqId) || defaultReq;
+
+        const toastId = toast.loading('Generating official statutory PDF form...');
+        try {
+          const pdfBlob = await fillOfficialForm(targetReq, activeBiz);
+          const url = URL.createObjectURL(pdfBlob);
+          const a = document.createElement('a');
+          a.href = url;
+          const safeName = (targetReq.requirement_name || 'Official_Application').replace(/[^a-zA-Z0-9_]/g, '_');
+          a.download = `${safeName}_Official_Application.pdf`;
+          document.body.appendChild(a);
+          a.click();
+          document.body.removeChild(a);
+          URL.revokeObjectURL(url);
+          toast.success('Downloaded official pre-filled form!', { id: toastId });
+        } catch (err) {
+          console.error('Download form error:', err);
+          toast.error(err.message || 'Could not generate official form.', { id: toastId });
+        }
+        break;
+      }
+
       case 'NAVIGATE_REQUIREMENTS':
         navigate('/requirements');
         break;
@@ -332,8 +495,191 @@ export default function ComplianceAI() {
       if (!query || streaming) return;
 
       const userMsg = { role: 'user', content: query, timestamp: new Date() };
-      const aiPlaceholder = { role: 'model', content: '', timestamp: new Date(), loading: true };
 
+      // 1. Check if user is supplying profile fields conversationally
+      const extracted = extractProfileFields(query, intakeState?.missingFields || []);
+      const hasExtractedData = Object.keys(extracted).length > 0;
+
+      if (hasExtractedData) {
+        if (isDemo && typeof updateDemoBusiness === 'function') {
+          updateDemoBusiness(extracted);
+        }
+        if (activeBiz?.id && !isDemo) {
+          updateBusiness(activeBiz.id, extracted).catch(console.error);
+        }
+        Object.assign(activeBiz, extracted);
+      }
+
+      // 2. If active intake session is in progress for an official application
+      if (intakeState && intakeState.requirementId) {
+        const targetReq = (demoRequirements || []).find(
+          (r) => r.id === intakeState.requirementId || r.requirement_id === intakeState.requirementId
+        ) || {
+          id: intakeState.requirementId,
+          requirement_name: intakeState.requirementName,
+          city: intakeState.city || activeBiz.city,
+          country: intakeState.country || activeBiz.country || 'USA',
+        };
+
+        const updatedBiz = { ...activeBiz, ...extracted };
+        const readiness = checkApplicationReadiness(targetReq, updatedBiz);
+
+        if (readiness.isReady) {
+          setIntakeState(null);
+          setInput('');
+
+          const updatedBullets = Object.entries(extracted)
+            .map(([k, v]) => `• **${k.replace('_', ' ').toUpperCase()}**: \`${v}\``)
+            .join('\n');
+
+          const completeMsg = {
+            role: 'model',
+            content: `🎉 **Business Profile Updated & Official Form Ready!**\n\nI have saved your verified details into your business ledger:\n${updatedBullets || '• All profile details verified'}\n\nYour official statutory application for **${targetReq.requirement_name || intakeState.requirementName}** is now **100% complete and verified** (${readiness.readyFields}/${readiness.totalFields} fields ready). Every field is mapped with pixel precision into the prescribed government document layout.\n\nClick below to download your ready-to-file official government PDF:`,
+            actions: [
+              {
+                type: 'DOWNLOAD_OFFICIAL_FORM',
+                requirement_id: targetReq.id || intakeState.requirementId,
+                requirement_name: targetReq.requirement_name || intakeState.requirementName,
+                label: '📥 Download Filled Official Form',
+              },
+              {
+                type: 'DOWNLOAD_PACKET',
+                requirement_id: targetReq.id || intakeState.requirementId,
+                label: '🔍 View in Prefill Inspector',
+              },
+            ],
+            timestamp: new Date(),
+            loading: false,
+          };
+
+          setMessages((prev) => [...prev, userMsg, completeMsg]);
+          return;
+        } else if (hasExtractedData) {
+          const remainingBullets = readiness.missingFields
+            .map((f) => `• **${f.label}**`)
+            .join('\n');
+
+          setIntakeState((prev) => ({
+            ...prev,
+            missingFields: readiness.missingFields,
+          }));
+          setInput('');
+
+          const remainingLabels = readiness.missingFields.map((f) => f.label).join(', ');
+          const partialMsg = {
+            role: 'model',
+            content: `Got it! I've updated your business records with your **${Object.keys(extracted).map(k => k.replace('_', ' ')).join(', ')}**.\n\nWe just need your **${remainingLabels}** to finalize the official application for **${targetReq.requirement_name || intakeState.requirementName}**.\n\nYou can simply reply with it here and I'll generate your official form immediately!`,
+            timestamp: new Date(),
+            loading: false,
+          };
+
+          setMessages((prev) => [...prev, userMsg, partialMsg]);
+          return;
+        }
+      }
+
+      // 3. If no active intake session, check if user is asking to fill / prepare / download an official government form
+      if (!intakeState) {
+        const lower = query.toLowerCase();
+        const mentionsForm =
+          lower.includes('fill') ||
+          lower.includes('form') ||
+          lower.includes('application') ||
+          lower.includes('pre-fill') ||
+          lower.includes('prefill') ||
+          lower.includes('download') ||
+          lower.includes('generate');
+
+        const isFormIntent =
+          mentionsForm &&
+          (lower.includes('fill') ||
+           lower.includes('prepare') ||
+           lower.includes('download') ||
+           lower.includes('generate') ||
+           lower.includes('official') ||
+           lower.includes('ready'));
+
+        if (isFormIntent) {
+          const allReqs = demoRequirements || [];
+          let targetReq = null;
+
+          if (lower.includes('ein') || lower.includes('tax id') || lower.includes('ss-4') || lower.includes('ss4') || lower.includes('irs')) {
+            targetReq = allReqs.find((r) => r.id === 'demo-req-ein') || allReqs.find((r) => (r.requirement_name || '').toLowerCase().includes('ein'));
+          } else if (lower.includes('permit') || lower.includes('health') || lower.includes('protection') || lower.includes('food')) {
+            targetReq =
+              allReqs.find((r) => (r.requirement_name || '').toLowerCase().includes('permit')) ||
+              allReqs.find((r) => (r.requirement_name || '').toLowerCase().includes('vending')) ||
+              allReqs.find((r) => (r.requirement_name || '').toLowerCase().includes('license'));
+          } else if (lower.includes('vending') || lower.includes('vendor') || lower.includes('license')) {
+            targetReq =
+              allReqs.find((r) => (r.requirement_name || '').toLowerCase().includes('vending')) ||
+              allReqs.find((r) => (r.requirement_name || '').toLowerCase().includes('license'));
+          }
+
+          if (!targetReq) {
+            const isInd = (activeBiz?.country || localStorage.getItem('country')) === 'India';
+            targetReq =
+              allReqs.find((r) => (isInd ? r.id === 'demo-req-fssai' || r.id === 'demo-req-001' : r.id === 'demo-req-nyc-1' || r.id === 'demo-req-nyc-2' || r.id === 'demo-req-la-1')) ||
+              allReqs[0];
+          }
+
+          if (targetReq) {
+            const updatedBiz = { ...activeBiz, ...extracted };
+            const readiness = checkApplicationReadiness(targetReq, updatedBiz);
+
+            if (readiness.isReady) {
+              setInput('');
+              const readyMsg = {
+                role: 'model',
+                content: `📋 **Official Government Form Ready for ${targetReq.requirement_name}!**\n\nAll required statutory details for **${targetReq.requirement_name}** (${targetReq.issuing_agency}) are verified in your business ledger.\n\nYour information will be stamped directly into the official government application document with pixel precision. Click below to download:`,
+                actions: [
+                  {
+                    type: 'DOWNLOAD_OFFICIAL_FORM',
+                    requirement_id: targetReq.id,
+                    requirement_name: targetReq.requirement_name,
+                    label: '📥 Download Filled Official Form',
+                  },
+                  {
+                    type: 'DOWNLOAD_PACKET',
+                    requirement_id: targetReq.id,
+                    label: '🔍 View in Prefill Inspector',
+                  },
+                ],
+                timestamp: new Date(),
+                loading: false,
+              };
+              setMessages((prev) => [...prev, userMsg, readyMsg]);
+              return;
+            } else {
+              setIntakeState({
+                requirementId: targetReq.id,
+                requirementName: targetReq.requirement_name,
+                issuingAgency: targetReq.issuing_agency,
+                city: targetReq.city,
+                country: targetReq.country,
+                missingFields: readiness.missingFields,
+              });
+              setInput('');
+
+              const missingBullets = readiness.missingFields
+                .map((f) => `• **${f.label}**`)
+                .join('\n');
+
+              const askMsg = {
+                role: 'model',
+                content: `I'll help you prepare your official government application for **${targetReq.requirement_name}** (${targetReq.issuing_agency})!\n\nTo ensure the licensing authority accepts your form without rejection, I just need a few basic details that are missing from your business records:\n\n${missingBullets}\n\n💬 *You can reply however you like (e.g. simply typing your ZIP code \`10036\` or answering naturally). I'll automatically save it to your ledger and generate your official government form immediately!*`,
+                timestamp: new Date(),
+                loading: false,
+              };
+              setMessages((prev) => [...prev, userMsg, askMsg]);
+              return;
+            }
+          }
+        }
+      }
+
+      // 4. Standard Copilot Query
+      const aiPlaceholder = { role: 'model', content: '', timestamp: new Date(), loading: true };
       setMessages((prev) => [...prev, userMsg, aiPlaceholder]);
       setInput('');
       setStreaming(true);
@@ -378,7 +724,7 @@ export default function ComplianceAI() {
         setStreaming(false);
       }
     },
-    [input, streaming, messages, isDemo, activeProfile, activeBiz]
+    [input, streaming, messages, isDemo, activeProfile, activeBiz, intakeState, demoRequirements, updateDemoBusiness]
   );
 
   const handleCopy = (content, index) => {
@@ -610,10 +956,15 @@ export default function ComplianceAI() {
                                 <button
                                   key={aIdx}
                                   onClick={() => handleAction(act)}
-                                  className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-ink hover:bg-ink/90 text-white text-xs font-display font-semibold transition-all shadow-xs cursor-pointer"
+                                  className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-display font-semibold transition-all shadow-xs cursor-pointer ${
+                                    act.type === 'DOWNLOAD_OFFICIAL_FORM'
+                                      ? 'bg-accent hover:bg-accent-dark text-white ring-2 ring-accent/20'
+                                      : 'bg-ink hover:bg-ink/90 text-white'
+                                  }`}
                                 >
                                   {act.type === 'OPEN_SCAN' && <ScanLine size={12} />}
                                   {act.type === 'DOWNLOAD_PACKET' && <FileDown size={12} />}
+                                  {act.type === 'DOWNLOAD_OFFICIAL_FORM' && <FileDown size={13} className="text-white" />}
                                   {act.type === 'OPEN_RENEWAL' && <CreditCard size={12} />}
                                   {act.type === 'OPEN_SOURCE' && <ExternalLink size={12} />}
                                   {act.type === 'NAVIGATE_REQUIREMENTS' && <FileCheck2 size={12} />}

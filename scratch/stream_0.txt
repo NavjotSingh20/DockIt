@@ -1,0 +1,164 @@
+0 0 0 1 K
+0.5 w 4 M 
+/GS0 gs
+q 1 0 0 1 18.008 535.5 cm
+0 0 m
+575.992 0 l
+S
+Q
+q 1 0 0 1 18.008 507.5 cm
+0 0 m
+575.992 0 l
+S
+Q
+0 0 0 0 k
+/GS1 gs
+19.01 509.001 574.49 24.499 re
+f
+BT
+0 0 0 1 k
+/GS0 gs
+/T1_0 1 Tf
+0.028 Tw 9 0 0 9 20.01 525.426 Tm
+(IMPORTANT:  )Tj
+0.005 Tc [(Please type or print legibly in ink using capital letters. Allow spaces \between completed words or numbers. Standard)5( )-5(   )]TJ
+0 -1.222 TD
+(abbreviations are permitted. All sections must be completed in ink.)Tj
+/T1_1 1 Tf
+0 Tc 7.5 0 0 7.5 19.75 29.105 Tm
+(314C \(Rev. 3/17\))Tj
+/T1_2 1 Tf
+0 Tw ( )Tj
+/T1_3 1 Tf
+0.028 Tw 7.867 0 Td
+(Application for a New DOHMH License or Permit)Tj
+/T1_0 1 Tf
+57.2 0 Td
+(\(continued on next page\))Tj
+/T1_4 1 Tf
+0.01 Tc 8.34 0 0 9.0072 48.9895 42.4781 Tm
+(CITYWIDE LICENSING CENTER \226 DEPARTMENT OF HEALTH AND MENTAL HYGIENE \226\ 42 BROADWAY, NEW YORK, NY 10004)Tj
+ET
+q 1 0 0 1 465.5845 442.0005 cm
+0 0 m
+0 -18.407 l
+S
+Q
+q 1 0 0 1 519.906 442 cm
+0 0 m
+0 -18.626 l
+S
+Q
+q 1 0 0 1 412.265 436.511 cm
+0 0 m
+0 -12.818 l
+S
+Q
+q 1 0 0 1 430.2885 436.0105 cm
+0 0 m
+0 -12.317 l
+S
+Q
+q 1 0 0 1 448.312 436.511 cm
+0 0 m
+0 -12.818 l
+S
+Q
+q 1 0 0 1 484.359 436.511 cm
+0 0 m
+0 -12.818 l
+S
+Q
+q 1 0 0 1 502.383 436.011 cm
+0 0 m
+0 -12.318 l
+S
+Q
+q 1 0 0 1 538.43 436.011 cm
+0 0 m
+0 -12.318 l
+S
+Q
+q 1 0 0 1 556.4535 436.0106 cm
+0 0 m
+0 -12.317 l
+S
+Q
+q 1 0 0 1 574.477 436.511 cm
+0 0 m
+0 -12.818 l
+S
+Q
+q 1 0 0 1 465.5845 408.0005 cm
+0 0 m
+0 -18.407 l
+S
+Q
+q 1 0 0 1 519.906 408 cm
+0 0 m
+0 -18.626 l
+S
+Q
+q 1 0 0 1 412.265 402.511 cm
+0 0 m
+0 -12.818 l
+S
+Q
+q 1 0 0 1 430.2885 402.0105 cm
+0 0 m
+0 -12.317 l
+S
+Q
+q 1 0 0 1 448.312 402.511 cm
+0 0 m
+0 -12.818 l
+S
+Q
+q 1 0 0 1 484.359 402.511 cm
+0 0 m
+0 -12.818 l
+S
+Q
+q 1 0 0 1 502.383 402.011 cm
+0 0 m
+0 -12.318 l
+S
+Q
+q 1 0 0 1 538.43 402.011 cm
+0 0 m
+0 -12.318 l
+S
+Q
+q 1 0 0 1 556.4535 402.0105 cm
+0 0 m
+0 -12.317 l
+S
+Q
+q 1 0 0 1 574.477 402.511 cm
+0 0 m
+0 -12.818 l
+S
+Q
+0 0 0 0 k
+/GS1 gs
+19 56.25 574.497 64.5 re
+f
+/GS0 gs
+19 56.25 574.497 64.5 re
+S
+BT
+0 0 0 1 k
+/T1_4 1 Tf
+0 Tc 8.5 0 0 8.5 23.756 109.737 Tm
+(SECTION D)Tj
+/T1_1 1 Tf
+( \226 )Tj
+-0.005 Tc 8.245 0 0 8.5 80.0376 109.737 Tm
+(MAILING ADDRESS, IF DIFFERENT FROM PERMITTED/LICENSED ESTABLISHMENT\222S\ ADDRESS \(INCLUDE APARTMENT #, PO BOX )Tj
+0.005 Tw 8.5 0 0 8.5 580.6455 109.737 Tm
+(#\))Tj
+0 Tc 0.028 Tw 7.5 0 0 7.5 23.756 95.548 Tm
+(STREET ADDRESS)Tj
+0 -3.219 TD
+(CITY OR TOWN )Tj
+ 

@@ -1,0 +1,143 @@
+    ( )Tj
+EMC 
+1.375 0 Td
+(is any correspondence from the Department of Health that requires a resp\onse by a date certain. These include, but are not )Tj
+(limited to, permit or license )Tj
+/Span<</ActualText<FEFF0009>>> BDC 
+( )Tj
+EMC 
+/Span<</ActualText<FEFF0009>>> BDC 
+-1.375 -1.163 Td
+( )Tj
+EMC 
+1.375 0 Td
+(renewal notices; notices of fines or fees owed; collection letters and D\unning Notices, and Notices of Violations.)Tj
+0 Tw 7 0 0 7 437.3312 222.106 Tm
+( )Tj
+/T1_6 1 Tf
+9.18 0 0 8.5 23.5 207.306 Tm
+(\037)Tj
+/Span<</ActualText<FEFF0009>>> BDC 
+8.925 0 0 8.5 31.6609 207.306 Tm
+(\036)Tj
+EMC 
+/T1_1 1 Tf
+0.028 Tw 8 0 0 8 34.5 207.806 Tm
+(I would like to receive Department of Health publications, including inf\ormation about new regulations, newsletters, fact )Tj
+(sheets and other educational )Tj
+/Span<</ActualText<FEFF0009>>> BDC 
+( )Tj
+EMC 
+/Span<</ActualText<FEFF0009>>> BDC 
+-1.375 -1.163 Td
+( )Tj
+EMC 
+1.375 0 Td
+(material, only by )Tj
+/T1_4 1 Tf
+0 Tw (email)Tj
+/T1_1 1 Tf
+0.028 Tw ( at the )Tj
+/T1_4 1 Tf
+0 Tw (email)Tj
+/T1_1 1 Tf
+0.028 Tw ( address provided in this application form.)Tj
+ET
+0.5 w 
+q 1 0 0 1 362.5 330.5 cm
+0 0 m
+231 0 l
+S
+Q
+0 0 0 0.1 k
+/GS1 gs
+172.498 289.5 189.503 40 re
+f
+/GS0 gs
+q 1 0 0 1 172.3015 330.3585 cm
+0 0 m
+0 -41.359 l
+S
+Q
+q 1 0 0 1 19.5 289 cm
+0 0 m
+574 0 l
+S
+Q
+q 1 0 0 1 196.0055 306.2375 cm
+0 0 m
+0 -16.737 l
+S
+Q
+q 1 0 0 1 243.414 306.238 cm
+0 0 m
+0 -16.738 l
+S
+Q
+q 1 0 0 1 291.822 306.238 cm
+0 0 m
+0 -16.738 l
+S
+Q
+q 1 0 0 1 315.526 306.238 cm
+0 0 m
+0 -16.738 l
+S
+Q
+q 1 0 0 1 339.23 306 cm
+0 0 m
+0 -16.5 l
+S
+Q
+q 1 0 0 1 219.7095 330.5525 cm
+0 0 m
+0 -41.053 l
+S
+Q
+q 1 0 0 1 267.118 330.554 cm
+0 0 m
+0 -41.054 l
+S
+Q
+BT
+0 0 0 1 k
+/T1_1 1 Tf
+7 0 0 7 174.665 320.498 Tm
+(    MONTH             DAY                          YEAR)Tj
+ET
+q 1 0 0 1 172.5 317 cm
+0 0 m
+421 0 l
+S
+Q
+q 1 0 0 1 18.751 330.625 cm
+0 0 m
+344.251 0 l
+S
+Q
+1 w 
+q 1 0 0 1 19 251.5 cm
+0 0 m
+574.5 0 l
+S
+Q
+BT
+/T1_1 1 Tf
+7.5 0 0 7.5 24.005 319.309 Tm
+(DATE OF BIRTH)Tj
+8.5 0 0 8.5 24.005 307.309 Tm
+(\(If applying as an individual\) )Tj
+7.5 0 0 7.5 366.203 447.752 Tm
+(TELEPHONE NUMBER)Tj
+7 0 0 7 366.203 428.752 Tm
+(\(AREA CODE\))Tj
+7.5 0 0 7.5 366.203 413.752 Tm
+(FAX NUMBER)Tj
+7 0 0 7 366.203 394.752 Tm
+(\(AREA CODE\))Tj
+7.5 0 0 7.5 293.8058 350.662 Tm
+(ZIP CODE)Tj
+0 Tw -9.731 0 Td
+(STATE)Tj
+ET
+   

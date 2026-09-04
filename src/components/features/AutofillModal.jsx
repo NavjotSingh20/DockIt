@@ -1,5 +1,6 @@
 import { useState, useMemo } from 'react';
 import { createPortal } from 'react-dom';
+import { useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   FileText,
@@ -10,14 +11,18 @@ import {
   ShieldCheck,
   Sparkles,
   AlertCircle,
+  AlertTriangle,
   Globe,
+  ArrowRight,
+  CheckCircle2,
 } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import toast from 'react-hot-toast';
-import { fillOfficialForm, hasOfficialForm, detectCountry } from '../../utils/formFillEngine';
+import { fillOfficialForm, hasOfficialForm, detectCountry, checkApplicationReadiness } from '../../utils/formFillEngine';
 
 export default function AutofillModal({ isOpen, onClose, requirement, business }) {
   const { t } = useTranslation();
+  const navigate = useNavigate();
   const [downloading, setDownloading] = useState(false);
 
   const country = detectCountry(requirement, business);
@@ -184,24 +189,74 @@ export default function AutofillModal({ isOpen, onClose, requirement, business }
     }
   };
 
-  const defaultAddress = country === 'India'
-    ? (city.includes('Delhi') ? 'Connaught Place, New Delhi' : 'SCO 142-143, Sector 26, Chandigarh')
-    : (city.toLowerCase().includes('los angeles') ? '1100 S Grand Ave, Los Angeles, CA 90015' : '450 W 42nd St, New York, NY 10036');
+  const readiness = useMemo(() => checkApplicationReadiness(requirement, business), [requirement, business]);
 
-  const defaultPhone = country === 'India' ? '+91 98765 43210' : (city.toLowerCase().includes('los angeles') ? '+1 213 555 0144' : '+1 212 555 0199');
-  const defaultEmail = country === 'India' ? 'contact@business.in' : (city.toLowerCase().includes('los angeles') ? 'alex@grandviewgrill.com' : 'mara@ricoscurbside.com');
-  const defaultBizName = country === 'India' ? 'Urban Tadka Kitchen' : (city.toLowerCase().includes('los angeles') ? 'Grandview Grill' : "Rico's Curbside Kitchen");
-  const defaultOwnerName = country === 'India' ? 'Business Owner' : (city.toLowerCase().includes('los angeles') ? 'Alex Rivera' : 'Mara Rosas');
+  const handleCompleteWithAI = () => {
+    const intakeContext = {
+      requirementId: requirement?.id,
+      requirementName: formMeta?.formTitle || requirement?.requirement_name,
+      formCode: formMeta?.formCode,
+      issuingAgency: formMeta?.authority || requirement?.issuing_agency,
+      missingFields: readiness?.missingFields || [],
+      businessName: business?.business_name || '',
+      city,
+      country,
+    };
+    try {
+      sessionStorage.setItem('dockit_ai_intake', JSON.stringify(intakeContext));
+    } catch (e) {
+      console.error('Failed to set dockit_ai_intake:', e);
+    }
+    onClose();
+    navigate('/compliance-ai');
+  };
 
   const fields = [
-    { label: 'Establishment / Trade Name', value: business?.business_name || defaultBizName },
-    { label: 'Applicant / Managing Operator', value: business?.owner_name || defaultOwnerName },
-    { label: 'Authorized Premises Address', value: business?.address || defaultAddress },
-    { label: 'Jurisdiction / City', value: `${city} (${country})` },
-    { label: 'Contact Phone & Email', value: `${business?.phone || defaultPhone} · ${business?.email || defaultEmail}` },
-    { label: 'Category & Regulatory Tier', value: `${formMeta.tier}` },
-    { label: 'Prescribed Statutory Fee', value: `${formMeta.annualFee}` },
-    { label: 'Target Authority', value: `${formMeta.authority}` },
+    {
+      label: 'Establishment / Trade Name',
+      value: business?.business_name || 'Not provided in profile',
+      isMissing: !business?.business_name,
+    },
+    {
+      label: 'Applicant / Managing Operator',
+      value: business?.owner_name || 'Not provided in profile',
+      isMissing: !business?.owner_name,
+    },
+    {
+      label: 'Authorized Premises Address',
+      value: business?.address || 'Not provided in profile',
+      isMissing: !business?.address,
+    },
+    {
+      label: 'Jurisdiction / Operating City',
+      value: business?.city || city || 'Not specified',
+      isMissing: !business?.city && !city,
+    },
+    {
+      label: 'Contact Phone Number',
+      value: business?.phone || 'Not provided in profile',
+      isMissing: !business?.phone,
+    },
+    {
+      label: 'Contact Email Address',
+      value: business?.email || 'Not provided in profile',
+      isMissing: !business?.email,
+    },
+    {
+      label: 'Category & Regulatory Tier',
+      value: formMeta.tier,
+      isMissing: false,
+    },
+    {
+      label: 'Prescribed Statutory Fee',
+      value: formMeta.annualFee,
+      isMissing: false,
+    },
+    {
+      label: 'Target Authority',
+      value: formMeta.authority,
+      isMissing: false,
+    },
   ];
 
   return createPortal(
@@ -279,6 +334,51 @@ export default function AutofillModal({ isOpen, onClose, requirement, business }
               </a>
             </div>
 
+            {/* Missing Profile Information Alert Card & AI Intake CTA */}
+            {isFillable && !readiness.isReady && (
+              <div className="bg-amber-500/10 border border-amber-500/30 rounded-xl p-4 space-y-3">
+                <div className="flex items-start gap-2.5">
+                  <AlertTriangle size={18} className="text-amber-600 dark:text-amber-400 shrink-0 mt-0.5" />
+                  <div>
+                    <div className="font-display font-bold text-ink text-sm">
+                      Missing Information for Official Form Filling
+                    </div>
+                    <p className="text-xs text-ink-muted leading-relaxed mt-0.5">
+                      Government regulatory bodies require complete, verified applicant details before processing statutory filings. The following fields are not set on your profile:
+                    </p>
+                  </div>
+                </div>
+
+                {/* Missing Field Badges */}
+                <div className="flex flex-wrap gap-1.5 pt-1">
+                  {readiness.missingFields.map((f, idx) => (
+                    <span
+                      key={idx}
+                      className="inline-flex items-center gap-1.5 text-[11px] font-mono font-medium px-2.5 py-1 rounded-lg bg-amber-500/20 text-amber-900 dark:text-amber-200 border border-amber-500/30"
+                    >
+                      <span className="w-1.5 h-1.5 rounded-full bg-amber-500" />
+                      {f.label}
+                    </span>
+                  ))}
+                </div>
+
+                {/* AI Assistant Banner Footer */}
+                <div className="pt-2 border-t border-amber-500/20 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                  <span className="text-[11px] text-ink-muted leading-tight">
+                    Our Compliance AI can ask you these missing details conversationally and pre-fill your form automatically.
+                  </span>
+                  <button
+                    onClick={handleCompleteWithAI}
+                    className="inline-flex items-center justify-center gap-1.5 px-3.5 py-2 rounded-xl bg-accent hover:bg-accent-dark text-white font-display font-bold text-xs shadow-xs transition-all cursor-pointer shrink-0"
+                  >
+                    <Sparkles size={13} />
+                    <span>Complete with Compliance AI</span>
+                    <ArrowRight size={13} />
+                  </button>
+                </div>
+              </div>
+            )}
+
             {/* If NOT fillable: Honest Notice */}
             {!isFillable && (
               <div className="bg-amber-50 border border-amber-200 rounded-xl p-4 space-y-2 text-amber-900">
@@ -311,19 +411,37 @@ export default function AutofillModal({ isOpen, onClose, requirement, business }
             <div>
               <div className="flex items-center justify-between mb-2">
                 <span className="font-display font-bold text-ink text-xs flex items-center gap-1.5">
-                  <ShieldCheck size={14} className="text-settled" />
-                  {isFillable ? 'Auto-Mapped Business Ledger Data (8 Fields)' : 'Your Business Reference Details'}
+                  {readiness.isReady ? (
+                    <CheckCircle2 size={14} className="text-settled" />
+                  ) : (
+                    <AlertTriangle size={14} className="text-amber-500" />
+                  )}
+                  {isFillable ? 'Auto-Mapped Business Ledger Data' : 'Your Business Reference Details'}
                 </span>
-                <span className="text-[11px] text-settled font-semibold">
-                  ✓ Verified from Active Profile
+                <span className={`text-[11px] font-semibold flex items-center gap-1 ${readiness.isReady ? 'text-settled' : 'text-amber-600'}`}>
+                  {readiness.isReady
+                    ? `✓ Verified from Active Profile (${readiness.readyFields}/${readiness.totalFields} ready)`
+                    : `⚠️ Missing Details (${readiness.readyFields}/${readiness.totalFields} ready)`}
                 </span>
               </div>
 
               <div className="bg-surface border border-rule rounded-xl divide-y divide-rule/60 overflow-hidden">
                 {fields.map((f, i) => (
-                  <div key={i} className="flex items-center justify-between p-2.5 hover:bg-base/40 transition-colors">
-                    <span className="text-ink-muted text-[11px] w-1/3">{f.label}</span>
-                    <span className="font-semibold text-ink text-right w-2/3 truncate">{f.value}</span>
+                  <div
+                    key={i}
+                    className={`flex items-center justify-between p-2.5 transition-colors ${f.isMissing ? 'bg-amber-500/5' : 'hover:bg-base/40'}`}
+                  >
+                    <span className="text-ink-muted text-[11px] w-5/12 flex items-center gap-1.5">
+                      <span>{f.label}</span>
+                      {f.isMissing && (
+                        <span className="text-[9px] font-mono font-bold uppercase px-1.5 py-0.5 rounded bg-amber-500/15 text-amber-700 dark:text-amber-300 border border-amber-500/30">
+                          Missing
+                        </span>
+                      )}
+                    </span>
+                    <span className={`text-right w-7/12 truncate ${f.isMissing ? 'text-amber-700 italic font-medium' : 'font-semibold text-ink'}`}>
+                      {f.value}
+                    </span>
                   </div>
                 ))}
               </div>
@@ -341,40 +459,67 @@ export default function AutofillModal({ isOpen, onClose, requirement, business }
           </div>
 
           {/* Footer Actions */}
-          <div className="p-4 bg-surface border-t border-rule flex items-center justify-between gap-3">
+          <div className="p-4 bg-surface border-t border-rule flex flex-col sm:flex-row items-center justify-between gap-3">
             <button
               onClick={onClose}
-              className="btn-secondary text-xs h-9 px-4 rounded-xl cursor-pointer"
+              className="btn-secondary text-xs h-9 px-4 rounded-xl cursor-pointer w-full sm:w-auto"
             >
               Close
             </button>
 
-            {isFillable ? (
-              <button
-                onClick={handleDownload}
-                disabled={downloading}
-                className="btn-primary text-xs h-9 px-5 rounded-xl inline-flex items-center gap-2 cursor-pointer"
-              >
-                {downloading ? (
-                  <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
-                ) : (
-                  <>
-                    <FileDown size={14} />
-                    <span>Download Pre-filled Official PDF</span>
-                  </>
-                )}
-              </button>
-            ) : (
-              <a
-                href={formMeta.portalUrl}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="btn-primary text-xs h-9 px-5 rounded-xl inline-flex items-center gap-2 cursor-pointer"
-              >
-                <ExternalLink size={14} />
-                <span>Open Government Portal</span>
-              </a>
-            )}
+            <div className="flex items-center gap-2 w-full sm:w-auto justify-end">
+              {isFillable ? (
+                <>
+                  {!readiness.isReady ? (
+                    <>
+                      <button
+                        onClick={handleDownload}
+                        disabled={downloading}
+                        className="btn-secondary text-xs h-9 px-3 rounded-xl inline-flex items-center gap-1.5 cursor-pointer text-ink-muted hover:text-ink"
+                        title="Download available information as a draft PDF"
+                      >
+                        <FileDown size={13} />
+                        <span>Download Draft</span>
+                      </button>
+
+                      <button
+                        onClick={handleCompleteWithAI}
+                        className="btn-primary text-xs h-9 px-4 rounded-xl inline-flex items-center gap-1.5 cursor-pointer shadow-sm"
+                      >
+                        <Sparkles size={13} />
+                        <span>Complete with Compliance AI</span>
+                        <ArrowRight size={13} />
+                      </button>
+                    </>
+                  ) : (
+                    <button
+                      onClick={handleDownload}
+                      disabled={downloading}
+                      className="btn-primary text-xs h-9 px-5 rounded-xl inline-flex items-center gap-2 cursor-pointer shadow-sm"
+                    >
+                      {downloading ? (
+                        <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                      ) : (
+                        <>
+                          <FileDown size={14} />
+                          <span>Download Pre-filled Official PDF</span>
+                        </>
+                      )}
+                    </button>
+                  )}
+                </>
+              ) : (
+                <a
+                  href={formMeta.portalUrl}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="btn-primary text-xs h-9 px-5 rounded-xl inline-flex items-center gap-2 cursor-pointer shadow-sm"
+                >
+                  <ExternalLink size={14} />
+                  <span>Open Government Portal</span>
+                </a>
+              )}
+            </div>
           </div>
         </motion.div>
       </div>

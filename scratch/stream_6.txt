@@ -1,0 +1,132 @@
+    -0 -4.448 Td
+(BUILDING NUMBER)Tj
+45.727 -0.033 Td
+(PREMISES LOCATION \( FLOOR, STORE #, BOOTH #\))Tj
+-45.693 -3.839 Td
+(CITY OR TOWN )Tj
+0 Tw 11.715 3.837 Td
+(STREET)Tj
+ET
+q 1 0 0 1 19.25 457.982 cm
+0 0 m
+573.752 0 l
+S
+Q
+q 1 0 0 1 19.251 423.181 cm
+0 0 m
+573.752 0 l
+S
+Q
+q 1 0 0 1 19.251 389.403 cm
+0 0 m
+574.252 0 l
+S
+Q
+q 1 0 0 1 19.251 360.543 cm
+0 0 m
+574.251 0 l
+S
+Q
+q 1 0 0 1 362.7015 457.9705 cm
+0 0 m
+0 -68.567 l
+S
+Q
+q 1 0 0 1 362.701 389.914 cm
+0 0 m
+0 -100.914 l
+S
+Q
+q 1 0 0 1 107.367 389.403 cm
+0 0 m
+0 -28.278 l
+S
+Q
+BT
+/T1_1 1 Tf
+7.5 0 0 7.5 366.455 351.173 Tm
+(E-MAIL)Tj
+/Span<</ActualText<FEFF2008>>> BDC 
+( )Tj
+EMC 
+[(ADDRESS )-28(\(REQUIRED\))]TJ
+12.378 -4.067 Td
+(OPTIONAL)Tj
+-12.178 -1.867 Td
+(GENDER:)Tj
+/Span<</ActualText<FEFF0009>>> BDC 
+( )Tj
+EMC 
+0.028 Tw 0 -1.067 TD
+(                    )Tj
+/T1_6 1 Tf
+0 Tw 9.265 0 0 8.5 413.8248 298.173 Tm
+(\037)Tj
+8.925 0 0 8.5 422.0613 298.173 Tm
+(\036)Tj
+/T1_1 1 Tf
+0.028 Tw 8 0 0 8 424.8102 298.673 Tm
+(Male      )Tj
+/T1_6 1 Tf
+0 Tw 9.265 0 0 8.5 456.8242 298.173 Tm
+(\037)Tj
+8.925 0 0 8.5 465.0607 298.173 Tm
+(\036)Tj
+/T1_1 1 Tf
+8 0 0 8 467.8096 298.673 Tm
+(Female)Tj
+ET
+1 w 
+q 1 0 0 1 19.251 484.088 cm
+0 0 m
+573.751 0 l
+S
+Q
+0 0 0 0 k
+/GS1 gs
+22.5 195.002 566.998 89.092 re
+f
+BT
+0 0 0 1 k
+/GS0 gs
+/T1_4 1 Tf
+0.005 Tc 0.028 Tw 8 0 0 8 23.5 276.806 Tm
+(Language Preference for Inspections:)Tj
+/T1_1 1 Tf
+[( If the permit you are applying for requires an inspection by the Depart\ment of Health and Mental Hygiene, do you)5( )]TJ
+0 -1.163 TD
+(prefer that this inspection be conducted in, or translated to, a languag\e other than English?  )Tj
+-0.005 Tw 42.133 0.125 Td
+(___)Tj
+0.028 Tw 1.515 -0.125 Td
+(  No  )Tj
+-0.005 Tw 2.549 0.125 Td
+(___)Tj
+0.028 Tw 1.515 -0.125 Td
+[( Yes)5( )]TJ
+-47.712 -1.187 Td
+(If \223yes\224 that language is _____________________________________.)Tj
+/T1_6 1 Tf
+0 Tc 0 Tw 9.18 0 0 8.5 23.5 240.206 Tm
+(\037)Tj
+/Span<</ActualText<FEFF0009>>> BDC 
+10.8 0 0 10 31.661 239.706 Tm
+(\036)Tj
+EMC 
+/T1_1 1 Tf
+0.028 Tw 8 0 0 8 34.5 240.706 Tm
+(I agree to receive all official notices from the Department of Health on\ly by )Tj
+/T1_4 1 Tf
+0 Tw (email)Tj
+/T1_1 1 Tf
+0.028 Tw ( at the )Tj
+/T1_4 1 Tf
+0 Tw (email)Tj
+/T1_1 1 Tf
+0.028 Tw ( address provided in this application form. An official notice )Tj
+/Span<</ActualText<FEFF0009>>> BDC 
+( )Tj
+EMC 
+/Span<</ActualText<FEFF0009>>> BDC 
+-1.375 -1.163 Td
+ 

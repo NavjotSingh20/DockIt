@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useParams, useNavigate, useOutletContext } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import { ArrowLeft, Edit2, Trash2, ExternalLink, Info,
+import { ArrowLeft, ArrowRight, Edit2, Trash2, ExternalLink, Info,
   UtensilsCrossed, Flame, Store, Building2, Coffee,
   Receipt, SignpostBig, Pill, FileText, FileDown, CheckCircle2, AlertCircle, FileCheck, Sparkles, CreditCard } from 'lucide-react';
 import toast from 'react-hot-toast';
@@ -200,9 +200,9 @@ export default function LicenseDetail() {
                       All required profile fields match this agency's official form template. Ready to generate and download.
                     </p>
                   ) : (
-                    <div className="space-y-1 mt-1.5">
+                    <div className="space-y-2 mt-1.5">
                       <p className="text-xs text-amber-800 leading-relaxed">
-                        To download the filled official government application, please provide the following missing profile details in Settings:
+                        To download the filled official government application, please provide the following missing profile details:
                       </p>
                       <ul className="flex flex-wrap gap-1.5 pt-1">
                         {readiness.missingFields.map((f, i) => (
@@ -211,6 +211,32 @@ export default function LicenseDetail() {
                           </li>
                         ))}
                       </ul>
+                      <div className="pt-2 border-t border-amber-200/60 flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+                        <span className="text-[11px] text-amber-900/80">
+                          Need help? Let our AI assistant collect missing fields:
+                        </span>
+                        <button
+                          onClick={() => {
+                            const intakeContext = {
+                              requirementId: reqObj.id,
+                              requirementName: reqObj.requirement_name,
+                              issuingAgency: reqObj.issuing_agency,
+                              missingFields: readiness.missingFields,
+                              city: business?.city,
+                              country: business?.country || 'USA',
+                            };
+                            try {
+                              sessionStorage.setItem('dockit_ai_intake', JSON.stringify(intakeContext));
+                            } catch (e) {}
+                            navigate('/compliance-ai');
+                          }}
+                          className="inline-flex items-center justify-center gap-1.5 px-3 py-1.5 rounded-lg bg-accent hover:bg-accent-dark text-white font-display font-bold text-xs cursor-pointer shadow-xs shrink-0"
+                        >
+                          <Sparkles size={12} />
+                          <span>Complete with Compliance AI</span>
+                          <ArrowRight size={12} />
+                        </button>
+                      </div>
                     </div>
                   )}
                 </div>

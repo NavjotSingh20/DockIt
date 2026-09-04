@@ -1,0 +1,157 @@
+    S
+Q
+q 1 0 0 1 545.5935 142.4995 cm
+0 0 m
+0 -14.499 l
+S
+Q
+q 1 0 0 1 561.2555 142.4995 cm
+0 0 m
+0 -14.499 l
+S
+Q
+q 1 0 0 1 576.7485 142.4995 cm
+0 0 m
+0 -14.499 l
+S
+Q
+0 0 0 0 k
+/GS1 gs
+157.748 127.75 435.504 56.5 re
+f
+/GS0 gs
+157.748 127.75 435.504 56.5 re
+S
+0 0 0 0.1 k
+/GS1 gs
+314.5 128.5 277.992 55 re
+f
+BT
+0 0 0 1 k
+/GS0 gs
+/T1_1 1 Tf
+8.5 0 0 8.5 317.528 173.57 Tm
+(SOCIAL SECURITY NUMBER)Tj
+0 -1.176 TD
+(\(If applying as an individual\) )Tj
+16.144 1.176 Td
+(ITIN NUMBER \(If no SSN and )Tj
+0 -1.2 TD
+(applying as an individual\) )Tj
+ET
+q 1 0 0 1 451.674 184 cm
+0 0 m
+0 -56 l
+S
+Q
+q 1 0 0 1 158 158.881 cm
+0 0 m
+435 0 l
+S
+Q
+q 1 0 0 1 313.762 184 cm
+0 0 m
+0 -56 l
+S
+Q
+BT
+/T1_1 1 Tf
+8.5 0 0 8.5 162.03 174.07 Tm
+(SECTION C \226 NYS SALES TAX ID# )Tj
+ET
+q 1 0 0 1 173.438 142.5 cm
+0 0 m
+0 -14.5 l
+S
+Q
+q 1 0 0 1 189.0025 142.4995 cm
+0 0 m
+0 -14.499 l
+S
+Q
+q 1 0 0 1 204.567 142.5 cm
+0 0 m
+0 -14.5 l
+S
+Q
+q 1 0 0 1 220.1315 142.4995 cm
+0 0 m
+0 -14.499 l
+S
+Q
+q 1 0 0 1 235.696 142.5 cm
+0 0 m
+0 -14.5 l
+S
+Q
+q 1 0 0 1 251.2605 142.4995 cm
+0 0 m
+0 -14.499 l
+S
+Q
+q 1 0 0 1 266.8245 142.4995 cm
+0 0 m
+0 -14.499 l
+S
+Q
+q 1 0 0 1 282.3895 142.4995 cm
+0 0 m
+0 -14.499 l
+S
+Q
+q 1 0 0 1 297.9535 142.4995 cm
+0 0 m
+0 -14.499 l
+S
+Q
+q 1 0 0 1 193.392 135.995 cm
+0 0 m
+7.483 0 l
+S
+Q
+0 0 0 0 k
+/GS1 gs
+18.75 543.25 574.5 64 re
+f
+1.5 w 
+/GS0 gs
+18.75 543.25 574.5 64 re
+S
+BT
+0 0 0 1 k
+/T1_1 1 Tf
+9 0 0 9 23.5 595.426 Tm
+(NAME OF LICENSE/PERMIT )Tj
+8 0 0 8 23.5 585.826 Tm
+(\(For detailed instructions and information about what is required to ap\ply for this permit, please go to )Tj
+(www.nyc.gov/healthpermits\))Tj
+ET
+0.5 w 
+19.001 192.75 574.251 306.5 re
+S
+BT
+/T1_4 1 Tf
+8.5 0 0 8.5 24 488.193 Tm
+(SECTION A)Tj
+/T1_1 1 Tf
+( \226 NAME, ADDRESS AND CONTACT INFORMATION OF ENTITY TO WHICH LICENSE/P\ERMIT IS TO BE ISSUED)Tj
+/T1_4 1 Tf
+0 -1.808 TD
+(READ CAREFULLY:)Tj
+/T1_1 1 Tf
+7.5 0 0 7.5 103.5829 472.827 Tm
+(   )Tj
+/T1_0 1 Tf
+0.005 Tc 8.5 0 0 8.5 110.4634 472.827 Tm
+(Enter the corporate name and location of business establishment. If not \incorporated, enter your name\(s\) and location of)Tj
+-10.172 -1.176 Td
+(                                business establishment.)Tj
+/T1_1 1 Tf
+0 Tc 0.024 Tw 7.5 0 0 7.5 24 448.2631 Tm
+(NAME OF CORPORATION, PARTNERSHIP, PARTNERS OR INDIVIDUAL OWNER )Tj
+/T1_0 1 Tf
+(\(Last Name First\))Tj
+/T1_1 1 Tf
+0.028 Tw -0.033 -4.626 Td
+(TRADE NAME/Doing Business As \(DBA\))Tj
+ 

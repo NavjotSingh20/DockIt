@@ -1367,7 +1367,10 @@ export async function fillOfficialForm(requirement, business) {
               let chars = [];
               if (dataKey === 'phone') {
                 const digits = textStr.replace(/\D/g, '');
-                const cleanDigits = (digits.length === 11 && digits.startsWith('1')) ? digits.slice(1) : digits;
+                let cleanDigits = (digits.length === 11 && digits.startsWith('1')) ? digits.slice(1) : (digits.length > 10 ? digits.slice(-10) : digits);
+                if (cleanDigits.length === 7 && slots.length === 10) {
+                  cleanDigits = '   ' + cleanDigits;
+                }
                 chars = cleanDigits.split('');
               } else if (dataKey === 'state') {
                 chars = textStr.replace(/[^A-Za-z]/g, '').toUpperCase().slice(0, slots.length).split('');

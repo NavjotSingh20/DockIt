@@ -85,9 +85,30 @@ export const getProfileFieldValue = (keyName, business, requirement) => {
     case 'city':
       return rawCity;
     case 'state': {
-      if (rawState) return rawState;
-      const stateMatch = (business?.address || '').match(/\b([A-Z]{2})\b/);
-      return stateMatch ? stateMatch[1] : '';
+      let st = rawState;
+      if (!st && business?.address) {
+        const stateMatch = business.address.match(/\b([A-Z]{2})\b/);
+        if (stateMatch) st = stateMatch[1];
+      }
+      if (st) {
+        const lower = st.trim().toLowerCase();
+        const US_STATE_ABBRS = {
+          'alabama': 'AL', 'alaska': 'AK', 'arizona': 'AZ', 'arkansas': 'AR', 'california': 'CA',
+          'colorado': 'CO', 'connecticut': 'CT', 'delaware': 'DE', 'florida': 'FL', 'georgia': 'GA',
+          'hawaii': 'HI', 'idaho': 'ID', 'illinois': 'IL', 'indiana': 'IN', 'iowa': 'IA',
+          'kansas': 'KS', 'kentucky': 'KY', 'louisiana': 'LA', 'maine': 'ME', 'maryland': 'MD',
+          'massachusetts': 'MA', 'michigan': 'MI', 'minnesota': 'MN', 'mississippi': 'MS', 'missouri': 'MO',
+          'montana': 'MT', 'nebraska': 'NE', 'nevada': 'NV', 'new hampshire': 'NH', 'new jersey': 'NJ',
+          'new mexico': 'NM', 'new york': 'NY', 'north carolina': 'NC', 'north dakota': 'ND', 'ohio': 'OH',
+          'oklahoma': 'OK', 'oregon': 'OR', 'pennsylvania': 'PA', 'rhode island': 'RI', 'south carolina': 'SC',
+          'south dakota': 'SD', 'tennessee': 'TN', 'texas': 'TX', 'utah': 'UT', 'vermont': 'VT',
+          'virginia': 'VA', 'washington': 'WA', 'west virginia': 'WV', 'wisconsin': 'WI', 'wyoming': 'WY',
+          'district of columbia': 'DC'
+        };
+        if (US_STATE_ABBRS[lower]) return US_STATE_ABBRS[lower];
+        if (st.trim().length === 2) return st.trim().toUpperCase();
+      }
+      return st;
     }
     case 'zip':
       return rawZip;
@@ -1134,19 +1155,55 @@ export function getOfficialTemplateAndMap(requirement, business) {
       fieldMap: {
         mode: 'overlay',
         fields: {
-          owner_name: { page: 0, x: 28, y: 435, fontSize: 9, minFontSize: 7, maxWidth: 325 },
-          phone: { page: 0, x: 418, y: 435, fontSize: 9, minFontSize: 7, maxWidth: 170 },
-          business_name: { page: 0, x: 28, y: 400, fontSize: 9, minFontSize: 7, maxWidth: 325 },
-          building_number: { page: 0, x: 28, y: 370, fontSize: 9, minFontSize: 7, maxWidth: 70 },
-          street: { page: 0, x: 116, y: 370, fontSize: 9, minFontSize: 7, maxWidth: 240 },
-          city: { page: 0, x: 28, y: 340, fontSize: 9, minFontSize: 7, maxWidth: 185 },
-          state: { page: 0, x: 236, y: 340, fontSize: 9, minFontSize: 7, maxWidth: 28 },
-          zip: { page: 0, x: 300, y: 340, fontSize: 9, minFontSize: 7, maxWidth: 60 },
-          email: { page: 0, x: 372, y: 340, fontSize: 8.5, minFontSize: 6.5, maxWidth: 215 },
+          owner_name: { page: 0, x: 28, y: 432, fontSize: 9, minFontSize: 7, maxWidth: 330 },
+          phone: {
+            page: 0,
+            x: 421.28,
+            y: 431,
+            fontSize: 8.5,
+            slots: [421.28, 439.30, 456.95, 474.97, 493.37, 511.14, 529.17, 547.44, 565.47, 583.74]
+          },
+          business_name: { page: 0, x: 28, y: 398, fontSize: 9, minFontSize: 7, maxWidth: 330 },
+          building_number: { page: 0, x: 28, y: 368, fontSize: 9, minFontSize: 7, maxWidth: 75 },
+          street: { page: 0, x: 116, y: 368, fontSize: 9, minFontSize: 7, maxWidth: 240 },
+          city: { page: 0, x: 28, y: 338, fontSize: 9, minFontSize: 7, maxWidth: 170 },
+          state: {
+            page: 0,
+            x: 218.26,
+            y: 338,
+            fontSize: 8.5,
+            slots: [218.26, 247.55]
+          },
+          zip: {
+            page: 0,
+            x: 271.71,
+            y: 338,
+            fontSize: 8.5,
+            slots: [271.71, 291.68, 311.84, 332.00, 352.17]
+          },
+          email: { page: 0, x: 372, y: 338, fontSize: 8.5, minFontSize: 6.5, maxWidth: 215 },
           requirement_name: { page: 0, x: 28, y: 560, fontSize: 9.5, minFontSize: 7.5, maxWidth: 550 },
-          date_month: { page: 0, x: 38, y: 624, fontSize: 8.5, minFontSize: 7, maxWidth: 25 },
-          date_day: { page: 0, x: 82, y: 624, fontSize: 8.5, minFontSize: 7, maxWidth: 25 },
-          date_year: { page: 0, x: 144, y: 624, fontSize: 8.5, minFontSize: 7, maxWidth: 50 }
+          date_month: {
+            page: 0,
+            x: 32.09,
+            y: 623.5,
+            fontSize: 8.5,
+            slots: [32.09, 54.61]
+          },
+          date_day: {
+            page: 0,
+            x: 76.59,
+            y: 623.5,
+            fontSize: 8.5,
+            slots: [76.59, 98.56]
+          },
+          date_year: {
+            page: 0,
+            x: 120.54,
+            y: 623.5,
+            fontSize: 8.5,
+            slots: [120.54, 142.60, 164.75, 186.87]
+          }
         }
       }
     };
@@ -1284,9 +1341,77 @@ export async function fillOfficialForm(requirement, business) {
               renderedText += '…';
             }
 
+            const is314c = (official?.templateUrl || '').includes('314c') || (requirement?.template_url || '').includes('314c');
+            const NYC_314C_SLOTS = {
+              date_month: [32.09, 54.61],
+              date_day: [76.59, 98.56],
+              date_year: [120.54, 142.60, 164.75, 186.87],
+              phone: [421.28, 439.30, 456.95, 474.97, 493.37, 511.14, 529.17, 547.44, 565.47, 583.74],
+              state: [218.26, 247.55],
+              zip: [271.71, 291.68, 311.84, 332.00, 352.17],
+            };
+            const slots = pos.slots || (is314c ? NYC_314C_SLOTS[dataKey] : null);
+
+            let targetY = pos.y;
+            if (is314c) {
+              if (dataKey.startsWith('date_')) targetY = 623.5;
+              else if (dataKey === 'phone') targetY = 431;
+              else if (dataKey === 'state' || dataKey === 'zip' || dataKey === 'city' || dataKey === 'email') targetY = 338;
+              else if (dataKey === 'owner_name') targetY = 432;
+              else if (dataKey === 'business_name') targetY = 398;
+              else if (dataKey === 'building_number' || dataKey === 'street') targetY = 368;
+              else if (dataKey === 'requirement_name') targetY = 560;
+            }
+
+            if (Array.isArray(slots) && slots.length > 0) {
+              let chars = [];
+              if (dataKey === 'phone') {
+                const digits = textStr.replace(/\D/g, '');
+                const cleanDigits = (digits.length === 11 && digits.startsWith('1')) ? digits.slice(1) : digits;
+                chars = cleanDigits.split('');
+              } else if (dataKey === 'state') {
+                chars = textStr.replace(/[^A-Za-z]/g, '').toUpperCase().slice(0, slots.length).split('');
+              } else if (dataKey === 'zip') {
+                chars = textStr.replace(/\D/g, '').slice(0, slots.length).split('');
+              } else if (dataKey === 'date_month' || dataKey === 'date_day') {
+                chars = textStr.replace(/\D/g, '').padStart(slots.length, '0').slice(0, slots.length).split('');
+              } else if (dataKey === 'date_year') {
+                chars = textStr.replace(/\D/g, '').slice(-slots.length).split('');
+              } else {
+                chars = textStr.replace(/\s+/g, '').split('').slice(0, slots.length);
+              }
+
+              const fontSize = pos.fontSize || 8.5;
+              chars.forEach((c, idx) => {
+                if (idx < slots.length) {
+                  const charWidth = chosenFont.widthOfTextAtSize(c, fontSize);
+                  const charX = slots[idx] - (charWidth / 2);
+                  targetPage.drawText(c, {
+                    x: charX,
+                    y: targetY,
+                    size: fontSize,
+                    font: chosenFont,
+                    color: rgb(0, 0, 0.65),
+                  });
+                }
+              });
+              return;
+            }
+
+            let drawX = pos.x;
+            if (is314c) {
+              if (dataKey === 'city' || dataKey === 'building_number' || dataKey === 'business_name' || dataKey === 'owner_name' || dataKey === 'requirement_name') {
+                drawX = 28;
+              } else if (dataKey === 'street') {
+                drawX = 116;
+              } else if (dataKey === 'email') {
+                drawX = 372;
+              }
+            }
+
             targetPage.drawText(renderedText, {
-              x: pos.x,
-              y: pos.y,
+              x: drawX,
+              y: targetY,
               size: currentFontSize,
               font: chosenFont,
               color: rgb(0, 0, 0.65), // Crisp navy/blue ink

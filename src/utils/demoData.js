@@ -451,19 +451,55 @@ export const DEMO_REQUIREMENTS = [
     form_field_map: {
       mode: 'overlay',
       fields: {
-        owner_name: { page: 0, x: 28, y: 435, fontSize: 9, minFontSize: 7, maxWidth: 325 },
-        phone: { page: 0, x: 418, y: 435, fontSize: 9, minFontSize: 7, maxWidth: 170 },
-        business_name: { page: 0, x: 28, y: 400, fontSize: 9, minFontSize: 7, maxWidth: 325 },
-        building_number: { page: 0, x: 28, y: 370, fontSize: 9, minFontSize: 7, maxWidth: 70 },
-        street: { page: 0, x: 116, y: 370, fontSize: 9, minFontSize: 7, maxWidth: 240 },
-        city: { page: 0, x: 28, y: 340, fontSize: 9, minFontSize: 7, maxWidth: 185 },
-        state: { page: 0, x: 236, y: 340, fontSize: 9, minFontSize: 7, maxWidth: 28 },
-        zip: { page: 0, x: 300, y: 340, fontSize: 9, minFontSize: 7, maxWidth: 60 },
-        email: { page: 0, x: 372, y: 340, fontSize: 8.5, minFontSize: 6.5, maxWidth: 215 },
+        owner_name: { page: 0, x: 28, y: 432, fontSize: 9, minFontSize: 7, maxWidth: 330 },
+        phone: {
+          page: 0,
+          x: 421.28,
+          y: 431,
+          fontSize: 8.5,
+          slots: [421.28, 439.30, 456.95, 474.97, 493.37, 511.14, 529.17, 547.44, 565.47, 583.74]
+        },
+        business_name: { page: 0, x: 28, y: 398, fontSize: 9, minFontSize: 7, maxWidth: 330 },
+        building_number: { page: 0, x: 28, y: 368, fontSize: 9, minFontSize: 7, maxWidth: 75 },
+        street: { page: 0, x: 116, y: 368, fontSize: 9, minFontSize: 7, maxWidth: 240 },
+        city: { page: 0, x: 28, y: 338, fontSize: 9, minFontSize: 7, maxWidth: 170 },
+        state: {
+          page: 0,
+          x: 218.26,
+          y: 338,
+          fontSize: 8.5,
+          slots: [218.26, 247.55]
+        },
+        zip: {
+          page: 0,
+          x: 271.71,
+          y: 338,
+          fontSize: 8.5,
+          slots: [271.71, 291.68, 311.84, 332.00, 352.17]
+        },
+        email: { page: 0, x: 372, y: 338, fontSize: 8.5, minFontSize: 6.5, maxWidth: 215 },
         requirement_name: { page: 0, x: 28, y: 560, fontSize: 9.5, minFontSize: 7.5, maxWidth: 550 },
-        date_month: { page: 0, x: 38, y: 624, fontSize: 8.5, minFontSize: 7, maxWidth: 25 },
-        date_day: { page: 0, x: 82, y: 624, fontSize: 8.5, minFontSize: 7, maxWidth: 25 },
-        date_year: { page: 0, x: 144, y: 624, fontSize: 8.5, minFontSize: 7, maxWidth: 50 }
+        date_month: {
+          page: 0,
+          x: 32.09,
+          y: 623.5,
+          fontSize: 8.5,
+          slots: [32.09, 54.61]
+        },
+        date_day: {
+          page: 0,
+          x: 76.59,
+          y: 623.5,
+          fontSize: 8.5,
+          slots: [76.59, 98.56]
+        },
+        date_year: {
+          page: 0,
+          x: 120.54,
+          y: 623.5,
+          fontSize: 8.5,
+          slots: [120.54, 142.60, 164.75, 186.87]
+        }
       }
     },
     last_verified_date: format(today, 'yyyy-MM-dd'),
@@ -488,19 +524,55 @@ export const DEMO_REQUIREMENTS = [
     form_field_map: {
       mode: 'overlay',
       fields: {
-        owner_name: { page: 0, x: 28, y: 435, fontSize: 9, minFontSize: 7, maxWidth: 325 },
-        phone: { page: 0, x: 418, y: 435, fontSize: 9, minFontSize: 7, maxWidth: 170 },
-        business_name: { page: 0, x: 28, y: 400, fontSize: 9, minFontSize: 7, maxWidth: 325 },
-        building_number: { page: 0, x: 28, y: 370, fontSize: 9, minFontSize: 7, maxWidth: 70 },
-        street: { page: 0, x: 116, y: 370, fontSize: 9, minFontSize: 7, maxWidth: 240 },
-        city: { page: 0, x: 28, y: 340, fontSize: 9, minFontSize: 7, maxWidth: 185 },
-        state: { page: 0, x: 236, y: 340, fontSize: 9, minFontSize: 7, maxWidth: 28 },
-        zip: { page: 0, x: 300, y: 340, fontSize: 9, minFontSize: 7, maxWidth: 60 },
-        email: { page: 0, x: 372, y: 340, fontSize: 8.5, minFontSize: 6.5, maxWidth: 215 },
+        owner_name: { page: 0, x: 28, y: 432, fontSize: 9, minFontSize: 7, maxWidth: 330 },
+        phone: {
+          page: 0,
+          x: 421.28,
+          y: 431,
+          fontSize: 8.5,
+          slots: [421.28, 439.30, 456.95, 474.97, 493.37, 511.14, 529.17, 547.44, 565.47, 583.74]
+        },
+        business_name: { page: 0, x: 28, y: 398, fontSize: 9, minFontSize: 7, maxWidth: 330 },
+        building_number: { page: 0, x: 28, y: 368, fontSize: 9, minFontSize: 7, maxWidth: 75 },
+        street: { page: 0, x: 116, y: 368, fontSize: 9, minFontSize: 7, maxWidth: 240 },
+        city: { page: 0, x: 28, y: 338, fontSize: 9, minFontSize: 7, maxWidth: 170 },
+        state: {
+          page: 0,
+          x: 218.26,
+          y: 338,
+          fontSize: 8.5,
+          slots: [218.26, 247.55]
+        },
+        zip: {
+          page: 0,
+          x: 271.71,
+          y: 338,
+          fontSize: 8.5,
+          slots: [271.71, 291.68, 311.84, 332.00, 352.17]
+        },
+        email: { page: 0, x: 372, y: 338, fontSize: 8.5, minFontSize: 6.5, maxWidth: 215 },
         requirement_name: { page: 0, x: 28, y: 560, fontSize: 9.5, minFontSize: 7.5, maxWidth: 550 },
-        date_month: { page: 0, x: 38, y: 624, fontSize: 8.5, minFontSize: 7, maxWidth: 25 },
-        date_day: { page: 0, x: 82, y: 624, fontSize: 8.5, minFontSize: 7, maxWidth: 25 },
-        date_year: { page: 0, x: 144, y: 624, fontSize: 8.5, minFontSize: 7, maxWidth: 50 }
+        date_month: {
+          page: 0,
+          x: 32.09,
+          y: 623.5,
+          fontSize: 8.5,
+          slots: [32.09, 54.61]
+        },
+        date_day: {
+          page: 0,
+          x: 76.59,
+          y: 623.5,
+          fontSize: 8.5,
+          slots: [76.59, 98.56]
+        },
+        date_year: {
+          page: 0,
+          x: 120.54,
+          y: 623.5,
+          fontSize: 8.5,
+          slots: [120.54, 142.60, 164.75, 186.87]
+        }
       }
     },
     last_verified_date: format(today, 'yyyy-MM-dd'),
@@ -525,19 +597,55 @@ export const DEMO_REQUIREMENTS = [
     form_field_map: {
       mode: 'overlay',
       fields: {
-        owner_name: { page: 0, x: 28, y: 435, fontSize: 9, minFontSize: 7, maxWidth: 325 },
-        phone: { page: 0, x: 418, y: 435, fontSize: 9, minFontSize: 7, maxWidth: 170 },
-        business_name: { page: 0, x: 28, y: 400, fontSize: 9, minFontSize: 7, maxWidth: 325 },
-        building_number: { page: 0, x: 28, y: 370, fontSize: 9, minFontSize: 7, maxWidth: 70 },
-        street: { page: 0, x: 116, y: 370, fontSize: 9, minFontSize: 7, maxWidth: 240 },
-        city: { page: 0, x: 28, y: 340, fontSize: 9, minFontSize: 7, maxWidth: 185 },
-        state: { page: 0, x: 236, y: 340, fontSize: 9, minFontSize: 7, maxWidth: 28 },
-        zip: { page: 0, x: 300, y: 340, fontSize: 9, minFontSize: 7, maxWidth: 60 },
-        email: { page: 0, x: 372, y: 340, fontSize: 8.5, minFontSize: 6.5, maxWidth: 215 },
+        owner_name: { page: 0, x: 28, y: 432, fontSize: 9, minFontSize: 7, maxWidth: 330 },
+        phone: {
+          page: 0,
+          x: 421.28,
+          y: 431,
+          fontSize: 8.5,
+          slots: [421.28, 439.30, 456.95, 474.97, 493.37, 511.14, 529.17, 547.44, 565.47, 583.74]
+        },
+        business_name: { page: 0, x: 28, y: 398, fontSize: 9, minFontSize: 7, maxWidth: 330 },
+        building_number: { page: 0, x: 28, y: 368, fontSize: 9, minFontSize: 7, maxWidth: 75 },
+        street: { page: 0, x: 116, y: 368, fontSize: 9, minFontSize: 7, maxWidth: 240 },
+        city: { page: 0, x: 28, y: 338, fontSize: 9, minFontSize: 7, maxWidth: 170 },
+        state: {
+          page: 0,
+          x: 218.26,
+          y: 338,
+          fontSize: 8.5,
+          slots: [218.26, 247.55]
+        },
+        zip: {
+          page: 0,
+          x: 271.71,
+          y: 338,
+          fontSize: 8.5,
+          slots: [271.71, 291.68, 311.84, 332.00, 352.17]
+        },
+        email: { page: 0, x: 372, y: 338, fontSize: 8.5, minFontSize: 6.5, maxWidth: 215 },
         requirement_name: { page: 0, x: 28, y: 560, fontSize: 9.5, minFontSize: 7.5, maxWidth: 550 },
-        date_month: { page: 0, x: 38, y: 624, fontSize: 8.5, minFontSize: 7, maxWidth: 25 },
-        date_day: { page: 0, x: 82, y: 624, fontSize: 8.5, minFontSize: 7, maxWidth: 25 },
-        date_year: { page: 0, x: 144, y: 624, fontSize: 8.5, minFontSize: 7, maxWidth: 50 }
+        date_month: {
+          page: 0,
+          x: 32.09,
+          y: 623.5,
+          fontSize: 8.5,
+          slots: [32.09, 54.61]
+        },
+        date_day: {
+          page: 0,
+          x: 76.59,
+          y: 623.5,
+          fontSize: 8.5,
+          slots: [76.59, 98.56]
+        },
+        date_year: {
+          page: 0,
+          x: 120.54,
+          y: 623.5,
+          fontSize: 8.5,
+          slots: [120.54, 142.60, 164.75, 186.87]
+        }
       }
     },
     last_verified_date: format(today, 'yyyy-MM-dd'),
@@ -598,19 +706,55 @@ export const DEMO_REQUIREMENTS = [
     form_field_map: {
       mode: 'overlay',
       fields: {
-        owner_name: { page: 0, x: 28, y: 435, fontSize: 9, minFontSize: 7, maxWidth: 325 },
-        phone: { page: 0, x: 418, y: 435, fontSize: 9, minFontSize: 7, maxWidth: 170 },
-        business_name: { page: 0, x: 28, y: 400, fontSize: 9, minFontSize: 7, maxWidth: 325 },
-        building_number: { page: 0, x: 28, y: 370, fontSize: 9, minFontSize: 7, maxWidth: 70 },
-        street: { page: 0, x: 116, y: 370, fontSize: 9, minFontSize: 7, maxWidth: 240 },
-        city: { page: 0, x: 28, y: 340, fontSize: 9, minFontSize: 7, maxWidth: 185 },
-        state: { page: 0, x: 236, y: 340, fontSize: 9, minFontSize: 7, maxWidth: 28 },
-        zip: { page: 0, x: 300, y: 340, fontSize: 9, minFontSize: 7, maxWidth: 60 },
-        email: { page: 0, x: 372, y: 340, fontSize: 8.5, minFontSize: 6.5, maxWidth: 215 },
+        owner_name: { page: 0, x: 28, y: 432, fontSize: 9, minFontSize: 7, maxWidth: 330 },
+        phone: {
+          page: 0,
+          x: 421.28,
+          y: 431,
+          fontSize: 8.5,
+          slots: [421.28, 439.30, 456.95, 474.97, 493.37, 511.14, 529.17, 547.44, 565.47, 583.74]
+        },
+        business_name: { page: 0, x: 28, y: 398, fontSize: 9, minFontSize: 7, maxWidth: 330 },
+        building_number: { page: 0, x: 28, y: 368, fontSize: 9, minFontSize: 7, maxWidth: 75 },
+        street: { page: 0, x: 116, y: 368, fontSize: 9, minFontSize: 7, maxWidth: 240 },
+        city: { page: 0, x: 28, y: 338, fontSize: 9, minFontSize: 7, maxWidth: 170 },
+        state: {
+          page: 0,
+          x: 218.26,
+          y: 338,
+          fontSize: 8.5,
+          slots: [218.26, 247.55]
+        },
+        zip: {
+          page: 0,
+          x: 271.71,
+          y: 338,
+          fontSize: 8.5,
+          slots: [271.71, 291.68, 311.84, 332.00, 352.17]
+        },
+        email: { page: 0, x: 372, y: 338, fontSize: 8.5, minFontSize: 6.5, maxWidth: 215 },
         requirement_name: { page: 0, x: 28, y: 560, fontSize: 9.5, minFontSize: 7.5, maxWidth: 550 },
-        date_month: { page: 0, x: 38, y: 624, fontSize: 8.5, minFontSize: 7, maxWidth: 25 },
-        date_day: { page: 0, x: 82, y: 624, fontSize: 8.5, minFontSize: 7, maxWidth: 25 },
-        date_year: { page: 0, x: 144, y: 624, fontSize: 8.5, minFontSize: 7, maxWidth: 50 }
+        date_month: {
+          page: 0,
+          x: 32.09,
+          y: 623.5,
+          fontSize: 8.5,
+          slots: [32.09, 54.61]
+        },
+        date_day: {
+          page: 0,
+          x: 76.59,
+          y: 623.5,
+          fontSize: 8.5,
+          slots: [76.59, 98.56]
+        },
+        date_year: {
+          page: 0,
+          x: 120.54,
+          y: 623.5,
+          fontSize: 8.5,
+          slots: [120.54, 142.60, 164.75, 186.87]
+        }
       }
     },
     last_verified_date: format(today, 'yyyy-MM-dd'),

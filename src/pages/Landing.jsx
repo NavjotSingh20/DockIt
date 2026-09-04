@@ -1,50 +1,51 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useNavigate } from 'react-router-dom';
-import { ArrowRight, Check, Plus, Building2, AlertTriangle, MapPin, ClipboardCheck, MessageSquare, Clock, Map } from 'lucide-react';
+import { ArrowRight, Check, Plus, Building2, AlertTriangle, MapPin, ClipboardCheck, MessageSquare, Clock, Map, FileText, DollarSign } from 'lucide-react';
 import { useDemo } from '../context/DemoContext';
 import toast from 'react-hot-toast';
 import ScrollFloat from '../components/ui/ScrollFloat';
 import SeamlessStrokeText from '../components/ui/SeamlessStrokeText';
 import DockItLogo from '../components/ui/DockItLogo';
 
-/* ─── Real permit data (Hero animation — Delhi NCR restaurant example) ─── */
-const INDIA_HERO_CHECKLIST = [
-  { id: 'ind-1', name: 'FSSAI Food License (State / FoSCoS)', agency: 'FSSAI / FoSCoS Portal', cities: ['Delhi'] },
-  { id: 'ind-2', name: 'GST Registration (Active GSTIN)', agency: 'GST Council of India / CBIC', cities: ['Delhi'] },
-  { id: 'ind-3', name: 'MCD Health Trade License', agency: 'Municipal Corporation of Delhi', cities: ['Delhi'] },
-  { id: 'ind-4', name: 'Delhi Police Eating House Registration', agency: 'Delhi Police Licensing Branch', cities: ['Delhi'] },
-  { id: 'ind-5', name: 'Delhi Fire Services Clearance (NOC)', agency: 'Delhi Fire Services (DFS)', cities: ['Delhi'] },
-  { id: 'ind-6', name: 'Delhi Shop & Establishment Act', agency: 'Delhi Labour Department', cities: ['Delhi'] },
-  { id: 'ind-7', name: 'Signage & Facade Nameboard Permit', agency: 'MCD Advertisement Dept', cities: ['Delhi'] },
+/* ─── Real US Food Truck Permit Data (Hero animation — Rico's Curbside Kitchen NYC example) ─── */
+const US_HERO_CHECKLIST = [
+  { id: 'us-1', name: 'Mobile Food Vending License', agency: 'NYC Dept. of Consumer & Worker Protection (DCWP)', fee: '$50', cities: ['New York'] },
+  { id: 'us-2', name: 'Mobile Food Vendor (MFV) Unit Permit', agency: 'NYC Dept. of Health & Mental Hygiene (DOHMH)', fee: '$200', cities: ['New York'] },
+  { id: 'us-3', name: 'Food Protection Certificate (MFV)', agency: 'NYC Health Academy / DOHMH', fee: '$114', cities: ['New York'] },
+  { id: 'us-4', name: 'Employer Identification Number (EIN / SS-4)', agency: 'Internal Revenue Service (IRS Federal)', fee: '$0 Free', cities: ['New York', 'Los Angeles'] },
+  { id: 'us-5', name: 'NYS Certificate of Authority (Sales Tax)', agency: 'NY State Dept. of Taxation & Finance', fee: '$0 Free', cities: ['New York'] },
+  { id: 'us-6', name: 'Approved Commercial Commissary Agreement', agency: 'DOHMH Registered Commissary Kitchen', fee: 'Required', cities: ['New York'] },
+  { id: 'us-7', name: 'Environmental Control Board (ECB) Clearance', agency: 'NYC Office of Administrative Trials (OATH)', fee: '$0 Free', cities: ['New York'] },
 ];
 
-/* ─── Smart-Diff demo data (India Multi-City Expansion: Delhi -> Chandigarh) ─── */
+/* ─── Smart-Diff demo data (US Multi-City Expansion: New York -> Los Angeles) ─── */
 const DIFF_CITY_A_ITEMS = [
-  { id: 'delhi-1', name: 'MCD Health Trade License', agency: 'Municipal Corporation of Delhi', cities: ['Delhi'] },
-  { id: 'delhi-2', name: 'Delhi Police Eating House License', agency: 'Delhi Police (Licensing Branch)', cities: ['Delhi'] },
-  { id: 'delhi-3', name: 'Delhi Fire Services NOC', agency: 'Delhi Fire Services', cities: ['Delhi'] },
-  { id: 'delhi-4', name: 'Delhi Shop & Establishment Act', agency: 'Delhi Labour Department', cities: ['Delhi'] },
-  { id: 'delhi-5', name: 'FSSAI Food License (FoSCoS)', agency: 'FSSAI (Central / State)', cities: ['Delhi', 'Chandigarh'] },
-  { id: 'delhi-6', name: 'GST Registration', agency: 'GST Council of India', cities: ['Delhi', 'Chandigarh'] },
-  { id: 'delhi-7', name: 'Permanent Account Number (PAN)', agency: 'Income Tax Department (India)', cities: ['Delhi', 'Chandigarh'] },
+  { id: 'nyc-1', name: 'NYC Mobile Food Vending License', agency: 'NYC DCWP', fee: '$50', cities: ['New York'] },
+  { id: 'nyc-2', name: 'NYC DOHMH Unit Vending Permit', agency: 'NYC Dept. of Health (DOHMH)', fee: '$200', cities: ['New York'] },
+  { id: 'nyc-3', name: 'NYS Certificate of Authority (Sales Tax)', agency: 'NY State Dept. of Tax & Finance', fee: '$0', cities: ['New York'] },
+  { id: 'nyc-4', name: 'NYC Food Protection Certificate', agency: 'NYC DOHMH Health Academy', fee: '$114', cities: ['New York'] },
+  { id: 'us-shared-1', name: 'Employer Identification Number (EIN)', agency: 'Internal Revenue Service (IRS)', fee: '$0', cities: ['New York', 'Los Angeles'] },
+  { id: 'us-shared-2', name: 'Commercial Commissary Agreement', agency: 'Licensed Commercial Commissary', fee: 'Active', cities: ['New York', 'Los Angeles'] },
+  { id: 'us-shared-3', name: 'Commercial General Liability Policy', agency: 'Standard US Commercial Carrier', fee: 'Active', cities: ['New York', 'Los Angeles'] },
 ];
 
 const DIFF_CITY_B_ITEMS = [
-  { id: 'chd-1', name: 'MCC Municipal Trade License', agency: 'Municipal Corporation Chandigarh', cities: ['Chandigarh'] },
-  { id: 'chd-2', name: 'Chandigarh Health / Eating House Lic.', agency: 'MCC Health Dept (MOH)', cities: ['Chandigarh'] },
-  { id: 'chd-3', name: 'Chandigarh Fire Safety Certificate / NOC', agency: 'Chandigarh Fire & Emergency Services', cities: ['Chandigarh'] },
-  { id: 'chd-4', name: 'Punjab Shop & Commercial Reg.', agency: 'Chandigarh Labour Department', cities: ['Chandigarh'] },
+  { id: 'la-1', name: 'LA County Mobile Food Facility (MFF) Permit', agency: 'LA County Dept. of Public Health (LACDPH)', fee: '$435', cities: ['Los Angeles'] },
+  { id: 'la-2', name: 'City of LA Business Tax Certificate (BTRC)', agency: 'City of Los Angeles Office of Finance', fee: '$50', cities: ['Los Angeles'] },
+  { id: 'la-3', name: 'California Seller\'s Permit', agency: 'California Dept. of Tax & Fee Admin (CDTFA)', fee: '$0', cities: ['Los Angeles'] },
+  { id: 'la-4', name: 'California HCD Commercial Vehicle Insignia', agency: 'CA Dept. of Housing & Community Dev.', fee: '$100', cities: ['Los Angeles'] },
+  { id: 'la-5', name: 'California Food Handler / Manager Card', agency: 'CA Dept. of Public Health', fee: '$15', cities: ['Los Angeles'] },
 ];
 
-const DIFF_SHARED_IDS = ['delhi-5', 'delhi-6', 'delhi-7'];
+const DIFF_SHARED_IDS = ['us-shared-1', 'us-shared-2', 'us-shared-3'];
 
 /* ─── City tag pill ─── */
 function CityTag({ city }) {
   const colors = {
-    Delhi: 'bg-ink/8 text-ink-muted',
-    Chandigarh: 'bg-accent/10 text-accent-dark',
-    'New Delhi': 'bg-ink/8 text-ink-muted',
+    'New York': 'bg-accent/10 text-accent-dark',
+    'Los Angeles': 'bg-settled/15 text-settled',
+    'Federal': 'bg-ink/8 text-ink-muted',
     Both: 'bg-settled/15 text-settled',
   };
   return (
@@ -79,16 +80,23 @@ function ChecklistItem({ item, state = 'default', showCity = false }) {
         <div className={`text-sm font-medium ${state === 'covered' ? 'text-ink-muted' : 'text-ink'}`}>
           {item.name}
         </div>
-        <div className="text-xs text-ink-faint">{item.agency}</div>
+        <div className="text-xs text-ink-faint truncate">{item.agency}</div>
       </div>
-      {showCity && (
-        <CityTag city={item.cities.length > 1 ? 'Both' : item.cities[0]} />
-      )}
+      <div className="flex items-center gap-2 flex-shrink-0">
+        {item.fee && (
+          <span className="text-[11px] font-display font-bold text-ink-muted bg-base px-2 py-0.5 rounded-md border border-rule/60">
+            {item.fee}
+          </span>
+        )}
+        {showCity && (
+          <CityTag city={item.cities.length > 1 ? 'Both' : item.cities[0]} />
+        )}
+      </div>
     </div>
   );
 }
 
-/* ─── Hero checklist module (enhanced) ─── */
+/* ─── Hero checklist module (enhanced with US Food Truck banner) ─── */
 function HeroChecklist() {
   const [checkedItems, setCheckedItems] = useState([]);
   const [isHovered, setIsHovered] = useState(false);
@@ -97,10 +105,10 @@ function HeroChecklist() {
 
   // Auto-check items sequentially after mount
   useEffect(() => {
-    const timers = INDIA_HERO_CHECKLIST.map((item, i) =>
+    const timers = US_HERO_CHECKLIST.map((item, i) =>
       setTimeout(() => {
         setCheckedItems((prev) => [...prev, item.id]);
-      }, 1000 + i * 500)
+      }, 900 + i * 450)
     );
     return () => timers.forEach(clearTimeout);
   }, []);
@@ -114,7 +122,7 @@ function HeroChecklist() {
     setMousePos({ x, y });
   }, []);
 
-  const progress = (checkedItems.length / INDIA_HERO_CHECKLIST.length) * 100;
+  const progress = (checkedItems.length / US_HERO_CHECKLIST.length) * 100;
 
   const tiltStyle = isHovered
     ? {
@@ -130,64 +138,62 @@ function HeroChecklist() {
     <motion.div
       initial={{ opacity: 0, y: 24 }}
       animate={{ opacity: 1, y: 0 }}
-      transition={{ delay: 0.4, duration: 0.6, ease: 'easeOut' }}
-      className="w-full md:w-80"
+      transition={{ delay: 0.3, duration: 0.6, ease: 'easeOut' }}
+      className="w-full md:w-96"
     >
       <div
         ref={cardRef}
         onMouseEnter={() => setIsHovered(true)}
         onMouseLeave={() => { setIsHovered(false); setMousePos({ x: 0, y: 0 }); }}
         onMouseMove={handleMouseMove}
-        className="bg-surface rounded-2xl border border-rule overflow-hidden"
+        className="bg-surface rounded-2xl border border-rule overflow-hidden shadow-card hover:shadow-card-hover transition-all duration-300 group"
         style={{
           ...tiltStyle,
-          boxShadow: isHovered
-            ? '0 20px 40px rgba(28,25,23,0.10), 0 4px 12px rgba(28,25,23,0.06), 0 0 0 1px rgba(231,224,213,0.5)'
-            : '0 4px 16px rgba(28,25,23,0.06), 0 1px 4px rgba(28,25,23,0.03), 0 0 0 1px rgba(231,224,213,0.3)',
         }}
       >
         {/* Header */}
-        <div className="px-4 pt-4 pb-3 border-b border-rule/60">
+        <div className="px-4 pt-4 pb-3 border-b border-rule/60 bg-surface">
           <div className="flex items-center justify-between mb-1">
             <div className="flex items-center gap-2">
               <div className="w-2.5 h-2.5 rounded-full bg-accent" />
-              <span className="text-sm font-display font-bold text-ink">Delhi NCR Restaurant</span>
+              <span className="text-sm font-display font-bold text-ink">Rico's Curbside Kitchen</span>
+              <span className="text-[10px] font-display font-semibold uppercase px-2 py-0.5 rounded-full bg-accent/10 text-accent">NYC Food Truck</span>
             </div>
             <span className="text-xs font-display text-ink-faint">
-              {checkedItems.length}/{INDIA_HERO_CHECKLIST.length}
+              {checkedItems.length}/{US_HERO_CHECKLIST.length}
             </span>
           </div>
           {/* Progress bar */}
-          <div className="h-1 bg-rule/50 rounded-full mt-2 overflow-hidden">
+          <div className="h-1.5 bg-rule/50 rounded-full mt-2 overflow-hidden">
             <motion.div
               className="h-full bg-accent rounded-full"
               initial={{ width: 0 }}
               animate={{ width: `${progress}%` }}
-              transition={{ duration: 0.4, ease: 'easeOut' }}
+              transition={{ duration: 0.35, ease: 'easeOut' }}
             />
           </div>
         </div>
 
         {/* Checklist items with staggered reveal + auto-check */}
-        <div className="px-1 py-2">
-          {INDIA_HERO_CHECKLIST.map((item, i) => {
+        <div className="px-1.5 py-2 divide-y divide-rule/30">
+          {US_HERO_CHECKLIST.map((item, i) => {
             const isChecked = checkedItems.includes(item.id);
             return (
               <motion.div
                 key={item.id}
                 initial={{ opacity: 0, x: -16 }}
                 animate={{ opacity: 1, x: 0 }}
-                transition={{ delay: 0.4 + i * 0.07, duration: 0.35, ease: 'easeOut' }}
-                className="flex items-center gap-2.5 px-3 py-2 rounded-lg hover:bg-base-dark/40 transition-colors group"
+                transition={{ delay: 0.3 + i * 0.06, duration: 0.35, ease: 'easeOut' }}
+                className="flex items-center gap-2.5 px-3 py-2 rounded-lg hover:bg-base-dark/40 transition-colors"
               >
                 {/* Checkbox with animation */}
                 <motion.div
                   className={`w-4.5 h-4.5 rounded flex items-center justify-center flex-shrink-0 border transition-all duration-300 ${
                     isChecked
-                      ? 'bg-settled border-settled'
+                      ? 'bg-settled border-settled shadow-sm'
                       : 'border-rule-dark bg-transparent'
                   }`}
-                  animate={isChecked ? { scale: [1, 1.2, 1] } : {}}
+                  animate={isChecked ? { scale: [1, 1.25, 1] } : {}}
                   transition={{ duration: 0.25 }}
                   style={{ width: 18, height: 18 }}
                 >
@@ -204,13 +210,18 @@ function HeroChecklist() {
 
                 {/* Item text */}
                 <div className="flex-1 min-w-0">
-                  <div className={`text-[13px] font-medium transition-colors duration-300 ${
+                  <div className={`text-[12.5px] font-medium transition-colors duration-300 ${
                     isChecked ? 'text-ink-muted line-through decoration-settled/40' : 'text-ink'
                   }`}>
                     {item.name}
                   </div>
                   <div className="text-[11px] text-ink-faint truncate">{item.agency}</div>
                 </div>
+
+                {/* Statutory fee */}
+                <span className="text-[11px] font-display font-bold text-ink-muted bg-base px-1.5 py-0.5 rounded border border-rule/50 flex-shrink-0">
+                  {item.fee}
+                </span>
               </motion.div>
             );
           })}
@@ -219,19 +230,24 @@ function HeroChecklist() {
         {/* Bottom status */}
         <div className="px-4 py-3 bg-base-dark/30 border-t border-rule/40">
           <AnimatePresence mode="wait">
-            {checkedItems.length === INDIA_HERO_CHECKLIST.length ? (
+            {checkedItems.length === US_HERO_CHECKLIST.length ? (
               <motion.div
                 key="complete"
                 initial={{ opacity: 0, y: 6 }}
                 animate={{ opacity: 1, y: 0 }}
                 exit={{ opacity: 0 }}
-                className="flex items-center gap-2"
+                className="flex items-center justify-between"
               >
-                <div className="w-5 h-5 rounded-full bg-settled flex items-center justify-center">
-                  <Check size={12} className="text-white" strokeWidth={3} />
+                <div className="flex items-center gap-2">
+                  <div className="w-5 h-5 rounded-full bg-settled flex items-center justify-center">
+                    <Check size={12} className="text-white" strokeWidth={3} />
+                  </div>
+                  <span className="text-xs font-display font-bold text-settled">
+                    NYC 314C &amp; SS-4 Form Ready
+                  </span>
                 </div>
-                <span className="text-xs font-display font-semibold text-settled">
-                  Statutory checklist complete — ready to launch
+                <span className="text-[11px] font-display font-bold text-accent">
+                  100% Cleared
                 </span>
               </motion.div>
             ) : (
@@ -240,9 +256,10 @@ function HeroChecklist() {
                 initial={{ opacity: 0 }}
                 animate={{ opacity: 1 }}
                 exit={{ opacity: 0, y: -6 }}
-                className="text-xs text-ink-faint"
+                className="text-xs text-ink-faint flex items-center justify-between"
               >
-                Verifying central &amp; municipal requirements…
+                <span>Verifying Federal, NY State &amp; NYC agencies…</span>
+                <span className="font-display font-bold text-ink-muted">{Math.round(progress)}%</span>
               </motion.div>
             )}
           </AnimatePresence>
@@ -252,7 +269,7 @@ function HeroChecklist() {
   );
 }
 
-/* ─── Smart-diff demo (India Multi-City Expansion) ─── */
+/* ─── Smart-diff demo (US Multi-City Expansion: New York -> Los Angeles) ─── */
 function SmartDiffDemo() {
   const [showCityB, setShowCityB] = useState(false);
   const diffRef = useRef(null);
@@ -283,7 +300,7 @@ function SmartDiffDemo() {
           <div className="w-7 h-7 rounded-lg bg-ink flex items-center justify-center">
             <span className="text-xs font-display font-bold text-base">1</span>
           </div>
-          <span className="text-sm font-display font-semibold text-ink">New Delhi (Primary)</span>
+          <span className="text-sm font-display font-semibold text-ink">New York, NY (Primary)</span>
         </div>
         <div className="h-px flex-1 bg-rule" />
         <button
@@ -300,7 +317,7 @@ function SmartDiffDemo() {
           <span className={`text-sm font-display font-semibold transition-colors duration-300 ${
             showCityB ? 'text-accent' : 'text-ink-faint'
           }`}>
-            {showCityB ? '+ Chandigarh Added' : '+ Add Chandigarh'}
+            {showCityB ? '+ Los Angeles Added' : '+ Add Los Angeles'}
           </span>
         </button>
       </div>
@@ -311,7 +328,7 @@ function SmartDiffDemo() {
         <div className="px-4 py-3 border-b border-rule flex items-center justify-between">
           <div className="flex items-center gap-2">
             <span className="text-sm font-display font-bold text-ink">Expansion Checklist</span>
-            <CityTag city="Delhi" />
+            <CityTag city="New York" />
             <AnimatePresence>
               {showCityB && (
                 <motion.span
@@ -319,7 +336,7 @@ function SmartDiffDemo() {
                   animate={{ opacity: 1, scale: 1 }}
                   exit={{ opacity: 0, scale: 0.8 }}
                 >
-                  <CityTag city="Chandigarh" />
+                  <CityTag city="Los Angeles" />
                 </motion.span>
               )}
             </AnimatePresence>
@@ -350,7 +367,7 @@ function SmartDiffDemo() {
                 </motion.div>
               ))}
 
-              {/* Already covered group (National / Central Law) */}
+              {/* Already covered group (Federal / Nationwide US Base) */}
               <motion.div
                 initial={{ opacity: 0, height: 0 }}
                 animate={{ opacity: 1, height: 'auto' }}
@@ -360,7 +377,7 @@ function SmartDiffDemo() {
                 <div className="px-4 py-2 flex items-center gap-2">
                   <Check size={14} className="text-settled" strokeWidth={3} />
                   <span className="text-xs font-display font-bold text-settled uppercase tracking-wide">
-                    Already Covered Across India (National)
+                    Already Covered Across the US (Federal / Baseline)
                   </span>
                 </div>
                 {coveredItems.map((item, i) => (
@@ -375,7 +392,7 @@ function SmartDiffDemo() {
                 ))}
               </motion.div>
 
-              {/* New for City B group (Local Municipal / UT Permits) */}
+              {/* New for City B group (LA County & California Delta) */}
               <motion.div
                 initial={{ opacity: 0, height: 0 }}
                 animate={{ opacity: 1, height: 'auto' }}
@@ -385,7 +402,7 @@ function SmartDiffDemo() {
                 <div className="px-4 py-2 flex items-center gap-2">
                   <Plus size={14} className="text-accent" strokeWidth={3} />
                   <span className="text-xs font-display font-bold text-accent uppercase tracking-wide">
-                    New For Chandigarh (UT &amp; Municipal Delta)
+                    New For Los Angeles (County &amp; State Delta)
                   </span>
                 </div>
                 {DIFF_CITY_B_ITEMS.map((item, i) => (
@@ -408,99 +425,78 @@ function SmartDiffDemo() {
 }
 
 /* ════════════════════════════════════════════════════════════════
-   INDIA COMPLIANCE RISK & PENALTY CALCULATOR
+   USA COMPLIANCE RISK & PENALTY CALCULATOR (Dollar Currency & Real US Data)
    ════════════════════════════════════════════════════════════════ */
 const CALCULATOR_DATA = {
-  restaurant: {
-    name: 'Restaurant / Dine-in Cafe',
+  food_truck: {
+    name: 'Food Truck / Mobile Vendor',
     cities: {
-      'New Delhi, Delhi': {
+      'New York, NY': {
         time: '30–60 Days',
-        startupCost: '₹15,000 – ₹45,000',
+        startupCost: '$364 – $600',
         violations: [
-          { name: 'Operating without FSSAI Food License', penalty: 'Up to ₹5,00,000 / 6 mos imprisonment', law: 'FSS Act 2006 § 63' },
-          { name: 'Missing MCD Health Trade License', penalty: '₹5,000 – ₹20,000 + Premise Sealing', law: 'DMC Act 1957 § 417/421' },
-          { name: 'Unlicensed Eating House (Delhi Police)', penalty: 'Immediate Closure Notice', law: 'Delhi Police Act § 28/112' },
-          { name: 'Operating without Delhi Fire DFS NOC', penalty: 'Utility Cutoff + Seal Notice', law: 'Delhi Fire Safety Act § 3' }
+          { name: 'Unlicensed Mobile Food Vending', penalty: '$1,000 fine + Vehicle Impound', law: 'NYC Admin. Code § 17-314/325' },
+          { name: 'Missing Food Protection Certificate', penalty: '$250 – $1,000 fine', law: 'NYC Health Code § 81.09' },
+          { name: 'Operating without NYS Sales Tax Authority', penalty: 'Up to $10,000 penalty + Misdemeanor', law: 'NY Tax Law § 1145' },
+          { name: 'Unapproved Commissary Servicing', penalty: 'Immediate Permit Revocation', law: 'NYC Health Code § 89.27' }
         ]
       },
-      'Chandigarh': {
-        time: '25–45 Days',
-        startupCost: '₹12,000 – ₹35,000',
-        violations: [
-          { name: 'Operating without FSSAI License', penalty: 'Up to ₹5,00,000 fine', law: 'Food Safety & Standards Act § 63' },
-          { name: 'Missing MCC Municipal Trade License', penalty: '₹5,000 + Sealing notice', law: 'Punjab Municipal Corp Act § 343' },
-          { name: 'No Punjab Shop & Commercial Reg.', penalty: '₹2,000 – ₹5,000 fine', law: 'Punjab Shops Act 1958 § 13' },
-          { name: 'Fire Safety Non-Compliance', penalty: 'Immediate Premise Sealing', law: 'UT Fire Safety Guidelines' }
-        ]
-      },
-      'Mumbai, Maharashtra': {
+      'Los Angeles, CA': {
         time: '45–75 Days',
-        startupCost: '₹25,000 – ₹60,000',
+        startupCost: '$585 – $850',
         violations: [
-          { name: 'Missing BMC Health Trade License', penalty: '₹10,000 + Goods Seizure', law: 'MMC Act 1888 § 394' },
-          { name: 'Missing Mumbai Police Eating House Lic.', penalty: '₹10,000 + Closure', law: 'Mumbai Police Act § 33' },
-          { name: 'Operating without FSSAI Food License', penalty: 'Up to ₹5,00,000 penalty', law: 'FSS Act § 63' }
+          { name: 'Operating without LACDPH Health Permit', penalty: 'Up to $1,000 fine / 6 mos jail + Impoundment', law: 'CalCode § 114381' },
+          { name: 'Operating without City of LA BTRC', penalty: 'Principal tax + 40% civil penalty', law: 'LAMC § 21.05' },
+          { name: 'Missing California Food Handler / Manager Card', penalty: '$100 – $500 fine per uncertified employee', law: 'CalCode § 113948' },
+          { name: 'Missing HCD Vehicle Insignia', penalty: 'Red-Tagging / Immediate Closure', law: 'CA Health & Safety Code § 18029' }
+        ]
+      }
+    }
+  },
+  restaurant: {
+    name: 'Restaurant / Brick-and-Mortar',
+    cities: {
+      'New York, NY': {
+        time: '60–90 Days',
+        startupCost: '$650 – $1,800',
+        violations: [
+          { name: 'Missing NYC DOHMH Food Service Permit', penalty: '$1,000 – $2,000 + Closure Order', law: 'NYC Health Code § 81.05' },
+          { name: 'Operating without DOB Certificate of Occupancy', penalty: 'DOB Stop Work / Vacate Order', law: 'NYC Building Code § 28-118' },
+          { name: 'Missing Certified Food Protection Supervisor', penalty: '$1,000 health citation', law: 'NYC Health Code § 81.09' },
+          { name: 'Fire Suppression Non-Compliance', penalty: 'FDNY Summons + Immediate Seal', law: 'NYC Fire Code § 904' }
+        ]
+      },
+      'Los Angeles, CA': {
+        time: '60–90 Days',
+        startupCost: '$800 – $2,200',
+        violations: [
+          { name: 'Missing LACDPH Restaurant Public Health Permit', penalty: 'Premises closure notice + fines', law: 'CalCode § 114381' },
+          { name: 'Operating without City of LA BTRC', penalty: '40% civil penalty on back taxes', law: 'LAMC § 21.05' },
+          { name: 'Missing Certified Food Safety Manager', penalty: '$500 health citation', law: 'CalCode § 113947.1' },
+          { name: 'Fire Suppression Non-Compliance', penalty: 'LAFD Notice of Violation', law: 'LAFD Fire Code § 904' }
         ]
       }
     }
   },
   cloud_kitchen: {
-    name: 'Cloud Kitchen / QSR',
+    name: 'Ghost Kitchen / Commercial Prep',
     cities: {
-      'New Delhi, Delhi': {
-        time: '15–30 Days',
-        startupCost: '₹8,000 – ₹20,000',
+      'New York, NY': {
+        time: '30–45 Days',
+        startupCost: '$450 – $1,200',
         violations: [
-          { name: 'Missing FSSAI Food License (State/Basic)', penalty: 'Up to ₹5,00,000 penalty', law: 'Food Safety Act § 63' },
-          { name: 'Missing GST Registration (>₹20L turnover)', penalty: '100% Tax penalty + Interest', law: 'CGST Act § 122' },
-          { name: 'Missing Delhi Shop & Establishment', penalty: '₹2,000 – ₹10,000 fine', law: 'Delhi Shops Act § 35' }
+          { name: 'Missing Non-Retail Food Processing Permit', penalty: '$1,000 fine + Cease & Desist', law: 'NYS Dept. of Agriculture & Markets § 500' },
+          { name: 'Unregistered Commercial Kitchen Facility', penalty: 'Premises closure notice', law: 'NYC Health Code § 81' },
+          { name: 'Operating without NYS Sales Tax Registration', penalty: 'Up to $10,000 penalty', law: 'NY Tax Law § 1145' }
         ]
       },
-      'Chandigarh': {
-        time: '14–28 Days',
-        startupCost: '₹6,000 – ₹18,000',
+      'Los Angeles, CA': {
+        time: '30–60 Days',
+        startupCost: '$550 – $1,400',
         violations: [
-          { name: 'Missing FSSAI Food License', penalty: 'Up to ₹5,00,000 penalty', law: 'FSS Act § 63' },
-          { name: 'Missing MCC Trade License', penalty: '₹5,000 fine + Sealing', law: 'MCC Bylaws § 12' },
-          { name: 'Unregistered Commercial Establishment', penalty: '₹2,000 – ₹5,000 fine', law: 'Punjab Shops Act § 13' }
-        ]
-      },
-      'Mumbai, Maharashtra': {
-        time: '20–40 Days',
-        startupCost: '₹10,000 – ₹25,000',
-        violations: [
-          { name: 'Missing FSSAI Food License', penalty: 'Up to ₹5,00,000', law: 'FSS Act § 63' },
-          { name: 'Operating without Gumasta (Shop Act)', penalty: '₹5,00,000 / Notice', law: 'Maha Shops Act 2017' }
-        ]
-      }
-    }
-  },
-  food_truck: {
-    name: 'Food Truck / Kiosk',
-    cities: {
-      'New Delhi, Delhi': {
-        time: '20–35 Days',
-        startupCost: '₹10,000 – ₹25,000',
-        violations: [
-          { name: 'Operating without FSSAI Food Safety Lic.', penalty: 'Up to ₹5,00,000 / Seizure', law: 'Food Safety Act § 63' },
-          { name: 'Missing MCD Vending / Health NOC', penalty: 'Impounding of Vehicle + ₹5,000', law: 'MCD Street Vending Bylaws' }
-        ]
-      },
-      'Chandigarh': {
-        time: '15–30 Days',
-        startupCost: '₹8,000 – ₹20,000',
-        violations: [
-          { name: 'Operating without FSSAI Registration', penalty: 'Up to ₹5,00,000 fine', law: 'FSS Act § 63' },
-          { name: 'Unauthorized Vending in UT Zones', penalty: 'Vehicle Confiscation', law: 'UT Street Vendors Act' }
-        ]
-      },
-      'Mumbai, Maharashtra': {
-        time: '25–45 Days',
-        startupCost: '₹12,000 – ₹30,000',
-        violations: [
-          { name: 'Operating without FSSAI License', penalty: 'Up to ₹5,00,000', law: 'Food Safety Act § 63' },
-          { name: 'Missing BMC Mobile Vending Permission', penalty: 'Tow away + ₹5,000 fine', law: 'MMC Act § 313' }
+          { name: 'Missing LACDPH Shared Kitchen Operator Permit', penalty: 'Immediate Suspension of Facility', law: 'CalCode § 114381' },
+          { name: 'Operating without City of LA BTRC', penalty: 'Late penalty + audit notice', law: 'LAMC § 21.05' },
+          { name: 'Missing California Food Handler Verification', penalty: '$250 citation per violation', law: 'CalCode § 113948' }
         ]
       }
     }
@@ -508,18 +504,18 @@ const CALCULATOR_DATA = {
 };
 
 function ComplianceRiskCalculator() {
-  const [bizType, setBizType] = useState('restaurant');
-  const [city, setCity] = useState('New Delhi, Delhi');
+  const [bizType, setBizType] = useState('food_truck');
+  const [city, setCity] = useState('New York, NY');
   
   const bizData = CALCULATOR_DATA[bizType];
-  const cityConfig = bizData?.cities[city] || bizData?.cities['New Delhi, Delhi'];
+  const cityConfig = bizData?.cities[city] || bizData?.cities['New York, NY'];
 
   return (
     <div className="bg-surface rounded-3xl border border-rule p-6 md:p-8 max-w-3xl mx-auto shadow-card">
       <div className="text-center max-w-md mx-auto mb-6">
         <span className="text-xs font-bold font-display text-accent uppercase tracking-wider">Statutory Intelligence Tool</span>
-        <h3 className="text-xl font-bold font-display text-ink mt-1">India Compliance &amp; Penalty Risk Estimator</h3>
-        <p className="text-xs text-ink-faint mt-1">Estimate processing times, official government fees, and statutory penalty risks for Indian cities.</p>
+        <h3 className="text-xl font-bold font-display text-ink mt-1">US Compliance &amp; Penalty Risk Estimator</h3>
+        <p className="text-xs text-ink-faint mt-1">Estimate processing times, official government fees, and statutory penalty risks for US jurisdictions.</p>
       </div>
 
       <div className="grid sm:grid-cols-2 gap-4 mb-6">
@@ -536,12 +532,11 @@ function ComplianceRiskCalculator() {
         </div>
 
         <div>
-          <label className="text-xs font-bold font-display text-ink-muted uppercase tracking-wide block mb-1.5">Target Indian City</label>
+          <label className="text-xs font-bold font-display text-ink-muted uppercase tracking-wide block mb-1.5">Target US City</label>
           <select value={city} onChange={(e) => setCity(e.target.value)}
             className="w-full input text-xs font-bold font-display py-2.5 cursor-pointer">
-            <option value="New Delhi, Delhi">New Delhi, Delhi</option>
-            <option value="Chandigarh">Chandigarh (UT)</option>
-            <option value="Mumbai, Maharashtra">Mumbai, Maharashtra</option>
+            <option value="New York, NY">New York, NY</option>
+            <option value="Los Angeles, CA">Los Angeles, CA</option>
           </select>
         </div>
       </div>
@@ -581,28 +576,28 @@ function ComplianceRiskCalculator() {
   );
 }
 
-/* ─── Pain point cards data ─── */
+/* ─── Pain point cards data (US Food Truck & Operator Realities) ─── */
 const PAIN_POINTS = [
   {
     icon: Building2,
     iconBg: 'bg-ink/8',
     iconColor: 'text-ink-muted',
-    headline: '5–8 government portals. Zero coordination.',
-    body: 'A single restaurant in Delhi or Chandigarh must navigate FoSCoS for FSSAI, the Labour portal for Shop & Establishment, MCD/MCC for Trade Licenses, plus Fire and Police clearances independently.',
+    headline: '4–7 overlapping agencies. Zero coordination.',
+    body: 'A single food truck in New York or Los Angeles must navigate the IRS for EIN, State Revenue for Sales Tax, County/City Health (DOHMH or LACDPH) for mobile permits, Consumer Affairs (DCWP), and fire departments independently.',
   },
   {
     icon: AlertTriangle,
     iconBg: 'bg-accent/10',
     iconColor: 'text-accent',
-    headline: 'Up to ₹5 Lakh fines & sealing risk.',
-    body: 'Operating without an FSSAI license attracts penalties up to ₹5,00,000 under FSS Act § 63. Unlicensed eating houses face immediate police closure and municipal sealing without advance notice.',
+    headline: '$1,000+ fines, impoundment & red-tagging.',
+    body: 'Operating without an authentic mobile food vending permit triggers immediate vehicle impoundment and fines over $1,000 under NYC Admin Code § 17-314 and CalCode § 114381. Unlicensed mobile units face confiscation on the spot.',
   },
   {
     icon: MapPin,
     iconBg: 'bg-caution/10',
     iconColor: 'text-caution',
-    headline: 'Multi-city expansion friction.',
-    body: 'Opening a second outlet in Chandigarh or Mumbai after Delhi means re-learning distinct municipal bylaws, local health codes, and state labour registrations from scratch.',
+    headline: 'Cross-jurisdiction expansion friction.',
+    body: 'Expanding across city borders from NYC to Los Angeles or across county lines means re-learning distinct county health grading criteria, vehicle inspection insignias (HCD), and local business tax certificates (BTRC) from scratch.',
   },
 ];
 
@@ -610,23 +605,23 @@ const PAIN_POINTS = [
 const FEATURES = [
   {
     icon: ClipboardCheck,
-    title: 'Unified India Compliance Roadmap',
-    description: 'Central FSSAI, GST, state labour laws, and local municipal trade licenses synthesized into one prioritized checklist.',
+    title: 'Unified US Compliance Roadmap',
+    description: 'Federal EINs, state sales tax authority, certified commercial commissary contracts, and municipal food truck permits synthesized into one prioritized checklist.',
   },
   {
     icon: MessageSquare,
-    title: 'AI Compliance Assistant',
-    description: 'Ask about FSSAI turnover thresholds (Basic vs State vs Central), outdoor signage taxes, kitchen grease-trap requirements, or fire NOC exemptions in plain English or Hindi.',
+    title: 'AI Statutory Compliance Assistant',
+    description: 'Ask about commissary requirements, Class A vs Class D truck health codes, parking time restrictions, or state sales tax registration in plain English.',
   },
   {
     icon: Clock,
     title: 'Automated Expiry & Renewal Vault',
-    description: 'Stay ahead of annual FSSAI and municipal trade license renewals with automated 60, 30, and 7-day milestone email notifications.',
+    description: 'Stay ahead of 2-year DCWP licenses, annual DOHMH/LACDPH health decals, and vehicle inspection renewals with automated 60, 30, and 7-day milestone alerts.',
   },
   {
-    icon: Map,
-    title: 'Designated Ward & Office Locator',
-    description: 'Locate your regional FSSAI FoSCoS office, local municipal ward (MCD/MCC/BMC), and designated licensing police station on an interactive map.',
+    icon: FileText,
+    title: 'Authentic Statutory Form Engine',
+    description: 'Automatically populates genuine government PDF forms like NYC Form 314C, IRS Form SS-4, and LA County Health Applications with millimeter-accurate tick-box slotting.',
   },
 ];
 
@@ -637,7 +632,7 @@ export default function Landing() {
   const handleDemo = () => {
     enterDemo();
     navigate('/dashboard');
-    toast.success('Demo loaded — explore the dashboard');
+    toast.success('US Food Truck Demo loaded — explore the dashboard');
   };
 
   const handleGetStarted = () => {
@@ -687,19 +682,19 @@ export default function Landing() {
                 />
               </h1>
               <p className="text-ink-muted text-base md:text-lg leading-relaxed mb-8 max-w-lg">
-                DockIt guides Indian restaurant, cafe, and cloud kitchen founders through every mandatory license — from FSSAI and GST to MCD trade permits, fire NOCs, and police eating house registrations.
+                DockIt automates statutory licensing for American food trucks, mobile vendors, and culinary operators — from Federal EINs and State Sales Tax to municipal health permits, commissary agreements, and official Form 314C filings.
               </p>
               <div className="flex flex-col sm:flex-row gap-3">
                 <button onClick={handleGetStarted} className="btn-primary text-base px-7 py-3.5 leading-none cursor-pointer">
                   Build your checklist <ArrowRight size={18} />
                 </button>
                 <button onClick={handleDemo} className="inline-flex items-center justify-center text-sm text-ink-muted hover:text-accent font-display font-semibold transition-colors px-5 py-3.5 rounded-xl border border-rule hover:border-rule-dark bg-surface leading-none cursor-pointer">
-                  Try the demo
+                  Try the food truck demo
                 </button>
               </div>
             </motion.div>
 
-            {/* Right: interactive checklist preview */}
+            {/* Right: interactive US Food Truck checklist preview */}
             <HeroChecklist />
           </div>
 
@@ -710,7 +705,7 @@ export default function Landing() {
             transition={{ delay: 0.8, duration: 0.5 }}
             className="flex flex-wrap items-center justify-center gap-6 mt-12 md:mt-16 pt-6 border-t border-rule/50"
           >
-            {['New Delhi', 'Chandigarh', 'Mumbai', 'Bengaluru'].map((city) => (
+            {['New York, NY', 'Los Angeles, CA', 'Austin, TX', 'Federal / Nationwide'].map((city) => (
               <div key={city} className="inline-flex items-center gap-2">
                 <span className="w-1.5 h-1.5 rounded-full bg-settled shrink-0" />
                 <span className="text-xs font-display font-semibold text-ink-faint uppercase tracking-wider leading-none select-none">
@@ -746,7 +741,7 @@ export default function Landing() {
               What happens without a system.
             </ScrollFloat>
             <p className="text-ink-muted text-[15px] leading-relaxed mt-4 max-w-xl">
-              Food business licensing in India isn't difficult because the food is complex — it's difficult because the rules are fragmented across central portals (FoSCoS, GSTN), state departments (Labour, Fire Services), and local municipal bodies (MCD, MCC, BMC) that don't talk to each other.
+              Food business licensing in the United States isn't difficult because the food is complex — it's difficult because the rules are fragmented across federal agencies (IRS), state tax boards (NYS DTF, CDTFA), and local municipal/county health departments (NYC DOHMH, LA County LACDPH) that don't talk to each other.
             </p>
           </motion.div>
 
@@ -808,11 +803,11 @@ export default function Landing() {
 
               <div className="space-y-4 text-ink-muted text-[15px] leading-relaxed mt-6">
                 <p>
-                  When expanding your restaurant or cloud kitchen brand to a new Indian city, DockIt doesn't start over.
-                  Your central FSSAI registration and GST numbers carry over seamlessly.
+                  When expanding your food truck or culinary brand to a new US city, DockIt doesn't start over.
+                  Your Federal EIN, commercial commissary foundation, and general business entity carry over seamlessly.
                 </p>
                 <p className="text-sm text-ink-faint">
-                  DockIt isolates the exact municipal health trade licenses, local fire NOCs, and UT police registrations required for the new outlet — with zero duplicate research.
+                  DockIt isolates the exact county health permits, state seller's registrations, and vehicle inspection insignias required for the new market — with zero duplicate research.
                 </p>
               </div>
 
@@ -853,10 +848,10 @@ export default function Landing() {
           >
             <div className="text-center mb-10">
               <h2 className="font-display font-bold text-ink text-2xl md:text-3xl tracking-tight">
-                Everything required to launch and stay compliant in India.
+                Everything required to launch and stay compliant across the USA.
               </h2>
               <p className="text-ink-muted text-[15px] mt-3 max-w-lg mx-auto">
-                From your initial FSSAI FoSCoS filing to municipal renewals — one unified intelligence platform.
+                From your initial IRS Form SS-4 and NYC Form 314C filings to annual health renewals — one unified intelligence platform.
               </p>
             </div>
 
@@ -907,7 +902,7 @@ export default function Landing() {
               Find out what you actually need.
             </ScrollFloat>
             <p className="text-ink-muted text-[15px] mb-8 max-w-md mx-auto">
-              Build your complete Indian food business compliance checklist in under 60 seconds.
+              Build your complete US food truck and hospitality compliance checklist in under 60 seconds.
             </p>
             <button onClick={handleGetStarted} className="btn-primary text-base px-8 py-4 cursor-pointer">
               Build your checklist <ArrowRight size={18} />
@@ -925,12 +920,12 @@ export default function Landing() {
                 Dock<span className="text-accent">It</span>
               </span>
               <p className="text-sm text-white/40 mt-1">
-                Statutory compliance discovery for Indian food businesses and restaurants.
+                Statutory compliance discovery for American food trucks, mobile vendors, and hospitality operators.
               </p>
             </div>
             
             <div className="flex flex-wrap items-center gap-4 sm:gap-5">
-              {['New Delhi', 'Chandigarh', 'Mumbai', 'Bengaluru'].map((city) => (
+              {['New York, NY', 'Los Angeles, CA', 'Austin, TX', 'Federal / Nationwide'].map((city) => (
                 <div key={city} className="inline-flex items-center gap-2">
                   <span className="w-1.5 h-1.5 rounded-full bg-settled shrink-0" />
                   <span className="text-xs text-white/40 font-display font-semibold uppercase tracking-wider leading-none select-none">
@@ -942,9 +937,9 @@ export default function Landing() {
           </div>
 
           <div className="flex flex-col sm:flex-row items-center justify-between gap-3 text-xs text-white/30">
-            <p>&copy; {new Date().getFullYear()} DockIt India. All rights reserved.</p>
+            <p>&copy; {new Date().getFullYear()} DockIt USA. All rights reserved.</p>
             <p className="text-center sm:text-right">
-              DockIt provides regulatory discovery tools. It is not a government body or law firm and does not constitute legal advice.
+              DockIt provides regulatory discovery and statutory document filing tools. It is not a government body or law firm and does not constitute formal legal counsel.
             </p>
           </div>
         </div>

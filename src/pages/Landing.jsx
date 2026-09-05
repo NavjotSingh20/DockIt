@@ -632,7 +632,7 @@ export default function Landing() {
   const handleDemo = () => {
     enterDemo();
     navigate('/dashboard');
-    toast.success('US Food Truck Demo loaded — explore the dashboard');
+    toast.success('Demo loaded — explore the dashboard');
   };
 
   const handleGetStarted = () => {
@@ -689,7 +689,7 @@ export default function Landing() {
                   Build your checklist <ArrowRight size={18} />
                 </button>
                 <button onClick={handleDemo} className="inline-flex items-center justify-center text-sm text-ink-muted hover:text-accent font-display font-semibold transition-colors px-5 py-3.5 rounded-xl border border-rule hover:border-rule-dark bg-surface leading-none cursor-pointer">
-                  Try the food truck demo
+                  Try demo
                 </button>
               </div>
             </motion.div>
